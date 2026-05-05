@@ -1,0 +1,59 @@
+
+> doorstep-frontend@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.4 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://10.196.129.194:3000
+- Environments: .env.local
+✓ Ready in 5.6s
+Creating turbopack project {
+  dir: 'D:\\project\\doorstepfilings\\doorstepfilings-frontend',
+  testMode: true
+}
+
+ GET /contact 200 in 65ms (next.js: 4ms, application-code: 61ms)
+ GET /contact 200 in 103ms (next.js: 5ms, application-code: 97ms)
+ GET /contact 200 in 63ms (next.js: 3ms, application-code: 60ms)
+ GET /contact 200 in 67ms (next.js: 7ms, application-code: 60ms)
+ GET /contact 200 in 85ms (next.js: 8ms, application-code: 77ms)
+ GET /contact 200 in 88ms (next.js: 7ms, application-code: 82ms)
+ GET /contact 200 in 69ms (next.js: 5ms, application-code: 64ms)
+ GET /contact 200 in 80ms (next.js: 5ms, application-code: 75ms)
+ GET /contact 200 in 70ms (next.js: 6ms, application-code: 64ms)
+ GET /contact 200 in 70ms (next.js: 7ms, application-code: 63ms)
+ GET /contact 200 in 76ms (next.js: 6ms, application-code: 71ms)
+ GET /contact 200 in 77ms (next.js: 4ms, application-code: 73ms)
+ GET /contact 200 in 86ms (next.js: 5ms, application-code: 81ms)
+ GET /contact 200 in 68ms (next.js: 5ms, application-code: 63ms)
+ GET /contact 200 in 68ms (next.js: 4ms, application-code: 63ms)
+ GET /contact 200 in 75ms (next.js: 5ms, application-code: 70ms)
+ GET /contact 200 in 71ms (next.js: 4ms, application-code: 67ms)
+ GET /contact 200 in 71ms (next.js: 5ms, application-code: 66ms)
+ GET /contact 200 in 93ms (next.js: 5ms, application-code: 88ms)
+ GET /contact 200 in 85ms (next.js: 5ms, application-code: 80ms)
+ GET /contact 200 in 66ms (next.js: 4ms, application-code: 62ms)
+ GET /contact 200 in 70ms (next.js: 4ms, application-code: 66ms)
+ GET /contact 200 in 73ms (next.js: 5ms, application-code: 68ms)
+ GET /contact 200 in 75ms (next.js: 5ms, application-code: 71ms)
+ GET /contact 200 in 77ms (next.js: 5ms, application-code: 72ms)
+ GET /contact 200 in 65ms (next.js: 4ms, application-code: 61ms)
+ GET /contact 200 in 102ms (next.js: 6ms, application-code: 96ms)
+ GET /contact 200 in 72ms (next.js: 5ms, application-code: 67ms)
+ GET /contact 200 in 114ms (next.js: 6ms, application-code: 109ms)
+ GET /contact 200 in 70ms (next.js: 3ms, application-code: 67ms)
+ GET /contact 200 in 87ms (next.js: 5ms, application-code: 81ms)
+ GET /contact 200 in 83ms (next.js: 5ms, application-code: 78ms)
+ GET /contact 200 in 72ms (next.js: 6ms, application-code: 66ms)
+ GET /contact 200 in 78ms (next.js: 3ms, application-code: 75ms)
+ GET /contact 200 in 75ms (next.js: 5ms, application-code: 71ms)
+ GET /contact 200 in 63ms (next.js: 2ms, application-code: 60ms)
+ GET /contact 200 in 79ms (next.js: 5ms, application-code: 74ms)
+ GET /contact 200 in 76ms (next.js: 4ms, application-code: 72ms)
+ GET /contact 200 in 72ms (next.js: 4ms, application-code: 68ms)
+ GET /contact 200 in 73ms (next.js: 5ms, application-code: 68ms)
+ GET /contact 200 in 70ms (next.js: 5ms, application-code: 65ms)
+ GET /contact 200 in 63ms (next.js: 3ms, application-code: 60ms)
+ GET /login?redirect=%2Frm%2Fassigned-users 200 in 188ms (next.js: 49ms, proxy.ts: 5ms, application-code: 133ms)
+ GET /login?redirect=%2Fadmin%2Fenquiries 200 in 189ms (next.js: 78ms, proxy.ts: 5ms, application-code: 106ms)
+ GET /contact 200 in 78ms (next.js: 3ms, application-code: 75ms)
