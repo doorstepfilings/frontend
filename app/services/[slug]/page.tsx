@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { DocumentUpload } from "@/components/ui/document-upload";
 import { LoginModal } from "@/components/auth/login-modal";
+import { PublicShell } from "@/components/layout/public-shell";
 import { usePincodeLookup } from "@/hooks/use-pincode-lookup";
 import { useStoredUser } from "@/lib/auth/hooks";
 import { getStoredToken } from "@/lib/auth/storage";
@@ -305,32 +306,36 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
 
   if (loading) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-blue-900 border-t-transparent"></div>
-          <p className="text-gray-600">Loading service details...</p>
+      <PublicShell>
+        <div className="flex min-h-[60vh] items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-blue-900 border-t-transparent"></div>
+            <p className="text-gray-600">Loading service details...</p>
+          </div>
         </div>
-      </div>
+      </PublicShell>
     );
   }
 
   if (error && !serviceDetails) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center bg-gray-50">
-        <div className="mx-auto max-w-md px-4 text-center">
-          <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-red-100">
-            <i className="fas fa-exclamation-triangle text-3xl text-red-500"></i>
+      <PublicShell>
+        <div className="flex min-h-[60vh] items-center justify-center bg-gray-50">
+          <div className="mx-auto max-w-md px-4 text-center">
+            <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-red-100">
+              <i className="fas fa-exclamation-triangle text-3xl text-red-500"></i>
+            </div>
+            <h2 className="mb-2 text-2xl font-bold text-gray-800">Service Not Found</h2>
+            <p className="mb-6 text-gray-600">{error}</p>
+            <Link href="/services">
+              <Button className="bg-blue-900 hover:bg-blue-800">
+                <i className="fas fa-arrow-left mr-2"></i>
+                Back to Services
+              </Button>
+            </Link>
           </div>
-          <h2 className="mb-2 text-2xl font-bold text-gray-800">Service Not Found</h2>
-          <p className="mb-6 text-gray-600">{error}</p>
-          <Link href="/services">
-            <Button className="bg-blue-900 hover:bg-blue-800">
-              <i className="fas fa-arrow-left mr-2"></i>
-              Back to Services
-            </Button>
-          </Link>
         </div>
-      </div>
+      </PublicShell>
     );
   }
 
@@ -338,7 +343,8 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
 
   return (
     <>
-      <div className="min-h-screen bg-gray-50 pb-20">
+      <PublicShell>
+        <div className="min-h-screen bg-gray-50 pb-20">
         {/* Hero Section */}
         <div className="relative overflow-hidden bg-blue-900 py-20 text-white">
           <div className="absolute inset-0 opacity-10">
@@ -521,7 +527,8 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
             </div>
           </div>
         </div>
-      </div>
+        </div>
+      </PublicShell>
 
       <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
 
