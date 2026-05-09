@@ -305,7 +305,9 @@ body {
 
 .admin-theme .admin-btn,
 .admin-theme .admin-btn-soft,
-.admin-theme .admin-btn-muted {
+.admin-theme .admin-btn-muted,
+.admin-theme .admin-icon-btn-soft,
+.admin-theme .admin-icon-btn-muted {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -354,6 +356,38 @@ body {
 }
 
 .admin-theme .admin-btn-muted:hover {
+  background: #f1f5f9;
+}
+
+.admin-theme .admin-icon-btn-soft,
+.admin-theme .admin-icon-btn-muted {
+  height: 2.35rem;
+  width: 2.35rem;
+  min-width: 2.35rem;
+  border-radius: 0.85rem;
+  padding: 0;
+  font-size: 0.78rem;
+  letter-spacing: 0;
+}
+
+.admin-theme .admin-icon-btn-soft {
+  border: 1px solid var(--admin-primary-100);
+  background: var(--admin-primary-50);
+  color: var(--admin-primary-700);
+}
+
+.admin-theme .admin-icon-btn-soft:hover {
+  background: var(--admin-primary-100);
+  color: var(--admin-primary-800);
+}
+
+.admin-theme .admin-icon-btn-muted {
+  border: 1px solid var(--admin-border-soft);
+  background: #f8fafc;
+  color: var(--admin-text-strong);
+}
+
+.admin-theme .admin-icon-btn-muted:hover {
   background: #f1f5f9;
 }
 

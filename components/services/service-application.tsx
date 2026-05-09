@@ -1,13 +1,15 @@
 "use client";
 
 import { isAxiosError } from "axios";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiClient } from "@/lib/api/client";
 import { useAuthStatus, useStoredUser } from "@/lib/auth/hooks";
+import { setStoredUser } from "@/lib/auth/storage";
+import type { AuthUser } from "@/lib/auth/types";
 import { usePincodeLookup } from "@/lib/hooks/use-pincode-lookup";
 import { DocumentUpload } from "@/components/ui/document-upload";
 import { OrderSummaryModal } from "./order-summary-modal";
@@ -68,6 +70,11 @@ type DocumentRow = {
   type: string;
 };
 
+type ProfileResponse = {
+  data?: AuthUser | null;
+  user?: AuthUser | null;
+};
+
 function createRowsFromService(service: Service | null) {
   if (service?.documents && service.documents.length > 0) {
     return service.documents.map((document) => ({
@@ -100,10 +107,105 @@ const parsePhoneNumber = (fullNumber: string) => {
   return { dialCode: '91', phone: cleanNumber, countryIso: 'in' };
 };
 
+const mergeUserIntoForm = (
+  currentFormData: {
+    fullName: string;
+    email: string;
+    phone: string;
+    dialCode: string;
+    countryIso: string;
+    address: string;
+    city: string;
+    state: string;
+    pincode: string;
+    notes: string;
+  },
+  profile: AuthUser | null,
+  touchedFields: Set<string>,
+) => {
+  if (!profile) {
+    return currentFormData;
+  }
+
+  const parsedPhone = parsePhoneNumber(String(profile.mobile_number ?? ""));
+
+  return {
+    ...currentFormData,
+    fullName: touchedFields.has("fullName")
+      ? currentFormData.fullName
+      : String(profile.name ?? ""),
+    email: touchedFields.has("email")
+      ? currentFormData.email
+      : String(profile.email ?? ""),
+    phone: touchedFields.has("phone")
+      ? currentFormData.phone
+      : parsedPhone.phone,
+    dialCode: touchedFields.has("dialCode")
+      ? currentFormData.dialCode
+      : parsedPhone.dialCode,
+    countryIso: touchedFields.has("countryIso")
+      ? currentFormData.countryIso
+      : parsedPhone.countryIso,
+    address: touchedFields.has("address")
+      ? currentFormData.address
+      : String(profile.address ?? ""),
+    city: touchedFields.has("city")
+      ? currentFormData.city
+      : String(profile.city ?? ""),
+    state: touchedFields.has("state")
+      ? currentFormData.state
+      : String(profile.state ?? ""),
+    pincode: touchedFields.has("pincode")
+      ? currentFormData.pincode
+      : String(profile.pincode ?? ""),
+  };
+};
+
+const resolveProfileFromResponse = (payload: ProfileResponse | AuthUser | null | undefined) => {
+  if (!payload || typeof payload !== "object") {
+    return null;
+  }
+
+  const directProfile = payload as AuthUser;
+  if (
+    directProfile.name !== undefined ||
+    directProfile.email !== undefined ||
+    directProfile.mobile_number !== undefined ||
+    directProfile.address !== undefined
+  ) {
+    return directProfile;
+  }
+
+  const nestedPayload = payload as ProfileResponse & {
+    data?: AuthUser | { user?: AuthUser | null } | null;
+  };
+
+  if (nestedPayload.data && typeof nestedPayload.data === "object") {
+    const nestedDirect = nestedPayload.data as AuthUser;
+    if (
+      nestedDirect.name !== undefined ||
+      nestedDirect.email !== undefined ||
+      nestedDirect.mobile_number !== undefined ||
+      nestedDirect.address !== undefined
+    ) {
+      return nestedDirect;
+    }
+
+    const nestedUser = (nestedPayload.data as { user?: AuthUser | null }).user;
+    if (nestedUser) {
+      return nestedUser;
+    }
+  }
+
+  return nestedPayload.user ?? null;
+};
+
 export function ServiceApplication({ modalMode = false, onModalClose, preselectedService = null }: { modalMode?: boolean, onModalClose?: () => void, preselectedService?: Service | null }) {
   const router = useRouter();
   const authStatus = useAuthStatus();
   const user = useStoredUser();
+  const isServiceSelectionLocked = Boolean(preselectedService);
+  const touchedFieldsRef = useRef<Set<string>>(new Set());
 
   const [services, setServices] = useState<Service[]>([]);
   const [selectedService, setSelectedService] = useState<Service | null>(preselectedService);
@@ -113,7 +215,7 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
 
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState("");
-  const [includeAppointment, setIncludeAppointment] = useState(true);
+  const [includeAppointment, setIncludeAppointment] = useState(false);
   const [slots, setSlots] = useState<Slot[]>([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
@@ -139,19 +241,31 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
   const [createdApplication, setCreatedApplication] = useState<any>(null);
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const selectedPlanDetails =
+    selectedService?.pricing_plans?.find((plan) => plan.name === selectedPricingPlan) ?? null;
+  const hasMultiplePackages = (selectedService?.pricing_plans?.length ?? 0) > 1;
 
   const applySelectedService = useCallback((service: Service | null) => {
     setSelectedService(service);
-    if (service) {
-      setDocumentRows(createRowsFromService(service));
-      if (service.pricing_plans?.length) {
-        setSelectedPricingPlan(service.pricing_plans[0].name);
-      }
-    }
+    setDocumentRows(createRowsFromService(service));
+    setSelectedPricingPlan(service?.pricing_plans?.[0]?.name ?? "");
     setFileErrors({});
     setSelectedDate(null);
     setSelectedTimeSlot("");
   }, []);
+
+  const handleServiceSelectionChange = useCallback((serviceId: string) => {
+    const nextService =
+      services.find((service) => String(service.id) === String(serviceId)) ?? null;
+
+    if (nextService) {
+      localStorage.setItem("selectedService", JSON.stringify(nextService));
+    } else {
+      localStorage.removeItem("selectedService");
+    }
+
+    applySelectedService(nextService);
+  }, [applySelectedService, services]);
 
   const handlePincodeSuccess = useCallback(({ city, state }: { city: string; state: string }) => {
     setFormData((prev) => ({ ...prev, city, state }));
@@ -161,34 +275,61 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
 
   useEffect(() => {
     if (user) {
-      const parsed = parsePhoneNumber(user.mobile_number || "");
-      setTimeout(() => {
-        setFormData((c) => ({
-          ...c,
-          fullName: user.name || "",
-          email: user.email || "",
-          phone: parsed.phone,
-          dialCode: parsed.dialCode,
-          countryIso: parsed.countryIso,
-          address: user.address || "",
-          city: user.city || "",
-          state: user.state || "",
-          pincode: String(user.pincode || ""),
-        }));
-      }, 0);
+      setFormData((current) => mergeUserIntoForm(current, user, touchedFieldsRef.current));
     }
   }, [user]);
+
+  useEffect(() => {
+    if (authStatus !== "authenticated") {
+      return;
+    }
+
+    let isMounted = true;
+
+    async function loadCurrentUserProfile() {
+      try {
+        const response = await apiClient.get<ProfileResponse>("/user");
+        const profile = resolveProfileFromResponse(response.data);
+
+        if (!profile || !isMounted) {
+          return;
+        }
+
+        setStoredUser(profile);
+        setFormData((current) => mergeUserIntoForm(current, profile, touchedFieldsRef.current));
+      } catch (requestError) {
+        console.warn("Unable to hydrate service application profile", parseApiError(requestError));
+        // Keep the form usable with session/local auth data if the profile request fails.
+      }
+    }
+
+    void loadCurrentUserProfile();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [authStatus]);
 
   useEffect(() => {
     async function loadData() {
       try {
         const res = await apiClient.get<{ data: Service[] }>("/services");
-        setServices(res.data.data);
+        const availableServices = res.data.data;
+        setServices(availableServices);
 
         if (!preselectedService) {
           const stored = localStorage.getItem("selectedService");
           if (stored) {
-            applySelectedService(JSON.parse(stored));
+            try {
+              const parsed = JSON.parse(stored) as Service;
+              const matchedService =
+                availableServices.find((service) => String(service.id) === String(parsed.id)) ??
+                parsed;
+              applySelectedService(matchedService);
+            } catch {
+              localStorage.removeItem("selectedService");
+              applySelectedService(null);
+            }
           }
         } else {
           applySelectedService(preselectedService);
@@ -275,6 +416,7 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
   const slotRecovery = getSlotRecovery();
 
   const handleInputChange = (field: string, value: string) => {
+    touchedFieldsRef.current.add(field);
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -391,18 +533,110 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
         <div className={modalMode ? 'w-full' : 'lg:w-2/3'}>
           <form onSubmit={handleSubmit} className={`bg-white ${modalMode ? '' : 'rounded-2xl shadow-sm border border-gray-100 p-8'}`}>
             
-            {/* Service Selection (Readonly) */}
+            {/* Service Selection */}
             <div className="mb-6">
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Service</label>
-                <div className="relative">
-                    <input 
-                        type="text" 
-                        value={selectedService?.name || ''} 
-                        readOnly 
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-600 outline-none"
-                    />
-                </div>
+                {isServiceSelectionLocked ? (
+                    <div className="relative">
+                        <input 
+                            type="text" 
+                            value={selectedService?.name || ''} 
+                            readOnly 
+                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-600 outline-none"
+                        />
+                    </div>
+                ) : (
+                    <div className="relative">
+                        <select
+                            value={selectedService ? String(selectedService.id) : ""}
+                            onChange={(e) => handleServiceSelectionChange(e.target.value)}
+                            className="w-full appearance-none px-4 py-3 bg-white border border-gray-300 rounded-lg text-gray-700 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                            required
+                        >
+                            <option value="">Select a service</option>
+                            {services.map((service) => (
+                                <option key={service.id} value={service.id}>
+                                    {service.name}
+                                </option>
+                            ))}
+                        </select>
+                        <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">
+                            <i className="fas fa-chevron-down text-xs"></i>
+                        </span>
+                    </div>
+                )}
             </div>
+
+            {selectedService && (selectedService.pricing_plans?.length ?? 0) > 0 && (
+                <div className="mb-8">
+                    <div className="flex items-center gap-2 mb-4">
+                        <i className="fas fa-box-open text-blue-900"></i>
+                        <h3 className="text-lg font-bold text-gray-800">
+                            {hasMultiplePackages ? "Choose Package" : "Selected Package"}
+                        </h3>
+                    </div>
+                    <div className="h-px bg-gray-200 w-full mb-6"></div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                        {selectedService.pricing_plans?.map((plan) => {
+                            const isActive = selectedPricingPlan === plan.name;
+
+                            return (
+                                <button
+                                    key={plan.name}
+                                    type="button"
+                                    onClick={() => setSelectedPricingPlan(plan.name)}
+                                    className={`rounded-2xl border p-5 text-left transition-all ${
+                                        isActive
+                                            ? "border-blue-900 bg-blue-50 shadow-sm"
+                                            : "border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/40"
+                                    }`}
+                                >
+                                    <div className="flex items-start justify-between gap-4">
+                                        <div>
+                                            <p className="text-base font-bold text-gray-900">{plan.name}</p>
+                                            {typeof plan.price === "number" && (
+                                                <p className="mt-1 text-sm font-semibold text-blue-900">
+                                                    Rs. {plan.price}
+                                                </p>
+                                            )}
+                                        </div>
+                                        <span
+                                            className={`flex h-6 w-6 items-center justify-center rounded-full border text-xs ${
+                                                isActive
+                                                    ? "border-blue-900 bg-blue-900 text-white"
+                                                    : "border-gray-300 text-transparent"
+                                            }`}
+                                        >
+                                            <i className="fas fa-check"></i>
+                                        </span>
+                                    </div>
+
+                                    {plan.features && plan.features.length > 0 && (
+                                        <div className="mt-4 space-y-2">
+                                            {plan.features.slice(0, 4).map((feature) => (
+                                                <div key={feature} className="flex items-start gap-2 text-sm text-gray-600">
+                                                    <i className="fas fa-check-circle mt-0.5 text-[11px] text-emerald-500"></i>
+                                                    <span>{feature}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    {selectedPlanDetails && (
+                        <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+                            <span className="font-bold">{selectedPlanDetails.name}</span>
+                            {selectedPlanDetails.price !== undefined && (
+                                <span className="ml-2">Rs. {selectedPlanDetails.price}</span>
+                            )}
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* Personal Information Section */}
             <div className="mb-8">
@@ -469,7 +703,17 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
                     {showCountryDropdown && (
                         <div className="absolute mt-2 w-72 bg-white border border-gray-200 rounded-xl shadow-xl z-50 py-2 max-h-60 overflow-y-auto">
                             {COUNTRIES.map(c => (
-                                <button key={c.iso} type="button" onClick={() => { setFormData(p => ({ ...p, dialCode: c.dialCode, countryIso: c.iso })); setShowCountryDropdown(false); }} className="w-full px-4 py-2 flex items-center gap-3 hover:bg-gray-50 text-left">
+                                <button
+                                    key={c.iso}
+                                    type="button"
+                                    onClick={() => {
+                                        touchedFieldsRef.current.add("dialCode");
+                                        touchedFieldsRef.current.add("countryIso");
+                                        setFormData(p => ({ ...p, dialCode: c.dialCode, countryIso: c.iso }));
+                                        setShowCountryDropdown(false);
+                                    }}
+                                    className="w-full px-4 py-2 flex items-center gap-3 hover:bg-gray-50 text-left"
+                                >
                                     <img src={c.flag} className="w-5" />
                                     <span className="text-sm text-gray-700">{c.name} (+{c.dialCode})</span>
                                 </button>
@@ -634,27 +878,6 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
                         </div>
                     )}
                 </div>
-            </div>
-
-            {/* Document Upload Section */}
-            <div className="mb-8">
-                <div className="flex items-center gap-2 mb-4">
-                    <i className="fas fa-file-upload text-blue-900"></i>
-                    <h3 className="text-lg font-bold text-gray-800">Required Documents</h3>
-                </div>
-                <div className="h-px bg-gray-200 w-full mb-6"></div>
-                <DocumentUpload 
-                    rows={documentRows} 
-                    fileErrors={fileErrors} 
-                    onFileChange={handleFileChange} 
-                    onAddRow={() => setDocumentRows(c => [...c, { file: null, is_required: false, notes: "", type: "" }])}
-                    onRemoveRow={idx => setDocumentRows(c => c.filter((_, i) => i !== idx))}
-                    onTypeChange={(idx, v) => updateDocumentRow(idx, { type: v })}
-                    onNotesChange={(idx, v) => updateDocumentRow(idx, { notes: v })}
-                    onSubmit={() => {}} 
-                    showSubmitButton={false}
-                    availableTypes={selectedService?.documents?.map(d => ({ label: d.document_name || "", value: d.document_name || "" })) || []}
-                />
             </div>
 
             {/* Additional Information Section */}

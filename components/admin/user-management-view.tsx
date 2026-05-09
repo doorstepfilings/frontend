@@ -793,7 +793,14 @@ export function UserManagementView({
 
             <div className="overflow-x-auto">
               {currentType === "users" ? (
-                <table className="min-w-[1280px] w-full text-left">
+                <table className="min-w-[1120px] w-full table-fixed text-left">
+                  <colgroup>
+                    <col className="w-[27%]" />
+                    <col className="w-[18%]" />
+                    <col className="w-[22%]" />
+                    <col className="w-[22%]" />
+                    <col className="w-[11%]" />
+                  </colgroup>
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">
@@ -839,21 +846,23 @@ export function UserManagementView({
 
                         return (
                           <tr key={String(item.id)} className="transition-colors hover:bg-blue-50/40">
-                            <td className="px-6 py-4">
+                            <td className="px-6 py-4 align-top">
                               <div className="flex items-center gap-3">
                                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 font-black text-blue-700">
                                   {String(item.name ?? "U").charAt(0).toUpperCase()}
                                 </div>
-                                <div>
-                                  <p className="text-sm font-black text-gray-900">{item.name}</p>
-                                  <p className="text-xs text-gray-500">{item.email || "-"}</p>
+                                <div className="min-w-0 flex-1">
+                                  <p className="break-words text-sm font-black text-gray-900">
+                                    {item.name}
+                                  </p>
+                                  <p className="break-all text-xs text-gray-500">{item.email || "-"}</p>
                                   <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-gray-400">
                                     Joined {formatJoinedDate(item)}
                                   </p>
                                 </div>
                               </div>
                             </td>
-                            <td className="px-6 py-4">
+                            <td className="px-6 py-4 align-top">
                               <div className="space-y-2">
                                 <span className="inline-flex rounded-full bg-blue-900 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-white">
                                   {getIdentityLabel(currentType, item)}
@@ -866,7 +875,7 @@ export function UserManagementView({
                                     }
                                   }}
                                   disabled={isProtectedRole || isRowBusy}
-                                  className={`w-full rounded-lg px-3 py-2 text-[10px] font-black uppercase tracking-widest ${
+                                  className={`w-full min-w-0 rounded-lg px-3 py-2 text-[10px] font-black uppercase tracking-widest ${
                                     isProtectedRole
                                       ? "cursor-not-allowed border-0 bg-indigo-50 text-indigo-700"
                                       : "border-0 bg-blue-50 text-blue-700 hover:bg-blue-100"
@@ -882,7 +891,7 @@ export function UserManagementView({
                                 </select>
                               </div>
                             </td>
-                            <td className="px-6 py-4">
+                            <td className="px-6 py-4 align-top">
                               {canManageAssignments && typeof item.id === "number" ? (
                                 <select
                                   value={String(regionalManager?.id ?? "")}
@@ -890,7 +899,7 @@ export function UserManagementView({
                                     void handleAssignRM(item.id as number, event.target.value)
                                   }
                                   disabled={isRowBusy}
-                                  className="w-full rounded-lg bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-700 focus:outline-none focus:ring-4 focus:ring-blue-500/10"
+                                  className="w-full min-w-0 rounded-lg bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-700 focus:outline-none focus:ring-4 focus:ring-blue-500/10"
                                 >
                                   <option value="">No RM</option>
                                   {assignedRmOptions.map((option) => (
@@ -905,7 +914,7 @@ export function UserManagementView({
                                 </span>
                               )}
                             </td>
-                            <td className="px-6 py-4">
+                            <td className="px-6 py-4 align-top">
                               {canManageAssignments && typeof item.id === "number" ? (
                                 <select
                                   value={String(accountant?.id ?? "")}
@@ -916,7 +925,7 @@ export function UserManagementView({
                                     )
                                   }
                                   disabled={isRowBusy}
-                                  className="w-full rounded-lg bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-700 focus:outline-none focus:ring-4 focus:ring-blue-500/10"
+                                  className="w-full min-w-0 rounded-lg bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-700 focus:outline-none focus:ring-4 focus:ring-blue-500/10"
                                 >
                                   <option value="">No Accountant</option>
                                   {assignedAccountantOptions.map((option) => (
@@ -931,24 +940,28 @@ export function UserManagementView({
                                 </span>
                               )}
                             </td>
-                            <td className="px-6 py-4">
-                              <div className="flex justify-end gap-2">
+                            <td className="px-6 py-4 align-top">
+                              <div className="flex flex-wrap justify-end gap-2">
                                 <Link
                                   href={routeMeta[currentType].detailHref(String(item.id ?? ""))}
-                                  className="admin-btn-soft px-3 py-2 text-[10px]"
+                                  className="admin-icon-btn-soft"
+                                  title="View user"
+                                  aria-label="View user"
                                 >
-                                  View
+                                  <i className="fas fa-eye" />
                                 </Link>
                                 <button
                                   onClick={() => void handleDelete(item)}
                                   disabled={isProtectedRole || isRowBusy}
-                                  className={`rounded-lg px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-colors ${
+                                  title="Delete user"
+                                  aria-label="Delete user"
+                                  className={`h-10 w-10 rounded-xl shadow-sm transition-all ${
                                     isProtectedRole
                                       ? "cursor-not-allowed bg-gray-100 text-gray-400"
-                                      : "admin-btn-muted"
+                                      : "bg-rose-50 text-rose-500 hover:bg-rose-600 hover:text-white"
                                   }`}
                                 >
-                                  {activeActionKey === `delete-${item.id}` ? "..." : "Delete"}
+                                  {activeActionKey === `delete-${item.id}` ? "..." : <i className="fas fa-trash-alt text-xs" />}
                                 </button>
                               </div>
                             </td>
@@ -1043,20 +1056,24 @@ export function UserManagementView({
                               <div className="flex justify-end gap-2">
                                 <Link
                                   href={routeMeta[currentType].detailHref(String(item.id ?? ""))}
-                                  className="admin-btn-soft px-3 py-2 text-[10px]"
+                                  className="admin-icon-btn-soft"
+                                  title="View manager"
+                                  aria-label="View manager"
                                 >
-                                  View
+                                  <i className="fas fa-eye" />
                                 </Link>
                                 <button
                                   onClick={() => void handleDelete(item)}
                                   disabled={assignedUsersCount > 0 || isRowBusy}
-                                  className={`rounded-lg px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-colors ${
+                                  title="Delete manager"
+                                  aria-label="Delete manager"
+                                  className={`h-10 w-10 rounded-xl shadow-sm transition-all ${
                                     assignedUsersCount > 0
                                       ? "cursor-not-allowed bg-gray-100 text-gray-400"
-                                      : "admin-btn-muted"
+                                      : "bg-rose-50 text-rose-500 hover:bg-rose-600 hover:text-white"
                                   }`}
                                 >
-                                  {activeActionKey === `delete-${item.id}` ? "..." : "Delete"}
+                                  {activeActionKey === `delete-${item.id}` ? "..." : <i className="fas fa-trash-alt text-xs" />}
                                 </button>
                               </div>
                             </td>
@@ -1177,20 +1194,24 @@ export function UserManagementView({
                               <div className="flex justify-end gap-2">
                                 <Link
                                   href={routeMeta[currentType].detailHref(String(item.id ?? ""))}
-                                  className="admin-btn-soft px-3 py-2 text-[10px]"
+                                  className="admin-icon-btn-soft"
+                                  title="View accountant"
+                                  aria-label="View accountant"
                                 >
-                                  View
+                                  <i className="fas fa-eye" />
                                 </Link>
                                 <button
                                   onClick={() => void handleDelete(item)}
                                   disabled={assignedUsersCount > 0 || isRowBusy}
-                                  className={`rounded-lg px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-colors ${
+                                  title="Delete accountant"
+                                  aria-label="Delete accountant"
+                                  className={`h-10 w-10 rounded-xl shadow-sm transition-all ${
                                     assignedUsersCount > 0
                                       ? "cursor-not-allowed bg-gray-100 text-gray-400"
-                                      : "admin-btn-muted"
+                                      : "bg-rose-50 text-rose-500 hover:bg-rose-600 hover:text-white"
                                   }`}
                                 >
-                                  {activeActionKey === `delete-${item.id}` ? "..." : "Delete"}
+                                  {activeActionKey === `delete-${item.id}` ? "..." : <i className="fas fa-trash-alt text-xs" />}
                                 </button>
                               </div>
                             </td>

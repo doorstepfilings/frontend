@@ -12,6 +12,7 @@ import {
   resolveStorageUrl,
 } from "@/lib/utils/document-helpers";
 import { formatDateWithPattern } from "@/lib/utils/formatters";
+import { getStatusColorClass, getStatusLabel } from "@/lib/utils/status-helpers";
 
 export function DashboardReportsView() {
   const dispatch = useAppDispatch();
@@ -110,8 +111,8 @@ export function DashboardReportsView() {
                   <span className="text-[10px] font-bold uppercase tracking-tight text-gray-400">
                     Status
                   </span>
-                  <span className="rounded-lg border border-emerald-100 bg-emerald-50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-emerald-600">
-                    {report.status || "Ready"}
+                  <span className={`rounded-lg border px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest ${getStatusColorClass(report.status || "Ready")}`}>
+                    {getStatusLabel(report.status || "Ready")}
                   </span>
                 </div>
               </div>

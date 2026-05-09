@@ -52,11 +52,21 @@ export function ApplicationManagementView() {
                 const matchesSearch = !searchQuery || 
                     app.user?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                     app.service?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    app.application_unique_id?.toLowerCase().includes(searchQuery.toLowerCase());
+                    app.application_unique_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    app.order_unique_id?.toLowerCase().includes(searchQuery.toLowerCase());
                 
                 return matchesTab && matchesSearch;
             })
-            .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+            .sort((a: any, b: any) => {
+                const rightDate = new Date(b.order_created_at || b.created_at || 0).getTime();
+                const leftDate = new Date(a.order_created_at || a.created_at || 0).getTime();
+
+                if (rightDate !== leftDate) {
+                    return rightDate - leftDate;
+                }
+
+                return Number(b.id || 0) - Number(a.id || 0);
+            });
     }, [applications, activeTab, searchQuery]);
 
     const stats = useMemo(() => {
@@ -191,7 +201,7 @@ export function ApplicationManagementView() {
                                                         </div>
                                                         <div>
                                                             <div className="text-sm font-bold text-slate-900 tracking-tight">{app.user?.name}</div>
-                                                            <div className="text-[10px] font-bold text-blue-600/70 font-mono mt-0.5">ORDER #{app.application_unique_id || app.id}</div>
+                                                            <div className="text-[10px] font-bold text-blue-600/70 font-mono mt-0.5">ORDER #{app.order_unique_id || app.application_unique_id || app.id}</div>
                                                         </div>
                                                     </div>
                                                 </td>

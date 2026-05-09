@@ -12,6 +12,7 @@ import {
   resolveStorageUrl,
 } from "@/lib/utils/document-helpers";
 import { formatDateWithPattern } from "@/lib/utils/formatters";
+import { getStatusColorClass, getStatusLabel } from "@/lib/utils/status-helpers";
 
 export function DashboardCertificatesView() {
   const dispatch = useAppDispatch();
@@ -40,6 +41,7 @@ export function DashboardCertificatesView() {
               url: resolveStorageUrl(doc.file_url),
               issuedDate: getDocumentTimestamp(doc) || service.updated_at,
               fileName: doc.file_name,
+              status: doc.status || "Approved",
             });
           }
         });
@@ -117,8 +119,8 @@ export function DashboardCertificatesView() {
                     <p className="mb-1 text-[9px] font-bold uppercase tracking-widest text-gray-400">
                       Status
                     </p>
-                    <span className="text-[10px] font-bold uppercase tracking-tight text-emerald-600">
-                      Verified
+                    <span className={`text-[10px] font-bold uppercase tracking-tight ${getStatusColorClass(certificate.status).replace(/bg-[^ ]+|border-[^ ]+|border/g, '')}`}>
+                      {getStatusLabel(certificate.status)}
                     </span>
                   </div>
                 </div>

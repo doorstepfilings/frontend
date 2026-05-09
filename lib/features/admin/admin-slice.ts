@@ -123,6 +123,17 @@ function normalizeApplicationRecord(application: any) {
     user: normalizePersonRecord(application.user ?? null),
     accountant: normalizePersonRecord(application.accountant ?? null),
     request_documents: requestDocuments.map(normalizeApplicationDocumentRecord),
+    order_unique_id:
+      application.order_unique_id ??
+      application.orderUniqueId ??
+      null,
+    invoice_unique_id:
+      application.invoice_unique_id ??
+      application.invoiceUniqueId ??
+      null,
+    payment_id: application.payment_id ?? application.paymentId ?? null,
+    order_created_at:
+      application.order_created_at ?? application.orderCreatedAt ?? null,
     application_unique_id:
       application.application_unique_id ??
       application.applicationUniqueId ??
@@ -141,6 +152,23 @@ function normalizeApplicationRecord(application: any) {
     created_at: application.created_at ?? application.createdAt ?? null,
     updated_at: application.updated_at ?? application.updatedAt ?? null,
   };
+}
+
+function sortApplicationsLatestFirst(applications: any[]) {
+  return [...applications].sort((left, right) => {
+    const rightDate = new Date(
+      right?.order_created_at ?? right?.created_at ?? 0,
+    ).getTime();
+    const leftDate = new Date(
+      left?.order_created_at ?? left?.created_at ?? 0,
+    ).getTime();
+
+    if (rightDate !== leftDate) {
+      return rightDate - leftDate;
+    }
+
+    return Number(right?.id ?? 0) - Number(left?.id ?? 0);
+  });
 }
 
 function isPendingApplicationStatus(status: unknown) {
@@ -749,7 +777,9 @@ const adminSlice = createSlice({
       })
       .addCase(fetchAdminApplications.fulfilled, (state, action) => {
         state.loading = false;
-        state.applications = (action.payload || []).map(normalizeApplicationRecord);
+        state.applications = sortApplicationsLatestFirst(
+          (action.payload || []).map(normalizeApplicationRecord),
+        );
       })
       .addCase(fetchAdminApplications.rejected, (state) => {
         state.loading = false;

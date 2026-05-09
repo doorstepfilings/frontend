@@ -1,6 +1,6 @@
 import { RoleShell } from "@/components/layout/role-shell";
 import { ServiceApplications } from "@/components/admin/service-applications";
-import { UserManagement } from "@/components/admin/user-management";
+import { UserManagementView } from "@/components/admin/user-management-view";
 import { ServiceManagement } from "@/components/admin/service-management";
 import { ProtectedPlaceholder } from "@/components/migration/protected-placeholder";
 
@@ -65,11 +65,15 @@ export default async function AdminCatchAllPage({
   }
 
   if (key === "users") {
-    return (
-        <RoleShell title="Users" subtitle="Manage platform users and experts." theme="admin">
-            <UserManagement />
-        </RoleShell>
-    );
+    return <UserManagementView initialType="users" />;
+  }
+
+  if (key === "regional-managers") {
+    return <UserManagementView initialType="rms" />;
+  }
+
+  if (key === "accountants") {
+    return <UserManagementView initialType="accountants" />;
   }
 
   if (key === "services") {

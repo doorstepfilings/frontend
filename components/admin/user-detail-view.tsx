@@ -317,9 +317,11 @@ export function UserDetailView() {
                           <td className="px-6 py-4 text-right">
                             <Link
                               href={`/admin/service-applications/${item.id}`}
-                              className="admin-btn-soft px-3 py-2 text-[10px]"
+                              className="admin-icon-btn-soft"
+                              title="View application"
+                              aria-label="View application"
                             >
-                              View
+                              <i className="fas fa-eye" />
                             </Link>
                           </td>
                         </tr>
@@ -372,9 +374,11 @@ export function UserDetailView() {
                           <td className="px-6 py-4 text-right">
                             <Link
                               href={`/admin/users/${item.id}`}
-                              className="admin-btn-soft px-3 py-2 text-[10px]"
+                              className="admin-icon-btn-soft"
+                              title="View user"
+                              aria-label="View user"
                             >
-                              View
+                              <i className="fas fa-eye" />
                             </Link>
                           </td>
                         </tr>
@@ -427,9 +431,11 @@ export function UserDetailView() {
                           <td className="px-6 py-4 text-right">
                             <Link
                               href={`/admin/users/${item.id}`}
-                              className="admin-btn-soft px-3 py-2 text-[10px]"
+                              className="admin-icon-btn-soft"
+                              title="View user"
+                              aria-label="View user"
                             >
-                              View
+                              <i className="fas fa-eye" />
                             </Link>
                           </td>
                         </tr>

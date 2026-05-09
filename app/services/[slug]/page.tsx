@@ -15,7 +15,9 @@ import { LoginModal } from "@/components/auth/login-modal";
 import { PublicShell } from "@/components/layout/public-shell";
 import { usePincodeLookup } from "@/hooks/use-pincode-lookup";
 import { useStoredUser } from "@/lib/auth/hooks";
-import { getStoredToken } from "@/lib/auth/storage";
+import { getStoredToken, setStoredUser } from "@/lib/auth/storage";
+import type { AuthUser } from "@/lib/auth/types";
+import { apiClient } from "@/lib/api/client";
 import { parseApiError } from "@/lib/utils/error-parser";
 import { getDocumentIcon } from "@/lib/utils/document-helpers";
 import {
@@ -37,6 +39,77 @@ import {
 interface ServiceDetailPageProps {
   params: Promise<{ slug: string }>;
 }
+
+type ProfileResponse = {
+  data?: AuthUser | null;
+  user?: AuthUser | null;
+};
+
+const parsePhoneNumber = (fullNumber: string) => {
+  if (!fullNumber) return { phone: "", dialCode: "91", countryIso: "in" };
+  const cleanNumber = fullNumber.startsWith("+") ? fullNumber.slice(1) : fullNumber;
+  const dialCodes = ["91", "1", "44", "971", "966", "965", "974"];
+  const dialCodeToIso: Record<string, string> = {
+    "91": "in",
+    "1": "us",
+    "44": "gb",
+    "971": "ae",
+    "966": "sa",
+    "965": "kw",
+    "974": "qa",
+  };
+
+  for (const code of dialCodes) {
+    if (cleanNumber.startsWith(code)) {
+      return {
+        dialCode: code,
+        phone: cleanNumber.slice(code.length),
+        countryIso: dialCodeToIso[code] ?? "in",
+      };
+    }
+  }
+
+  return { phone: cleanNumber, dialCode: "91", countryIso: "in" };
+};
+
+const resolveProfileFromResponse = (payload: ProfileResponse | AuthUser | null | undefined) => {
+  if (!payload || typeof payload !== "object") {
+    return null;
+  }
+
+  const directProfile = payload as AuthUser;
+  if (
+    directProfile.name !== undefined ||
+    directProfile.email !== undefined ||
+    directProfile.mobile_number !== undefined ||
+    directProfile.address !== undefined
+  ) {
+    return directProfile;
+  }
+
+  const nestedPayload = payload as ProfileResponse & {
+    data?: AuthUser | { user?: AuthUser | null } | null;
+  };
+
+  if (nestedPayload.data && typeof nestedPayload.data === "object") {
+    const nestedDirect = nestedPayload.data as AuthUser;
+    if (
+      nestedDirect.name !== undefined ||
+      nestedDirect.email !== undefined ||
+      nestedDirect.mobile_number !== undefined ||
+      nestedDirect.address !== undefined
+    ) {
+      return nestedDirect;
+    }
+
+    const nestedUser = (nestedPayload.data as { user?: AuthUser | null }).user;
+    if (nestedUser) {
+      return nestedUser;
+    }
+  }
+
+  return nestedPayload.user ?? null;
+};
 
 export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
   const { slug } = use(params);
@@ -63,7 +136,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
   const [slotAvailability, setSlotAvailability] = useState<Record<string, any>>({});
   const [slotLoading, setSlotLoading] = useState(false);
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
-  const [includeAppointment, setIncludeAppointment] = useState(true);
+  const [includeAppointment, setIncludeAppointment] = useState(false);
   const user = useStoredUser();
 
   const [applyFormData, setApplyFormData] = useState({
@@ -143,10 +216,14 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
     }
 
     if (serviceDetails) {
+      const parsedPhone = parsePhoneNumber(String(user.mobile_number ?? ""));
       setApplyFormData((prev) => ({
         ...prev,
         fullName: user.name || "",
         email: user.email || "",
+        phone: parsedPhone.phone,
+        dialCode: parsedPhone.dialCode,
+        countryIso: parsedPhone.countryIso,
         address: user.address || "",
         city: user.city || "",
         state: user.state || "",
@@ -170,13 +247,55 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
       setFileErrors({});
       setSelectedDate(null);
       setSelectedTimeSlot("");
-      setSelectedPricingPlan(preselectedPlan);
-      setIncludeAppointment(true);
+      setSelectedPricingPlan(preselectedPlan || serviceDetails.pricing_plans?.[0]?.name || "");
+      setIncludeAppointment(false);
       setSlotAvailability({});
       dispatch(clearApplyStatus());
       setShowApplyModal(true);
     }
   };
+
+  useEffect(() => {
+    if (!showApplyModal || !user) {
+      return;
+    }
+
+    let isMounted = true;
+
+    async function hydrateApplyProfile() {
+      try {
+        const response = await apiClient.get<ProfileResponse>("/user");
+        const profile = resolveProfileFromResponse(response.data);
+
+        if (!profile || !isMounted) {
+          return;
+        }
+
+        const parsedPhone = parsePhoneNumber(String(profile.mobile_number ?? ""));
+        setStoredUser(profile);
+        setApplyFormData((prev) => ({
+          ...prev,
+          fullName: String(profile.name ?? ""),
+          email: String(profile.email ?? ""),
+          phone: parsedPhone.phone,
+          dialCode: parsedPhone.dialCode,
+          countryIso: parsedPhone.countryIso,
+          address: String(profile.address ?? ""),
+          city: String(profile.city ?? ""),
+          state: String(profile.state ?? ""),
+          pincode: String(profile.pincode ?? ""),
+        }));
+      } catch {
+        // Keep the modal usable with stored user details if the profile request fails.
+      }
+    }
+
+    void hydrateApplyProfile();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [showApplyModal, user]);
 
   const formatDateForApi = (date: Date) => {
     if (!date) return "";
@@ -303,6 +422,10 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
   };
 
   const slotRecovery = getSlotRecovery();
+  const selectedPlanDetails =
+    selectedPricingPlan && serviceDetails?.pricing_plans
+      ? serviceDetails.pricing_plans.find((plan: any) => plan.name === selectedPricingPlan) ?? null
+      : null;
 
   if (loading) {
     return (
@@ -540,6 +663,58 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
         size="xl"
       >
         <form onSubmit={handleApplySubmit} className="space-y-8">
+          {service?.pricing_plans && service.pricing_plans.length > 0 && (
+            <div className="space-y-4">
+              <h4 className="flex items-center gap-2 border-b pb-2 text-base font-semibold text-gray-800">
+                <i className="fas fa-box-open text-blue-900"></i>
+                {service.pricing_plans.length > 1 ? "Choose Package" : "Selected Package"}
+              </h4>
+              <div className="grid gap-4 md:grid-cols-2">
+                {service.pricing_plans.map((plan: any, index: number) => {
+                  const isSelected = selectedPricingPlan === plan.name;
+
+                  return (
+                    <button
+                      key={`${plan.name}-${index}`}
+                      type="button"
+                      onClick={() => setSelectedPricingPlan(plan.name)}
+                      className={`rounded-2xl border p-5 text-left transition-all ${
+                        isSelected
+                          ? "border-blue-900 bg-blue-50 shadow-sm"
+                          : "border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/40"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-base font-bold text-gray-900">{plan.name}</p>
+                          <p className="mt-1 text-sm font-semibold text-blue-900">
+                            Rs. {Math.round(Number(plan.price || 0)).toLocaleString("en-IN")}
+                          </p>
+                        </div>
+                        <span
+                          className={`flex h-6 w-6 items-center justify-center rounded-full border text-xs ${
+                            isSelected
+                              ? "border-blue-900 bg-blue-900 text-white"
+                              : "border-gray-300 text-transparent"
+                          }`}
+                        >
+                          <i className="fas fa-check"></i>
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {selectedPlanDetails && (
+                <div className="rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+                  <span className="font-bold">{selectedPlanDetails.name}</span>
+                  <span className="ml-2">Rs. {Math.round(Number(selectedPlanDetails.price || 0)).toLocaleString("en-IN")}</span>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Personal Information */}
           <div className="space-y-4">
             <h4 className="flex items-center gap-2 border-b pb-2 text-base font-semibold text-gray-800">

@@ -47,6 +47,10 @@ export const isClientDocument = (doc: any) => {
 
   // 3. Staff Uploads (Accountant/Admin/RM)
   if (isStaffRole) {
+    // Only show if the document is finalized/approved/verified
+    const isReady = ["approved", "verified"].includes(status);
+    if (!isReady) return false;
+
     // Only show if explicitly marked as client visible
     if (type === "client" || type === "client_document") return true;
     if (category === "client_document" || category === "client_visible")

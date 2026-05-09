@@ -14,7 +14,7 @@ export function CategoryFormView() {
     const router = useRouter();
     const id = params?.id as string;
     const isEditMode = Boolean(id);
-    
+
     const [form, setForm] = useState({
         name: "",
         icon: "fa-briefcase",
@@ -30,7 +30,7 @@ export function CategoryFormView() {
                 // We fetch all and find the match, same as the legacy Laravel project.
                 const response = await apiClient.get("/admin/categories");
                 const items = response.data?.data || response.data || [];
-                
+
                 if (isEditMode) {
                     const matchedCategory = items.find((item: any) => String(item.id) === String(id));
                     if (!matchedCategory) {
@@ -53,23 +53,24 @@ export function CategoryFormView() {
                 setLoading(false);
             }
         };
-        
+
         fetchInitialData();
     }, [id, isEditMode, router]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         if (!form.name.trim()) return toast.error("Category identity is required");
         if (!form.description.trim()) return toast.error("A strategic description is required");
 
         setSaving(true);
         try {
-            const endpoint = isEditMode 
-                ? `/admin/categories/update/${id}` 
-                : "/admin/categories/store";
-            
-            await apiClient.post(endpoint, form);
+            if (isEditMode) {
+                await apiClient.patch(`/admin/categories/update/${id}`, form);
+            } else {
+                await apiClient.post("/admin/categories/store", form);
+            }
+
             toast.success(`Taxonomy ${isEditMode ? 'synchronized' : 'published'} successfully`);
             router.push("/admin/categories");
         } catch (error: any) {
@@ -98,7 +99,7 @@ export function CategoryFormView() {
                 <div className="max-w-4xl mx-auto space-y-12 pb-24">
                     {/* Header */}
                     <div className="flex items-center gap-6">
-                        <Link 
+                        <Link
                             href="/admin/categories"
                             className="h-14 w-14 rounded-2xl bg-white border border-slate-100 flex items-center justify-center text-slate-400 hover:text-blue-600 shadow-sm transition-all hover:-translate-x-1"
                         >
@@ -118,8 +119,8 @@ export function CategoryFormView() {
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
                                 <div className="space-y-4">
                                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Category Identity</label>
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         required
                                         value={form.name}
                                         onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -129,7 +130,7 @@ export function CategoryFormView() {
                                 </div>
                                 <div className="space-y-4">
                                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Visual representation</label>
-                                    <IconPicker 
+                                    <IconPicker
                                         value={form.icon}
                                         onChange={(icon) => setForm({ ...form, icon })}
                                     />
@@ -139,7 +140,7 @@ export function CategoryFormView() {
                             {/* Description */}
                             <div className="space-y-4">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Strategic Description</label>
-                                <textarea 
+                                <textarea
                                     required
                                     rows={8}
                                     value={form.description}
@@ -151,22 +152,28 @@ export function CategoryFormView() {
                         </div>
 
                         {/* Actions */}
-                        <div className="flex gap-4">
-                            <button 
-                                type="submit"
-                                disabled={saving}
-                                className="flex-1 h-20 bg-slate-900 text-white rounded-[2rem] text-[11px] font-black uppercase tracking-[0.3em] shadow-2xl shadow-slate-900/30 hover:bg-blue-600 hover:shadow-blue-600/40 transition-all flex items-center justify-center gap-4 active:scale-[0.98] disabled:opacity-50"
-                            >
-                                {saving ? <i className="fas fa-circle-notch animate-spin text-xl"></i> : <i className="fas fa-save text-xl"></i>}
-                                {isEditMode ? "Synchronize Category" : "Publish to Catalog"}
-                            </button>
-                            <Link 
-                                href="/admin/categories"
-                                className="h-20 px-12 bg-slate-100 text-slate-400 rounded-[2rem] text-[11px] font-black uppercase tracking-[0.2em] hover:bg-slate-200 transition-all flex items-center justify-center"
-                            >
-                                Abort
-                            </Link>
-                        </div>
+                            <div className="flex items-center justify-end gap-4">
+                                <button
+                                    type="submit"
+                                    disabled={saving}
+                                    className="flex-1 h-14 md:h-16 bg-slate-900 text-white rounded-2xl text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] shadow-xl hover:bg-blue-600 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                                >
+                                    {saving ? (
+                                        <i className="fas fa-circle-notch animate-spin text-lg"></i>
+                                    ) : (
+                                        <i className="fas fa-save text-lg"></i>
+                                    )}
+
+                                    {isEditMode ? "Update Category" : "Add"}
+                                </button>
+
+                                <Link
+                                    href="/admin/categories"
+                                    className="flex-1 h-14 md:h-16 bg-red-500 text-white rounded-2xl text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] hover:bg-red-600 transition-all flex items-center justify-center"
+                                >
+                                    Back
+                                </Link>
+                            </div>
                     </form>
                 </div>
             </AdminLayout>

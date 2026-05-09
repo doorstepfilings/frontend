@@ -268,9 +268,11 @@ export function RegionalManagerDetailView() {
                         <td className="px-6 py-4 text-right">
                           <Link
                             href={`/admin/users/${item.id}`}
-                            className="admin-btn-soft px-3 py-2 text-[10px]"
+                            className="admin-icon-btn-soft"
+                            title="View user"
+                            aria-label="View user"
                           >
-                            View
+                            <i className="fas fa-eye" />
                           </Link>
                         </td>
                       </tr>
@@ -324,9 +326,11 @@ export function RegionalManagerDetailView() {
                         <td className="px-6 py-4 text-right">
                           <Link
                             href={`/admin/accountants/${item.id}`}
-                            className="admin-btn-soft px-3 py-2 text-[10px]"
+                            className="admin-icon-btn-soft"
+                            title="View accountant"
+                            aria-label="View accountant"
                           >
-                            View
+                            <i className="fas fa-eye" />
                           </Link>
                         </td>
                       </tr>

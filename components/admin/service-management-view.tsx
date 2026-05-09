@@ -4,13 +4,35 @@ import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
-import { fetchAdminCategories, fetchAdminServices, deleteDocument } from "@/lib/features/admin/admin-slice";
+import { fetchAdminCategories, fetchAdminServices } from "@/lib/features/admin/admin-slice";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { AuthGuard } from "@/components/auth/auth-guard";
-import { format } from "date-fns";
 import { toast } from "react-hot-toast";
 import { useConfirm } from "@/hooks/use-confirm";
 import { apiClient } from "@/lib/api/client";
+
+function parseServicePrice(value: unknown): number | null {
+    if (value === null || value === undefined) {
+        return null;
+    }
+
+    if (typeof value === "string" && value.trim() === "") {
+        return null;
+    }
+
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+}
+
+function formatServicePrice(value: unknown): string | null {
+    const price = parseServicePrice(value);
+
+    if (price === null) {
+        return null;
+    }
+
+    return `\u20B9${Math.round(price).toLocaleString("en-IN")}`;
+}
 
 export function ServiceManagementView() {
     const dispatch = useAppDispatch();
@@ -49,7 +71,7 @@ export function ServiceManagementView() {
     };
 
     const filteredAndSorted = useMemo(() => {
-        let result = services.filter((s: any) => {
+        const result = services.filter((s: any) => {
             const matchesSearch = 
                 s.name?.toLowerCase().includes(search.toLowerCase()) ||
                 s.short_description?.toLowerCase().includes(search.toLowerCase());
@@ -63,8 +85,21 @@ export function ServiceManagementView() {
                     ? a.name.localeCompare(b.name) 
                     : b.name.localeCompare(a.name);
             } else if (sortBy === "price") {
-                const priceA = Number(a.price || 0);
-                const priceB = Number(b.price || 0);
+                const priceA = parseServicePrice(a.price);
+                const priceB = parseServicePrice(b.price);
+
+                if (priceA === null && priceB === null) {
+                    return 0;
+                }
+
+                if (priceA === null) {
+                    return 1;
+                }
+
+                if (priceB === null) {
+                    return -1;
+                }
+
                 return sortOrder === "asc" ? priceA - priceB : priceB - priceA;
             } else {
                 const dateA = new Date(a.created_at || 0).getTime();
@@ -75,12 +110,16 @@ export function ServiceManagementView() {
     }, [services, search, filterCategory, sortBy, sortOrder]);
 
     const stats = useMemo(() => {
-        const totalValue = services.reduce((sum: number, s: any) => sum + Number(s.price || 0), 0);
-        const avgPrice = services.length > 0 ? totalValue / services.length : 0;
+        const pricedServices = services
+            .map((service: any) => parseServicePrice(service.price))
+            .filter((price): price is number => price !== null);
+        const totalValue = pricedServices.reduce((sum, price) => sum + price, 0);
+        const avgPrice = pricedServices.length > 0 ? totalValue / pricedServices.length : null;
+
         return {
             total: services.length,
             categories: categories.length,
-            avgPrice: Math.round(avgPrice),
+            avgPrice: avgPrice === null ? null : Math.round(avgPrice),
         };
     }, [services, categories]);
 
@@ -152,7 +191,7 @@ export function ServiceManagementView() {
                         />
                         <StatCard 
                             label="Mean Price Point" 
-                            value={`₹${stats.avgPrice.toLocaleString('en-IN')}`} 
+                            value={formatServicePrice(stats.avgPrice) ?? "Not Set"} 
                             icon="fa-tag" 
                             gradient="from-amber-500 to-orange-600"
                             bg="bg-amber-50"
@@ -241,55 +280,65 @@ export function ServiceManagementView() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-50">
-                                        {filteredAndSorted.map((service: any) => (
-                                            <tr key={service.id} className="group hover:bg-slate-50/50 transition-all">
-                                                <td className="px-10 py-8">
-                                                    <div className="flex items-center gap-5">
-                                                        <div className="h-14 w-14 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center text-xl group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
-                                                            <i className={`fas ${service.category?.icon || 'fa-briefcase'}`}></i>
+                                        {filteredAndSorted.map((service: any) => {
+                                            const priceLabel = formatServicePrice(service.price);
+
+                                            return (
+                                                <tr key={service.id} className="group hover:bg-slate-50/50 transition-all">
+                                                    <td className="px-10 py-8">
+                                                        <div className="flex items-center gap-5">
+                                                            <div className="h-14 w-14 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center text-xl group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
+                                                                <i className={`fas ${service.category?.icon || 'fa-briefcase'}`}></i>
+                                                            </div>
+                                                            <div>
+                                                                <h4 className="text-sm font-black text-slate-900 mb-1 group-hover:text-blue-600 transition-colors">{service.name}</h4>
+                                                                <p className="text-[10px] font-bold text-slate-400 line-clamp-1 max-w-[240px] uppercase tracking-wider">{service.short_description || 'Global Service Solution'}</p>
+                                                            </div>
                                                         </div>
-                                                        <div>
-                                                            <h4 className="text-sm font-black text-slate-900 mb-1 group-hover:text-blue-600 transition-colors">{service.name}</h4>
-                                                            <p className="text-[10px] font-bold text-slate-400 line-clamp-1 max-w-[240px] uppercase tracking-wider">{service.short_description || 'Global Service Solution'}</p>
+                                                    </td>
+                                                    <td className="px-10 py-8">
+                                                        <span className="px-4 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-[9px] font-black uppercase tracking-widest border border-blue-100 shadow-sm">
+                                                            {service.category?.name || 'General'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-10 py-8">
+                                                        <div className="text-right">
+                                                            {priceLabel ? (
+                                                                <>
+                                                                    <p className="text-lg font-black text-slate-900 tracking-tight">{priceLabel}</p>
+                                                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Base Rate</p>
+                                                                </>
+                                                            ) : (
+                                                                <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Not Set</p>
+                                                            )}
                                                         </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-10 py-8">
-                                                    <span className="px-4 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-[9px] font-black uppercase tracking-widest border border-blue-100 shadow-sm">
-                                                        {service.category?.name || 'General'}
-                                                    </span>
-                                                </td>
-                                                <td className="px-10 py-8">
-                                                    <div className="text-right">
-                                                        <p className="text-lg font-black text-slate-900 tracking-tight">₹{Math.round(service.price).toLocaleString('en-IN')}</p>
-                                                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Base Rate</p>
-                                                    </div>
-                                                </td>
-                                                <td className="px-10 py-8">
-                                                    <div className="flex gap-4">
-                                                        <MetaIcon value={service.pricing_plans?.length || 0} icon="fa-tags" color="text-indigo-400" />
-                                                        <MetaIcon value={service.required_documents_list?.length || 0} icon="fa-file-alt" color="text-emerald-400" />
-                                                        <MetaIcon value={service.faqs?.length || 0} icon="fa-question-circle" color="text-amber-400" />
-                                                    </div>
-                                                </td>
-                                                <td className="px-10 py-8 text-right">
-                                                    <div className="flex items-center justify-end gap-2">
-                                                        <button 
-                                                            onClick={() => router.push(`/admin/services/edit/${service.id}`)}
-                                                            className="h-10 px-6 bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-blue-600 transition-all shadow-sm"
-                                                        >
-                                                            Modify
-                                                        </button>
-                                                        <button 
-                                                            onClick={() => handleDelete(service.id, service.name)}
-                                                            className="h-10 w-10 bg-rose-50 text-rose-500 rounded-xl hover:bg-rose-600 hover:text-white transition-all flex items-center justify-center border border-rose-100"
-                                                        >
-                                                            <i className="fas fa-trash-alt text-[11px]"></i>
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
+                                                    </td>
+                                                    <td className="px-10 py-8">
+                                                        <div className="flex gap-4">
+                                                            <MetaIcon value={service.pricing_plans?.length || 0} icon="fa-tags" color="text-indigo-400" />
+                                                            <MetaIcon value={service.required_documents_list?.length || 0} icon="fa-file-alt" color="text-emerald-400" />
+                                                            <MetaIcon value={service.faqs?.length || 0} icon="fa-question-circle" color="text-amber-400" />
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-10 py-8 text-right">
+                                                        <div className="flex items-center justify-end gap-2">
+                                                            <button 
+                                                                onClick={() => router.push(`/admin/services/edit/${service.id}`)}
+                                                                className="h-10 px-6 bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-blue-600 transition-all shadow-sm"
+                                                            >
+                                                                Modify
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => handleDelete(service.id, service.name)}
+                                                                className="h-10 w-10 bg-rose-50 text-rose-500 rounded-xl hover:bg-rose-600 hover:text-white transition-all flex items-center justify-center border border-rose-100"
+                                                            >
+                                                                <i className="fas fa-trash-alt text-[11px]"></i>
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
                             </div>
@@ -304,6 +353,8 @@ export function ServiceManagementView() {
 
 function ServiceCard({ service, onDelete }: { service: any, onDelete: () => void }) {
     const router = useRouter();
+    const priceLabel = formatServicePrice(service.price);
+
     return (
         <div className="group bg-white border border-slate-100 rounded-[3rem] overflow-hidden hover:shadow-2xl hover:shadow-slate-200/50 transition-all duration-500 flex flex-col h-full">
             <div className="p-8 flex-1">
@@ -311,10 +362,12 @@ function ServiceCard({ service, onDelete }: { service: any, onDelete: () => void
                     <div className="h-16 w-16 rounded-[1.5rem] bg-blue-50 text-blue-600 flex items-center justify-center text-2xl group-hover:bg-blue-600 group-hover:text-white transition-all duration-500 shadow-sm border border-blue-100/50">
                         <i className={`fas ${service.category?.icon || 'fa-briefcase'}`}></i>
                     </div>
-                    <div className="text-right">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Starting At</span>
-                        <span className="text-2xl font-black text-slate-900 tracking-tight">₹{Math.round(service.price).toLocaleString('en-IN')}</span>
-                    </div>
+                    {priceLabel ? (
+                        <div className="text-right">
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Starting At</span>
+                            <span className="text-2xl font-black text-slate-900 tracking-tight">{priceLabel}</span>
+                        </div>
+                    ) : null}
                 </div>
                 
                 <span className="px-3 py-1 bg-slate-100 text-slate-500 rounded-lg text-[8px] font-black uppercase tracking-widest mb-3 inline-block">

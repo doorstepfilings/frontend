@@ -7,12 +7,16 @@ import { fetchAdminCategories, fetchAdminServices } from "@/lib/features/admin/a
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { AuthGuard } from "@/components/auth/auth-guard";
 import { format } from "date-fns";
+import { toast } from "react-hot-toast";
+import { useConfirm } from "@/hooks/use-confirm";
+import { apiClient } from "@/lib/api/client";
 
 type CatalogType = "categories" | "services";
 
 export function CatalogManagementView({ initialType = "categories" }: { initialType?: CatalogType }) {
   const dispatch = useAppDispatch();
   const { categories, services, catalogLoading } = useAppSelector((state) => state.admin);
+  const { confirm, ConfirmDialog } = useConfirm();
   const [activeTab, setActiveTab] = useState<CatalogType>(initialType);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("created_at");
@@ -22,6 +26,25 @@ export function CatalogManagementView({ initialType = "categories" }: { initialT
     dispatch(fetchAdminCategories());
     dispatch(fetchAdminServices());
   }, [dispatch]);
+
+  const handleDeleteCategory = async (id: number | string, name: string) => {
+    const ok = await confirm({
+      title: "Delete Category",
+      message: `Are you sure you want to delete "${name}"? This action cannot be undone.`,
+      confirmLabel: "Delete",
+      variant: "danger",
+    });
+
+    if (!ok) return;
+
+    try {
+      await apiClient.delete(`/admin/categories/${id}`);
+      toast.success("Category deleted successfully");
+      dispatch(fetchAdminCategories());
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Failed to delete category");
+    }
+  };
 
   const currentData = useMemo(() => {
     const base = activeTab === "categories" ? categories : services;
@@ -158,7 +181,11 @@ export function CatalogManagementView({ initialType = "categories" }: { initialT
                 ) : activeTab === "categories" ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
                         {currentData.map((category: any) => (
-                            <CategoryCard key={category.id} category={category} />
+                            <CategoryCard
+                                key={category.id}
+                                category={category}
+                                onDelete={() => handleDeleteCategory(category.id, category.name)}
+                            />
                         ))}
                     </div>
                 ) : (
@@ -171,12 +198,13 @@ export function CatalogManagementView({ initialType = "categories" }: { initialT
              </div>
           </div>
         </div>
+        <ConfirmDialog />
       </AdminLayout>
     </AuthGuard>
   );
 }
 
-function CategoryCard({ category }: { category: any }) {
+function CategoryCard({ category, onDelete }: { category: any; onDelete: () => void }) {
     return (
         <div className="group bg-white border border-slate-100 rounded-2xl p-6 hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300">
             <div className="flex items-center justify-between mb-6">
@@ -207,7 +235,7 @@ function CategoryCard({ category }: { category: any }) {
                     <i className="fas fa-edit text-[9px]"></i>
                     Modify
                 </Link>
-                <button className="h-10 w-10 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-600 hover:text-white transition-all flex items-center justify-center">
+                <button onClick={onDelete} className="h-10 w-10 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-600 hover:text-white transition-all flex items-center justify-center">
                     <i className="fas fa-trash-alt text-xs"></i>
                 </button>
             </div>

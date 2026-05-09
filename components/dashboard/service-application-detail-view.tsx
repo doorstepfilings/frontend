@@ -18,6 +18,8 @@ import {
 
 type ServiceDocument = {
     document_type?: string | null;
+    document_category?: string | null;
+    document_name?: string | null;
     file_name?: string | null;
     file_url?: string | null;
     id: number | string;
@@ -247,7 +249,7 @@ export function ServiceApplicationDetailView() {
                         </div>
                         <div className="space-y-4">
                             {service?.request_documents?.length === 0 ? (
-                                <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">
+                                <p className="text-xs text-slate-500 font-bold uppercase tracking-widest text-center py-4">
                                     No documents attached
                                 </p>
                             ) : (
@@ -260,23 +262,31 @@ export function ServiceApplicationDetailView() {
                                             (item) =>
                                                 item.docId === String(doc.id),
                                         );
+                                    
+                                    const isDeliverable = ["certificate", "report"].includes(doc.document_category || "");
+                                    const label = doc.document_name || 
+                                                 (doc.document_category ? (doc.document_category.charAt(0).toUpperCase() + doc.document_category.slice(1)) : null) || 
+                                                 doc.file_name;
 
                                     return (
                                         <div
                                             key={doc.id}
-                                            className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 group hover:bg-white/10 transition-all"
+                                            className={`flex items-center justify-between p-4 rounded-2xl border transition-all group ${
+                                                isDeliverable 
+                                                ? "bg-blue-600/20 border-blue-500/30 hover:bg-blue-600/30 shadow-lg shadow-blue-900/40" 
+                                                : "bg-white/5 border-white/5 hover:bg-white/10"
+                                            }`}
                                         >
                                             <div className="flex items-center gap-4">
-                                                <div className="h-10 w-10 rounded-xl bg-white/10 flex items-center justify-center">
-                                                    <i className="fas fa-file-alt text-blue-400"></i>
+                                                <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${isDeliverable ? "bg-blue-500 text-white" : "bg-white/10 text-blue-400"}`}>
+                                                    <i className={`fas ${isDeliverable ? "fa-certificate" : "fa-file-alt"} ${isDeliverable ? "" : "text-blue-400"}`}></i>
                                                 </div>
                                                 <div className="min-w-0">
-                                                    <p className="text-[11px] font-black uppercase tracking-widest truncate max-w-[120px]">
-                                                        {doc.document_type ||
-                                                            doc.file_name}
+                                                    <p className={`text-[11px] font-black uppercase tracking-widest truncate max-w-[120px] ${isDeliverable ? "text-blue-100" : "text-white"}`}>
+                                                        {label}
                                                     </p>
-                                                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">
-                                                        {doc.status}
+                                                    <p className={`text-[9px] font-bold uppercase tracking-tighter ${isDeliverable ? "text-blue-300" : "text-slate-500"}`}>
+                                                        {isDeliverable ? "Final Deliverable" : (doc.status || "Uploaded")}
                                                     </p>
                                                 </div>
                                             </div>
@@ -288,7 +298,7 @@ export function ServiceApplicationDetailView() {
                                                                 previewIndex,
                                                             )
                                                         }
-                                                        className="text-slate-400 hover:text-white transition-colors"
+                                                        className={`${isDeliverable ? "text-blue-200 hover:text-white" : "text-slate-400 hover:text-white"} transition-colors`}
                                                         title="Preview image"
                                                         type="button"
                                                     >
@@ -301,7 +311,7 @@ export function ServiceApplicationDetailView() {
                                                     }
                                                     target="_blank"
                                                     rel="noreferrer"
-                                                    className="text-slate-500 hover:text-white transition-colors"
+                                                    className={`${isDeliverable ? "text-blue-200 hover:text-white" : "text-slate-500 hover:text-white"} transition-colors`}
                                                 >
                                                     <i className="fas fa-download text-xs"></i>
                                                 </a>

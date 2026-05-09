@@ -88,7 +88,10 @@ export const AccountantDocumentList = ({
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2 mb-1">
                         <h4 className="truncate text-sm font-bold text-slate-900">
-                          {doc.document_name || doc.document_type || "Unnamed Document"}
+                          {doc.document_name || 
+                           (doc.document_category ? (doc.document_category.charAt(0).toUpperCase() + doc.document_category.slice(1)) : null) || 
+                           doc.document_type || 
+                           "Unnamed Document"}
                         </h4>
                         {doc.uploaded_by?.name && (
                           <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[8px] font-bold text-slate-500 uppercase tracking-wider">
