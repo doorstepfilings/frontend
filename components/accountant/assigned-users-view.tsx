@@ -5,6 +5,7 @@ import { AdminLayout } from "@/components/layout/AdminLayout";
 import { AuthGuard } from "@/components/auth/auth-guard";
 import { apiClient } from "@/lib/api/client";
 import { toast } from "react-hot-toast";
+import Link from "next/link";
 
 export function AccountantAssignedUsersView() {
     const [users, setUsers] = useState<any[]>([]);
@@ -20,59 +21,79 @@ export function AccountantAssignedUsersView() {
     return (
         <AuthGuard allowedRoles={["accountant"]}>
             <AdminLayout>
-                <div className="space-y-10">
-                    <div className="flex items-center justify-between">
+                <div className="space-y-10 pb-20 px-2">
+                    {/* Professional Header */}
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                         <div>
-                            <h1 className="text-4xl font-black text-slate-900 tracking-tight">My Clients</h1>
-                            <p className="text-sm text-slate-500 font-bold mt-2 uppercase tracking-widest opacity-60">Accounts currently under your management</p>
+                            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Client Directory</h1>
+                            <p className="text-sm text-slate-500 mt-1">Management of your assigned client accounts and relationships.</p>
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden min-h-[600px]">
+                    {/* Professional Table */}
+                    <div className="bg-white rounded-3xl border border-slate-200/60 shadow-sm overflow-hidden">
                         <div className="overflow-x-auto">
-                            <table className="w-full text-left">
-                                <thead className="bg-slate-50/50">
+                            <table className="w-full text-left border-collapse">
+                                <thead className="bg-slate-50/50 border-b border-slate-100">
                                     <tr>
-                                        <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Client Name</th>
-                                        <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Contact Info</th>
-                                        <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
-                                        <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
+                                        <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Identity & Quick Info</th>
+                                        <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Communication</th>
+                                        <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Assigned Manager</th>
+                                        <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right">Action</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-50">
+                                <tbody className="divide-y divide-slate-100">
                                     {loading ? (
                                         <tr>
-                                            <td colSpan={4} className="px-8 py-32 text-center">
-                                                <div className="h-10 w-10 animate-spin rounded-full border-2 border-blue-600 border-t-transparent mx-auto"></div>
+                                            <td colSpan={4} className="px-8 py-40 text-center">
+                                                <div className="h-10 w-10 animate-spin rounded-full border-2 border-slate-200 border-t-slate-900 mx-auto"></div>
+                                                <p className="mt-4 text-[11px] font-bold text-slate-300 uppercase tracking-widest">Accessing Records...</p>
                                             </td>
                                         </tr>
                                     ) : users.length === 0 ? (
                                         <tr>
-                                            <td colSpan={4} className="px-8 py-32 text-center">
-                                                <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">No assigned clients found</p>
+                                            <td colSpan={4} className="px-8 py-40 text-center">
+                                                <p className="text-sm font-medium text-slate-400">No client records currently assigned</p>
                                             </td>
                                         </tr>
                                     ) : users.map((user: any) => (
-                                        <tr key={user.id} className="hover:bg-slate-50/50 transition-colors">
+                                        <tr key={user.id} className="group hover:bg-slate-50/40 transition-all">
                                             <td className="px-8 py-6">
                                                 <div className="flex items-center gap-4">
-                                                    <div className="h-10 w-10 rounded-xl bg-slate-900 text-white flex items-center justify-center font-black text-xs">
+                                                    <div className="h-11 w-11 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-xs shadow-sm">
                                                         {user.name?.charAt(0).toUpperCase()}
                                                     </div>
-                                                    <span className="text-sm font-black text-slate-900">{user.name}</span>
+                                                    <div>
+                                                        <div className="text-sm font-bold text-slate-900 tracking-tight">{user.name}</div>
+                                                        <div className="flex items-center gap-2 mt-0.5">
+                                                            <span className="text-[10px] font-medium text-slate-400 uppercase tracking-tighter">UID: {user.id}</span>
+                                                            <span className="w-0.5 h-0.5 bg-slate-300 rounded-full"></span>
+                                                            <span className="text-[10px] font-medium text-slate-400 truncate max-w-[150px] italic">{user.city || 'N/A'}, {user.state || 'N/A'}</span>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </td>
                                             <td className="px-8 py-6">
-                                                <div className="text-xs font-bold text-slate-600">{user.email}</div>
-                                                <div className="text-[10px] text-slate-400 mt-1">{user.mobile_number}</div>
+                                                <div className="text-sm font-medium text-slate-700">{user.email}</div>
+                                                <div className="text-[11px] text-slate-400 mt-1">{user.mobile_number}</div>
                                             </td>
                                             <td className="px-8 py-6">
-                                                <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-lg text-[9px] font-black uppercase tracking-widest">Active Client</span>
+                                                {user.regional_manager ? (
+                                                    <div>
+                                                        <div className="text-sm font-medium text-slate-700">{user.regional_manager.name}</div>
+                                                        <div className="text-[11px] text-slate-400 mt-1">{user.regional_manager.mobile_number}</div>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-[10px] font-bold text-slate-200 uppercase tracking-wider">Unassigned</span>
+                                                )}
                                             </td>
                                             <td className="px-8 py-6 text-right">
-                                                <button className="h-9 px-4 bg-slate-100 text-slate-600 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all">
-                                                    View Accounts
-                                                </button>
+                                                <Link 
+                                                    href={`/accountant/assigned-users/${user.id}`}
+                                                    className="h-9 px-5 bg-white border border-slate-200 text-slate-900 rounded-lg text-[11px] font-bold uppercase tracking-wide hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all shadow-sm inline-flex items-center justify-center"
+                                                >
+                                                    Full Detail
+                                                </Link>
                                             </td>
                                         </tr>
                                     ))}
@@ -82,6 +103,7 @@ export function AccountantAssignedUsersView() {
                     </div>
                 </div>
             </AdminLayout>
+
         </AuthGuard>
     );
 }

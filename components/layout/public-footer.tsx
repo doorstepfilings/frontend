@@ -58,20 +58,20 @@ export function PublicFooter() {
             </p>
             <div className="flex gap-4">
               <a
-                href="#"
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-800 transition-colors hover:bg-blue-600"
+                href="https://www.instagram.com/doorstepfilings?igsh=dDJjZzh5ZG9wbDl2"
+                target="_blank"
+                rel="noreferrer"
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-800 transition-colors hover:bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600"
+                title="Follow us on Instagram"
               >
-                <i className="fab fa-facebook-f"></i>
+                <i className="fab fa-instagram"></i>
               </a>
               <a
-                href="#"
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-800 transition-colors hover:bg-blue-600"
-              >
-                <i className="fab fa-twitter"></i>
-              </a>
-              <a
-                href="#"
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-800 transition-colors hover:bg-blue-600"
+                href="https://www.linkedin.com/company/doorstepfilings-com/"
+                target="_blank"
+                rel="noreferrer"
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-800 transition-colors hover:bg-blue-700"
+                title="Connect on LinkedIn"
               >
                 <i className="fab fa-linkedin-in"></i>
               </a>

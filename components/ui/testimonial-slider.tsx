@@ -180,7 +180,7 @@ export function TestimonialSlider({ testimonials }: TestimonialSliderProps) {
                         </div>
 
                         <p className="mb-6 text-lg italic leading-relaxed text-gray-600">
-                          "{testimonial.quote}"
+                          &quot;{testimonial.quote}&quot;
                         </p>
 
                         <div className="mb-6 flex gap-1">

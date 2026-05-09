@@ -21,28 +21,93 @@ export const getClientUploadedDocuments = (docs: any[], userId: number | string 
 };
 
 export const isClientDocument = (doc: any) => {
-  if (doc?.document_type === "client") return true;
-  if (doc?.document_category === "client_document") return true;
-  if (["certificate", "report", "other"].includes(doc?.document_category))
-    return true;
-  if (looksLikeReport(doc)) return true;
-  return doc?.uploaded_by?.role === "user";
+  const type = String(doc?.document_type || "").toLowerCase();
+  const category = String(doc?.document_category || "").toLowerCase();
+  const role = String(doc?.uploaded_by?.role || "").toLowerCase();
+
+  const isStaffRole = [
+    "accountant",
+    "admin",
+    "super_admin",
+    "regional_manager",
+    "rm",
+    "employee",
+  ].includes(role);
+
+  // 1. Explicit Internal markers (Sole Source of Truth - hide always)
+  if (["internal", "internal_only", "internal_document"].includes(type)) {
+    return false;
+  }
+  if (["internal", "internal_document"].includes(category)) {
+    return false;
+  }
+
+  // 2. User/Customer Role (Clients always see their own uploads)
+  if (role === "user" || role === "customer") return true;
+
+  // 3. Staff Uploads (Accountant/Admin/RM)
+  if (isStaffRole) {
+    // Only show if explicitly marked as client visible
+    if (type === "client" || type === "client_document") return true;
+    if (category === "client_document" || category === "client_visible")
+      return true;
+
+    // Certificates and Reports are usually deliverables
+    if (["certificate", "report"].includes(category)) return true;
+
+    // Explicit final deliveries
+    if (doc?.is_final === 1 || doc?.is_final === true) return true;
+
+    // Heuristics (ONLY if no explicit type is set)
+    // We trust file names for reports/certificates if type is missing
+    if (!type || type === "null" || type === "undefined") {
+      if (looksLikeReport(doc) || looksLikeCertificate(doc)) return true;
+    }
+
+    // Default for staff: Internal
+    return false;
+  }
+
+  // 4. Fallback for legacy data where role might be missing
+  if (type === "client" || type === "client_document") return true;
+  if (["certificate", "report", "other"].includes(category)) return true;
+
+  return false;
 };
 
 export const isInternalDocument = (doc: any) => {
-  if (doc?.document_type === "internal") return true;
-  if (doc?.document_category === "internal_document") return true;
-  if (isClientDocument(doc)) return false;
-  return doc?.uploaded_by?.role === "accountant";
+  const type = String(doc?.document_type || "").toLowerCase();
+  const category = String(doc?.document_category || "").toLowerCase();
+  const role = String(doc?.uploaded_by?.role || "").toLowerCase();
+
+  // 1. Explicit Internal markers (Sole Source of Truth)
+  if (["internal", "internal_only", "internal_document"].includes(type)) {
+    return true;
+  }
+  if (["internal", "internal_document"].includes(category)) {
+    return true;
+  }
+
+  const isInternalRole = [
+    "accountant",
+    "admin",
+    "super_admin",
+    "regional_manager",
+    "rm",
+    "employee",
+  ].includes(role);
+
+  // 2. It's internal if uploaded by staff and NOT categorized as a client document
+  return isInternalRole && !isClientDocument(doc);
 };
 
 export const splitDocumentsByOwner = (docs: any[], clientUserId: number | string | null) => {
-    if (!Array.isArray(docs)) return { clientDocs: [], internalDocs: [] };
-    
-    return {
-        clientDocs: docs.filter(doc => isClientDocument(doc)),
-        internalDocs: docs.filter(doc => isInternalDocument(doc))
-    };
+  if (!Array.isArray(docs)) return { clientDocs: [], internalDocs: [] };
+
+  return {
+    clientDocs: docs.filter((doc) => isClientDocument(doc)),
+    internalDocs: docs.filter((doc) => isInternalDocument(doc)),
+  };
 };
 
 export const looksLikeCertificate = (doc: any) => {
@@ -67,13 +132,13 @@ export const getDocumentTimestamp = (doc: any) =>
 export const resolveStorageUrl = (url: string | null) => {
   if (!url) return null;
   if (/^https?:\/\//i.test(url)) return url;
-  
+
   const cleanUrl = String(url).replace(/^\/+/, "");
   // If the path already begins with "storage/", we just ensure it has a leading slash
   if (cleanUrl.startsWith("storage/")) {
     return `/${cleanUrl}`;
   }
-  
+
   return `/storage/${cleanUrl}`;
 };
 

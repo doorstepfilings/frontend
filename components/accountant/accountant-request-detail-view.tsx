@@ -12,6 +12,9 @@ import { splitDocumentsByOwner } from "@/lib/utils/document-helpers";
 import { AccountantDocumentList } from "./accountant-document-list";
 import { AccountantUploadForm } from "./accountant-upload-form";
 import { FormDataRenderer } from "@/components/ui/form-data-renderer";
+import { Modal } from "@/components/ui/modal";
+import { FormSelect, FormTextarea } from "@/components/ui/form-controls";
+import { Button } from "@/components/ui/button";
 
 const STEPS = ["applied", "under_review", "in_progress", "submitted_to_ca", "completed"];
 const STATUS_LABELS: any = {
@@ -35,13 +38,22 @@ export function AccountantRequestDetailView() {
   const [req, setReq] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
-  const [revisionNotes, setRevisionNotes] = useState("");
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [statusForm, setStatusForm] = useState({
+    status: "",
+    ca_notes: "",
+    update_note: "",
+    rejection_reason: "",
+  });
   const [activeDocTab, setActiveDocTab] = useState<"client" | "internal">("client");
+  const [revisionNotes, setRevisionNotes] = useState("");
 
   const fetchData = async () => {
     try {
       const res = await apiClient.get(`/accountant/service-requests/${id}`);
       setReq(res.data?.data || res.data);
+      // Initialize status form with current status
+      setStatusForm(prev => ({ ...prev, status: res.data?.data?.status || prev.status }));
     } catch (err) {
       toast.error("Failed to synchronize dossier");
     } finally {
@@ -63,11 +75,23 @@ export function AccountantRequestDetailView() {
 
   const progress = Math.round(((stepIndex + 1) / STEPS.length) * 100);
 
-  const handleUpdateStatus = async (status: string) => {
+  const handleUpdateStatus = async (eOrData?: React.FormEvent | { status: string }) => {
+    let data: any = statusForm;
+    
+    // Check if it's a direct data object or a form event
+    if (eOrData && typeof eOrData === 'object' && 'status' in eOrData) {
+      data = eOrData;
+    } else if (eOrData) {
+      (eOrData as React.FormEvent).preventDefault();
+    }
+
+    if (!data.status) return toast.error("Please select a target status");
+    
     setUpdating(true);
     try {
-      await apiClient.patch(`/accountant/service-requests/${id}/status`, { status });
+      await apiClient.patch(`/accountant/service-requests/${id}/status`, data);
       toast.success("Workflow stage recalibrated");
+      setShowStatusModal(false);
       fetchData();
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Failed to update status");
@@ -131,65 +155,60 @@ export function AccountantRequestDetailView() {
   return (
     <AuthGuard allowedRoles={["accountant"]}>
       <AdminLayout>
-        <div className="max-w-6xl mx-auto space-y-6 pb-24 px-4">
-          {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
+        <div className="max-w-6xl mx-auto space-y-8 pb-24 px-6">
+          {/* Professional Navigation Header */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pt-4">
+            <div className="flex items-center gap-5">
               <Link 
                 href="/accountant/service-requests"
-                className="h-12 w-12 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-500 hover:text-blue-600 shadow-sm transition-all hover:bg-slate-50"
+                className="h-10 w-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-900 transition-all shadow-sm"
               >
-                <i className="fas fa-arrow-left"></i>
+                <i className="fas fa-chevron-left text-xs"></i>
               </Link>
               <div>
                 <div className="flex items-center gap-3 mb-1">
                   <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{req.service?.name}</h1>
-                  <StatusIndicator status={req.status} size="lg" />
+                  <StatusIndicator status={req.status} />
                 </div>
-                <div className="flex items-center gap-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                  <span>Application #{req.application_unique_id || req.id}</span>
-                  <span className="h-1 w-1 bg-slate-300 rounded-full"></span>
-                  <span>Order ID: {req.id}</span>
-                </div>
+                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+                  Order ID: <span className="text-slate-600">#{req.application_unique_id || req.id}</span>
+                </p>
               </div>
             </div>
             <div className="flex gap-2">
-               <button className="h-11 px-6 bg-white border border-slate-200 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-50 transition-all shadow-sm flex items-center gap-2">
-                <i className="fas fa-print"></i> Print Details
+               <button className="h-10 px-5 bg-white border border-slate-200 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-50 transition-all flex items-center gap-2">
+                <i className="fas fa-print opacity-50"></i> Export Dossier
                </button>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-8">
-              {/* Progress Tracker Area */}
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8">
-                <div className="flex items-center justify-between mb-8">
-                  <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-                    <i className="fas fa-route text-blue-600" />
-                    Application Status
-                  </h3>
-                  <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-lg text-[10px] font-bold">
-                    {progress}% Complete
-                  </span>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+            <div className="lg:col-span-2 space-y-10">
+              {/* Refined Progress Tracker */}
+              <div className="bg-white rounded-3xl border border-slate-200/60 shadow-sm p-10">
+                <div className="flex items-center justify-between mb-10">
+                  <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Processing Roadmap</h3>
+                  <div className="px-3 py-1 bg-slate-900 text-white rounded-lg text-[10px] font-bold">
+                    Stage {stepIndex + 1} of {STEPS.length}
+                  </div>
                 </div>
 
                 <div className="relative px-2">
-                  <div className="absolute top-4 left-6 right-6 h-1 bg-slate-100 rounded-full" />
+                  <div className="absolute top-[1.125rem] left-10 right-10 h-0.5 bg-slate-100" />
                   <div
-                    className="absolute top-4 left-6 h-1 bg-blue-600 transition-all duration-700 rounded-full shadow-[0_0_8px_rgba(37,99,235,0.3)]"
-                    style={{ width: `calc((100% - 3rem) * ${stepIndex / (STEPS.length - 1)})` }}
+                    className="absolute top-[1.125rem] left-10 h-0.5 bg-slate-900 transition-all duration-1000"
+                    style={{ width: `calc((100% - 5rem) * ${stepIndex / (STEPS.length - 1)})` }}
                   />
 
                   <div className="relative z-10 flex justify-between">
                     {STEPS.map((step, i) => (
-                      <div key={step} className="flex flex-col items-center gap-3">
-                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold border-2 transition-all duration-300 ${
-                          i <= stepIndex ? "bg-slate-900 border-slate-900 text-white shadow-md" : "bg-white border-slate-100 text-slate-300"
+                      <div key={step} className="flex flex-col items-center gap-4">
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold border-2 transition-all duration-500 ${
+                          i <= stepIndex ? "bg-white border-slate-900 text-slate-900 shadow-sm" : "bg-white border-slate-100 text-slate-200"
                         }`}>
-                          {i < stepIndex ? <i className="fas fa-check" /> : i + 1}
+                          {i < stepIndex ? <i className="fas fa-check text-[10px]" /> : i + 1}
                         </div>
-                        <span className={`text-[10px] font-bold uppercase tracking-wide text-center max-w-[80px] ${i <= stepIndex ? "text-slate-900" : "text-slate-400"}`}>
+                        <span className={`text-[10px] font-bold uppercase tracking-wide text-center max-w-[80px] ${i <= stepIndex ? "text-slate-900" : "text-slate-300"}`}>
                           {STATUS_LABELS[step]}
                         </span>
                       </div>
@@ -201,58 +220,56 @@ export function AccountantRequestDetailView() {
               {/* Information Provided */}
               <FormDataRenderer 
                 formData={req.form_data} 
-                title="Client Application Data" 
-                icon="fa-file-alt" 
+                title="Application Artifacts" 
+                icon="fa-id-card" 
               />
 
-              {/* Admin Notes */}
+              {/* Instructions Section */}
               {req.ca_notes && (
-                <div className="bg-amber-50 rounded-2xl border border-amber-100 p-8 shadow-sm">
+                <div className="p-8 bg-slate-50 rounded-3xl border border-slate-100">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 bg-white text-amber-600 rounded-xl flex items-center justify-center shadow-sm border border-amber-100">
-                      <i className="fas fa-comment-dots" />
-                    </div>
-                    <h3 className="text-xs font-bold text-amber-900 uppercase tracking-wider">Instructions from Admin</h3>
+                    <i className="fas fa-info-circle text-slate-400" />
+                    <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Internal Directives</h3>
                   </div>
-                  <p className="text-sm font-medium text-amber-800 leading-relaxed">
+                  <p className="text-sm font-medium text-slate-700 leading-relaxed">
                     {req.ca_notes}
                   </p>
                 </div>
               )}
 
-              {/* Revision Required Section */}
+              {/* Revision Action Area */}
               {canRevise && (
-                <div className="bg-rose-50 rounded-2xl border border-rose-100 p-8 shadow-sm">
-                  <div className="flex items-start gap-4 mb-6">
-                    <div className="w-12 h-12 bg-white text-rose-600 rounded-xl flex items-center justify-center shadow-sm border border-rose-100 shrink-0">
-                      <i className="fas fa-exclamation-circle text-xl" />
+                <div className="p-8 bg-rose-50 rounded-3xl border border-rose-100">
+                  <div className="flex items-start gap-4 mb-8">
+                    <div className="w-12 h-12 bg-white text-rose-500 rounded-2xl flex items-center justify-center shadow-sm border border-rose-100 shrink-0">
+                      <i className="fas fa-exclamation-triangle" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-bold text-rose-900 tracking-tight">Update Required</h3>
-                      <p className="text-sm text-rose-700 mt-1 font-medium leading-relaxed">{req.update_note || req.revision_notes || "Please check the documents and update the information as requested."}</p>
+                      <h3 className="text-lg font-bold text-rose-900 tracking-tight">Correction Required</h3>
+                      <p className="text-sm text-rose-700/70 mt-1 font-medium">{req.update_note || req.revision_notes || "Client needs to address specific discrepancies."}</p>
                     </div>
                   </div>
                   <div className="space-y-4">
                     <textarea
-                      rows={3}
+                      rows={4}
                       value={revisionNotes}
                       onChange={(e) => setRevisionNotes(e.target.value)}
-                      placeholder="Enter details about the updates made..."
-                      className="w-full bg-white border border-rose-200 rounded-xl p-4 text-sm font-medium focus:ring-4 focus:ring-rose-500/10 outline-none transition-all shadow-inner"
+                      placeholder="Specify the corrections performed..."
+                      className="w-full bg-white border border-rose-200 rounded-2xl p-5 text-sm font-medium focus:ring-0 outline-none transition-all shadow-sm"
                     />
                     <button
                       onClick={handleRevisionSubmit}
                       disabled={updating || !revisionNotes.trim()}
-                      className="w-full h-12 bg-rose-600 text-white rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-rose-700 transition-all shadow-md disabled:opacity-50"
+                      className="w-full h-12 bg-rose-600 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-rose-700 transition-all shadow-md disabled:opacity-30"
                     >
-                      {updating ? <i className="fas fa-spinner fa-spin" /> : "Submit Update"}
+                      {updating ? <i className="fas fa-spinner fa-spin" /> : "Commit Corrections"}
                     </button>
                   </div>
                 </div>
               )}
 
-              {/* Document Management Section */}
-              <div className="space-y-6">
+              {/* Document Repository */}
+              <div className="space-y-8">
                 {canUpload && (
                   <AccountantUploadForm 
                     requestId={id} 
@@ -261,23 +278,23 @@ export function AccountantRequestDetailView() {
                   />
                 )}
 
-                {/* Tab Switcher */}
-                <div className="flex p-1 bg-slate-100 rounded-xl">
+                {/* Repository Filter */}
+                <div className="flex p-1.5 bg-slate-100/80 rounded-2xl">
                   <button 
                     onClick={() => setActiveDocTab("client")}
-                    className={`flex-1 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${activeDocTab === "client" ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+                    className={`flex-1 py-3 rounded-xl text-[11px] font-bold uppercase tracking-wide transition-all ${activeDocTab === "client" ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}
                   >
-                    Client Docs ({clientDocs.length})
+                    Client Submissions ({clientDocs.length})
                   </button>
                   <button 
                     onClick={() => setActiveDocTab("internal")}
-                    className={`flex-1 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${activeDocTab === "internal" ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+                    className={`flex-1 py-3 rounded-xl text-[11px] font-bold uppercase tracking-wide transition-all ${activeDocTab === "internal" ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}
                   >
-                    Internal Docs ({internalDocs.length})
+                    Internal Repository ({internalDocs.length})
                   </button>
                 </div>
 
-                <div className="animate-in fade-in slide-in-from-bottom-2">
+                <div className="animate-in fade-in duration-500">
                   <AccountantDocumentList 
                     title={activeDocTab === "client" ? "Client Documents" : "Internal Documents"}
                     documents={activeDocTab === "client" ? clientDocs : internalDocs}
@@ -288,124 +305,103 @@ export function AccountantRequestDetailView() {
               </div>
             </div>
 
-            {/* Sidebar Controls */}
+            {/* Strategic Controls */}
             <div className="space-y-10">
-              {/* Action Center */}
-              <div className="bg-slate-900 rounded-2xl p-8 text-white shadow-xl">
-                <h3 className="text-lg font-bold tracking-tight mb-6">Workflow Actions</h3>
+              {/* Task Management */}
+              <div className="bg-white rounded-3xl border border-slate-200 p-10 shadow-sm">
+                <h3 className="text-lg font-bold text-slate-900 tracking-tight mb-8">Management</h3>
                 
                 {["completed", "approved", "submitted_to_ca"].includes(req.status) && (
-                  <div className="mb-6">
-                    {req.status === "submitted_to_ca" ? (
-                      <div className="rounded-xl bg-indigo-500/10 border border-indigo-500/20 py-4 text-center">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-400 flex items-center justify-center gap-2">
-                          <i className="fas fa-shield-alt"></i> Awaiting Admin Approval
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 py-4 text-center">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400 flex items-center justify-center gap-2">
-                          <i className="fas fa-check-double"></i> Application Finalized
-                        </p>
-                      </div>
-                    )}
+                  <div className="mb-8">
+                    <div className={`p-4 rounded-2xl border text-center ${req.status === 'submitted_to_ca' ? 'bg-amber-50 border-amber-100 text-amber-700' : 'bg-emerald-50 border-emerald-100 text-emerald-700'}`}>
+                      <p className="text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2">
+                        <i className={`fas ${req.status === 'submitted_to_ca' ? 'fa-hourglass-half' : 'fa-check-circle'}`}></i>
+                        {req.status === 'submitted_to_ca' ? 'Review Pending' : 'Workflow Finalized'}
+                      </p>
+                    </div>
                   </div>
                 )}
 
                 <div className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">
-                      Update Stage
-                    </label>
-                      <div className="relative">
-                        <select 
-                          className="w-full h-12 bg-slate-800 border border-slate-700 rounded-xl px-4 text-xs font-bold text-white outline-none appearance-none focus:border-blue-500 transition-all"
-                          onChange={(e) => {
-                            if (e.target.value) handleUpdateStatus(e.target.value);
-                          }}
-                          defaultValue=""
+                  <div className="grid grid-cols-1 gap-3">
+                    {(req.status === "applied" || req.status === "paid") && (
+                      <button 
+                        onClick={() => handleUpdateStatus({ status: "under_review" })}
+                        className="w-full h-12 bg-slate-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-wider hover:bg-slate-800 transition-all shadow-sm"
+                      >
+                        Initiate Review
+                      </button>
+                    )}
+
+                    {req.status === "under_review" && (
+                      <>
+                        <button 
+                          onClick={() => handleUpdateStatus({ status: "in_progress" } as any)}
+                          className="w-full h-12 bg-slate-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-wider hover:bg-slate-800 transition-all shadow-sm"
                         >
-                          <option value="" disabled>Choose status...</option>
-                          
-                          {/* Forward Transitions */}
-                          {req.status === "applied" && (
-                            <option value="under_review">Start Verification</option>
-                          )}
-                          {req.status === "under_review" && (
-                            <option value="in_progress">Accept & Start Processing</option>
-                          )}
-                          {req.status === "in_progress" && (
-                            <option value="submitted_to_ca">Submit for Final Approval</option>
-                          )}
-                          
-                          {/* Correction / Info Required */}
-                          {["under_review", "in_progress"].includes(req.status) && (
-                            <option value="update_required">Request Client Info</option>
-                          )}
-                          {req.status === "update_required" && (
-                            <option value="under_review">Resume Verification</option>
-                          )}
+                          Approve Docs
+                        </button>
+                        <button 
+                          onClick={() => {
+                            setStatusForm({ ...statusForm, status: "update_required" });
+                            setShowStatusModal(true);
+                          }}
+                          className="w-full h-12 bg-white border border-slate-200 text-slate-700 rounded-2xl text-[11px] font-bold uppercase tracking-wider hover:bg-slate-50 transition-all"
+                        >
+                          Request Updates
+                        </button>
+                      </>
+                    )}
 
-                          {/* Backward Transitions */}
-                          {req.status === "under_review" && (
-                            <option value="applied">Move back to New</option>
-                          )}
-                          {req.status === "in_progress" && (
-                            <option value="under_review">Move back to Review</option>
-                          )}
-                          {req.status === "submitted_to_ca" && (
-                            <option value="in_progress">Return to Processing</option>
-                          )}
-                          {req.status === "approved" && (
-                            <option value="submitted_to_ca">Revoke Approval</option>
-                          )}
-                          {req.status === "completed" && (
-                            <option value="approved">Re-open (Set to Approved)</option>
-                          )}
+                    {req.status === "in_progress" && (
+                      <button 
+                        onClick={() => handleUpdateStatus({ status: "submitted_to_ca" } as any)}
+                        className="w-full h-12 bg-slate-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-wider hover:bg-slate-800 transition-all shadow-sm"
+                      >
+                        Submit Dossier
+                      </button>
+                    )}
 
-                          <option value="cancelled">Cancel Application</option>
-                        </select>
-                        <i className="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none text-[10px]"></i>
-                      </div>
-                    </div>
-
-                    <p className="text-[10px] text-slate-500 font-medium leading-relaxed px-1">
-                      Changing the status will trigger automated notifications and update the client's dashboard.
-                    </p>
+                    {req.status === "update_required" && (
+                      <button 
+                        onClick={() => handleUpdateStatus({ status: "under_review" } as any)}
+                        className="w-full h-12 bg-slate-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-wider hover:bg-slate-800 transition-all shadow-sm"
+                      >
+                        Restart Review
+                      </button>
+                    )}
                   </div>
+
+                  <button 
+                    onClick={() => setShowStatusModal(true)}
+                    className="w-full h-10 text-slate-400 hover:text-slate-600 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all border border-slate-100 hover:border-slate-200"
+                  >
+                    Advanced controls
+                  </button>
+                </div>
               </div>
 
-              {/* Client Profile Sidebar */}
-              <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm">
-                <h3 className="text-lg font-bold text-slate-900 tracking-tight mb-6">Client Info</h3>
-                <div className="space-y-6">
-                  <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-100">
-                    <div className="h-10 w-10 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-sm">
+              {/* User Context */}
+              <div className="bg-white rounded-3xl border border-slate-200 p-10 shadow-sm">
+                <h3 className="text-lg font-bold text-slate-900 tracking-tight mb-8">Client Profile</h3>
+                <div className="space-y-8">
+                  <div className="flex items-center gap-5">
+                    <div className="h-14 w-14 rounded-2xl bg-slate-900 text-white flex items-center justify-center font-bold text-lg shadow-sm">
                       {req.user?.name?.charAt(0)}
                     </div>
                     <div>
-                      <h4 className="text-sm font-bold text-slate-900 leading-none mb-1">{req.user?.name}</h4>
-                      <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Verified Client</p>
+                      <h4 className="text-base font-bold text-slate-900 leading-none mb-1.5">{req.user?.name}</h4>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Validated Account</p>
                     </div>
                   </div>
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400">
-                        <i className="fas fa-phone-alt text-[10px]"></i>
-                      </div>
-                      <div>
-                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Mobile</p>
-                        <p className="text-xs font-bold text-slate-700">{req.user?.mobile_number || "N/A"}</p>
-                      </div>
+                  <div className="space-y-6 pt-2 border-t border-slate-50">
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Direct Line</p>
+                      <p className="text-sm font-bold text-slate-700">{req.user?.mobile_number || "---"}</p>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400">
-                        <i className="fas fa-envelope text-[10px]"></i>
-                      </div>
-                      <div>
-                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Email</p>
-                        <p className="text-xs font-bold text-slate-700 truncate">{req.user?.email}</p>
-                      </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Email Base</p>
+                      <p className="text-sm font-bold text-slate-700 truncate">{req.user?.email}</p>
                     </div>
                   </div>
                 </div>
@@ -414,6 +410,61 @@ export function AccountantRequestDetailView() {
           </div>
         </div>
       </AdminLayout>
+
+      <Modal isOpen={showStatusModal} onClose={() => setShowStatusModal(false)} title="Workflow Management">
+        <form onSubmit={handleUpdateStatus} className="space-y-8">
+          <FormSelect
+            label="Override Status"
+            value={statusForm.status}
+            onChange={(e) => setStatusForm({ ...statusForm, status: e.target.value })}
+            options={[
+              { value: "applied", label: "Initial Submission" },
+              { value: "under_review", label: "Verification Stage" },
+              { value: "in_progress", label: "Processing Stage" },
+              { value: "submitted_to_ca", label: "Submit to CA/Admin" },
+              { value: "update_required", label: "Request Client Correction" },
+              { value: "rejected", label: "Reject Filing" },
+              { value: "cancelled", label: "Cancel Application" },
+            ]}
+          />
+          
+          {statusForm.status === "update_required" && (
+            <FormTextarea
+              label="Update Directives"
+              required
+              value={statusForm.update_note}
+              onChange={(e) => setStatusForm({ ...statusForm, update_note: e.target.value })}
+              placeholder="Clearly state what the client must address..."
+            />
+          )}
+
+          {statusForm.status === "rejected" && (
+            <FormTextarea
+              label="Grounds for Rejection"
+              required
+              value={statusForm.rejection_reason}
+              onChange={(e) => setStatusForm({ ...statusForm, rejection_reason: e.target.value })}
+              placeholder="State the official reason for refusal..."
+            />
+          )}
+
+          <FormTextarea
+            label="Internal Dossier Notes"
+            value={statusForm.ca_notes}
+            onChange={(e) => setStatusForm({ ...statusForm, ca_notes: e.target.value })}
+            placeholder="Private context for internal review..."
+          />
+
+          <div className="flex gap-4 pt-4">
+            <Button type="button" variant="outline" className="flex-1 rounded-2xl h-14 font-bold text-xs uppercase tracking-widest" onClick={() => setShowStatusModal(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" className="flex-1 rounded-2xl h-14 bg-slate-900 text-white font-bold text-xs uppercase tracking-widest shadow-xl" loading={updating}>
+              Apply Change
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </AuthGuard>
   );
 }

@@ -100,7 +100,7 @@ export function ContactFloatingButton() {
               <i className="fas fa-check-circle mb-4 text-4xl"></i>
               <h4 className="mb-2 text-lg font-bold">Thank You!</h4>
               <p className="text-sm">
-                Your message was sent successfully. We'll get back to you soon.
+                Your message was sent successfully. We&apos;ll get back to you soon.
               </p>
             </div>
           ) : (

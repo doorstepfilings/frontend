@@ -55,7 +55,7 @@ function LoginContent() {
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     dispatch(clearError());
-    
+
     try {
       await dispatch(login({ email, password })).unwrap();
       toast.success("Login successful!");
@@ -168,20 +168,20 @@ function LoginContent() {
             </div>
 
             {/* Login Tabs */}
-            <div className="mb-6 flex rounded-xl bg-gray-100 p-1">
+            {/* <div className="mb-6 flex rounded-xl bg-gray-100 p-1">
               <button
                 onClick={() => { setLoginMethod("email"); setOtpSent(false); }}
                 className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${loginMethod === "email" ? "bg-white text-blue-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
               >
                 Email
               </button>
-              {/* <button
+              <button
                 onClick={() => { setLoginMethod("mobile"); setOtpSent(false); }}
                 className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${loginMethod === "mobile" ? "bg-white text-blue-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
               >
                 OTP
-              </button> */}
-            </div>
+              </button>
+            </div> */}
 
             {loginMethod === "email" ? (
               <form onSubmit={handleEmailLogin} className="space-y-4">
@@ -221,13 +221,13 @@ function LoginContent() {
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
-                    <label className="flex items-center gap-2 text-sm text-gray-600">
-                        <input type="checkbox" className="rounded border-gray-300 text-blue-900" />
-                        Remember me
-                    </label>
-                    <Link href="/forgot-password" className="text-sm font-bold text-blue-900 hover:underline">
-                        Forgot Password?
-                    </Link>
+                  <label className="flex items-center gap-2 text-sm text-gray-600">
+                    <input type="checkbox" className="rounded border-gray-300 text-blue-900" />
+                    Remember me
+                  </label>
+                  <Link href="/forgot-password" className="text-sm font-bold text-blue-900 hover:underline">
+                    Forgot Password?
+                  </Link>
                 </div>
                 <Button type="submit" disabled={loading} className="w-full bg-blue-900 py-6 text-base font-bold shadow-xl shadow-blue-900/20 hover:bg-blue-800">
                   {loading ? <i className="fas fa-spinner fa-spin mr-2"></i> : null}
@@ -239,75 +239,75 @@ function LoginContent() {
                 {!otpSent ? (
                   <div className="space-y-4">
                     <div className="space-y-1.5">
-                        <label className="text-xs font-bold uppercase tracking-widest text-gray-500">Mobile Number</label>
-                        <div className="flex overflow-hidden rounded-xl border border-gray-200 bg-gray-50 focus-within:ring-2 focus-within:ring-blue-900/10">
-                            <button
-                                type="button"
-                                className="flex min-w-[70px] items-center justify-center gap-1 border-r px-3 hover:bg-gray-100"
-                                onClick={() => setShowCountryDropdown(!showCountryDropdown)}
-                            >
-                                <img src={`https://flagcdn.com/24x18/${countryIso}.png`} alt="flag" className="h-3 w-4" />
-                                <i className="fas fa-chevron-down text-[8px] text-gray-400"></i>
-                            </button>
-                            <div className="relative flex-1">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-gray-400">+{dialCode}</span>
-                                <input
-                                    type="text"
-                                    required
-                                    value={phone}
-                                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
-                                    className="w-full border-none bg-transparent py-3.5 pl-12 pr-4 outline-none"
-                                    placeholder="Enter mobile number"
-                                />
-                            </div>
+                      <label className="text-xs font-bold uppercase tracking-widest text-gray-500">Mobile Number</label>
+                      <div className="flex overflow-hidden rounded-xl border border-gray-200 bg-gray-50 focus-within:ring-2 focus-within:ring-blue-900/10">
+                        <button
+                          type="button"
+                          className="flex min-w-[70px] items-center justify-center gap-1 border-r px-3 hover:bg-gray-100"
+                          onClick={() => setShowCountryDropdown(!showCountryDropdown)}
+                        >
+                          <img src={`https://flagcdn.com/24x18/${countryIso}.png`} alt="flag" className="h-3 w-4" />
+                          <i className="fas fa-chevron-down text-[8px] text-gray-400"></i>
+                        </button>
+                        <div className="relative flex-1">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-gray-400">+{dialCode}</span>
+                          <input
+                            type="text"
+                            required
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
+                            className="w-full border-none bg-transparent py-3.5 pl-12 pr-4 outline-none"
+                            placeholder="Enter mobile number"
+                          />
                         </div>
-                        {showCountryDropdown && (
-                            <div className="absolute z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-xl border bg-white py-2 shadow-2xl">
-                                {COUNTRIES.map((c) => (
-                                    <button
-                                        key={c.iso}
-                                        type="button"
-                                        className="flex w-full items-center gap-3 px-4 py-2 text-left hover:bg-gray-50"
-                                        onClick={() => {
-                                            setDialCode(c.dialCode);
-                                            setCountryIso(c.iso);
-                                            setShowCountryDropdown(false);
-                                        }}
-                                    >
-                                        <img src={c.flag} className="h-3 w-4" alt={c.name} />
-                                        <span className="flex-1 text-sm">{c.name}</span>
-                                        <span className="text-xs text-gray-400">+{c.dialCode}</span>
-                                    </button>
-                                ))}
-                            </div>
-                        )}
+                      </div>
+                      {showCountryDropdown && (
+                        <div className="absolute z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-xl border bg-white py-2 shadow-2xl">
+                          {COUNTRIES.map((c) => (
+                            <button
+                              key={c.iso}
+                              type="button"
+                              className="flex w-full items-center gap-3 px-4 py-2 text-left hover:bg-gray-50"
+                              onClick={() => {
+                                setDialCode(c.dialCode);
+                                setCountryIso(c.iso);
+                                setShowCountryDropdown(false);
+                              }}
+                            >
+                              <img src={c.flag} className="h-3 w-4" alt={c.name} />
+                              <span className="flex-1 text-sm">{c.name}</span>
+                              <span className="text-xs text-gray-400">+{c.dialCode}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     <Button type="submit" disabled={otpLoading} className="w-full bg-blue-900 py-6 text-base font-bold shadow-xl shadow-blue-900/20 hover:bg-blue-800">
-                        {otpLoading ? <i className="fas fa-spinner fa-spin mr-2"></i> : null}
-                        Send OTP
+                      {otpLoading ? <i className="fas fa-spinner fa-spin mr-2"></i> : null}
+                      Send OTP
                     </Button>
                   </div>
                 ) : (
                   <div className="space-y-4">
                     <div className="text-center">
-                        <p className="text-sm text-gray-600">OTP sent to <span className="font-bold text-blue-900">+{dialCode} {phone}</span></p>
-                        <button onClick={() => setOtpSent(false)} className="mt-1 text-xs font-bold text-blue-600 hover:underline">Change Number</button>
+                      <p className="text-sm text-gray-600">OTP sent to <span className="font-bold text-blue-900">+{dialCode} {phone}</span></p>
+                      <button onClick={() => setOtpSent(false)} className="mt-1 text-xs font-bold text-blue-600 hover:underline">Change Number</button>
                     </div>
                     <div className="space-y-1.5">
-                        <label className="text-xs font-bold uppercase tracking-widest text-gray-500">Enter OTP</label>
-                        <input
-                            type="text"
-                            required
-                            maxLength={6}
-                            value={otp}
-                            onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-                            className="w-full rounded-xl border border-gray-200 bg-gray-50 py-4 text-center text-2xl font-black tracking-[1em] outline-none transition-all focus:border-blue-900 focus:bg-white focus:ring-2 focus:ring-blue-900/10"
-                            placeholder="000000"
-                        />
+                      <label className="text-xs font-bold uppercase tracking-widest text-gray-500">Enter OTP</label>
+                      <input
+                        type="text"
+                        required
+                        maxLength={6}
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                        className="w-full rounded-xl border border-gray-200 bg-gray-50 py-4 text-center text-2xl font-black tracking-[1em] outline-none transition-all focus:border-blue-900 focus:bg-white focus:ring-2 focus:ring-blue-900/10"
+                        placeholder="000000"
+                      />
                     </div>
                     <Button type="submit" disabled={loading} className="w-full bg-blue-900 py-6 text-base font-bold shadow-xl shadow-blue-900/20 hover:bg-blue-800">
-                        {loading ? <i className="fas fa-spinner fa-spin mr-2"></i> : null}
-                        Verify & Login
+                      {loading ? <i className="fas fa-spinner fa-spin mr-2"></i> : null}
+                      Verify & Login
                     </Button>
                   </div>
                 )}

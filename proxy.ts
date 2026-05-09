@@ -5,7 +5,7 @@ import {
   getDefaultRedirectPath,
 } from "@/lib/auth/redirects";
 
-export default auth((request) => {
+export const proxy = auth((request) => {
   const token = request.auth?.accessToken;
   const user = request.auth?.user ?? null;
   const { pathname } = request.nextUrl;

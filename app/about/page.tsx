@@ -146,7 +146,7 @@ export default function AboutPage() {
                 More Than Just Compliance
               </h2>
               <p className="text-lg text-blue-200">
-                When an entrepreneur registers a company, they shouldn't have to
+                When an entrepreneur registers a company, they shouldn&apos;t have to
                 search for different service providers. We provide complete
                 startup support under one roof.
               </p>
@@ -395,7 +395,7 @@ export default function AboutPage() {
               Let’s Build Something Together
             </h2>
             <p className="mx-auto mb-12 max-w-2xl text-xl font-medium text-blue-200">
-              Whether you're starting your first business or managing compliance
+              Whether you&apos;re starting your first business or managing compliance
               for a growing company, DoorstepFilings is here to support you at
               every stage.
             </p>

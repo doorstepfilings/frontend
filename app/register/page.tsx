@@ -108,23 +108,23 @@ export default function RegisterPage() {
   };
 
   const handleRMSearch = async () => {
-      if (!formData.rm_id) return;
-      setIsSearchingRM(true);
-      try {
-          const response = await apiClient.get(`/public/search-rm?rm_unique_id=${formData.rm_id}`);
-          setRmDetails(response.data.data);
-          toast.success("RM verified!");
-      } catch {
-          toast.error("Invalid RM ID");
-          setRmDetails(null);
-      } finally {
-          setIsSearchingRM(false);
-      }
+    if (!formData.rm_id) return;
+    setIsSearchingRM(true);
+    try {
+      const response = await apiClient.get(`/public/search-rm?rm_unique_id=${formData.rm_id}`);
+      setRmDetails(response.data.data);
+      toast.success("RM verified!");
+    } catch {
+      toast.error("Invalid RM ID");
+      setRmDetails(null);
+    } finally {
+      setIsSearchingRM(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!verification.emailVerified) {
       toast.error("Please verify your email first");
       return;
@@ -232,48 +232,48 @@ export default function RegisterPage() {
               <div className="space-y-1.5">
                 <label className="text-xs font-bold uppercase tracking-widest text-gray-500">Mobile Number</label>
                 <div className="flex overflow-hidden rounded-xl border border-gray-200 bg-gray-50 focus-within:ring-2 focus-within:ring-blue-900/10">
-                    <button
-                        type="button"
-                        className="flex min-w-[70px] items-center justify-center gap-1 border-r px-3 hover:bg-gray-100"
-                        onClick={() => setShowCountryDropdown(!showCountryDropdown)}
-                    >
-                        <img src={`https://flagcdn.com/24x18/${formData.country_iso}.png`} alt="flag" className="h-3 w-4" />
-                        <i className="fas fa-chevron-down text-[8px] text-gray-400"></i>
-                    </button>
-                    <div className="relative flex-1">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-gray-400">+{formData.dial_code}</span>
-                        <input
-                            type="text"
-                            required
-                            value={formData.mobile_number}
-                            onChange={(e) => setFormData({ ...formData, mobile_number: e.target.value.replace(/\D/g, "") })}
-                            className="w-full border-none bg-transparent py-3 pl-12 pr-4 outline-none"
-                            placeholder="Mobile number"
-                        />
-                    </div>
+                  <button
+                    type="button"
+                    className="flex min-w-[70px] items-center justify-center gap-1 border-r px-3 hover:bg-gray-100"
+                    onClick={() => setShowCountryDropdown(!showCountryDropdown)}
+                  >
+                    <img src={`https://flagcdn.com/24x18/${formData.country_iso}.png`} alt="flag" className="h-3 w-4" />
+                    <i className="fas fa-chevron-down text-[8px] text-gray-400"></i>
+                  </button>
+                  <div className="relative flex-1">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-gray-400">+{formData.dial_code}</span>
+                    <input
+                      type="text"
+                      required
+                      value={formData.mobile_number}
+                      onChange={(e) => setFormData({ ...formData, mobile_number: e.target.value.replace(/\D/g, "") })}
+                      className="w-full border-none bg-transparent py-3 pl-12 pr-4 outline-none"
+                      placeholder="Mobile number"
+                    />
+                  </div>
                 </div>
                 {showCountryDropdown && (
-                    <div className="absolute z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-xl border bg-white py-2 shadow-2xl">
-                        {COUNTRIES.map((c) => (
-                            <button
-                                key={c.iso}
-                                type="button"
-                                className="flex w-full items-center gap-3 px-4 py-2 text-left hover:bg-gray-50"
-                                onClick={() => {
-                                    setFormData({ ...formData, dial_code: c.dialCode, country_iso: c.iso });
-                                    setShowCountryDropdown(false);
-                                }}
-                            >
-                                <img src={c.flag} className="h-3 w-4" alt={c.name} />
-                                <span className="flex-1 text-sm">{c.name}</span>
-                                <span className="text-xs text-gray-400">+{c.dialCode}</span>
-                            </button>
-                        ))}
-                    </div>
+                  <div className="absolute z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-xl border bg-white py-2 shadow-2xl">
+                    {COUNTRIES.map((c) => (
+                      <button
+                        key={c.iso}
+                        type="button"
+                        className="flex w-full items-center gap-3 px-4 py-2 text-left hover:bg-gray-50"
+                        onClick={() => {
+                          setFormData({ ...formData, dial_code: c.dialCode, country_iso: c.iso });
+                          setShowCountryDropdown(false);
+                        }}
+                      >
+                        <img src={c.flag} className="h-3 w-4" alt={c.name} />
+                        <span className="flex-1 text-sm">{c.name}</span>
+                        <span className="text-xs text-gray-400">+{c.dialCode}</span>
+                      </button>
+                    ))}
+                  </div>
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold uppercase tracking-widest text-gray-500">Password</label>
                   <div className="relative">
@@ -289,7 +289,7 @@ export default function RegisterPage() {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      className="chedule a call with our experts right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                     >
                       <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
                     </button>
@@ -319,34 +319,34 @@ export default function RegisterPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                      <label className="text-xs font-bold uppercase tracking-widest text-gray-500">RM ID (Optional)</label>
-                      <div className="flex gap-1">
-                          <input
-                              type="text"
-                              name="rm_id"
-                              value={formData.rm_id}
-                              onChange={handleChange}
-                              className="w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-xs outline-none focus:border-blue-900"
-                              placeholder="RM123"
-                          />
-                          <Button type="button" size="sm" onClick={handleRMSearch} disabled={!formData.rm_id || isSearchingRM} className="bg-blue-900">
-                              {isSearchingRM ? <i className="fas fa-spinner fa-spin"></i> : "V"}
-                          </Button>
-                      </div>
-                      {rmDetails && <p className="text-[10px] font-bold text-green-600">RM: {rmDetails.name}</p>}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase tracking-widest text-gray-500">RM ID (Optional)</label>
+                  <div className="flex gap-1">
+                    <input
+                      type="text"
+                      name="rm_id"
+                      value={formData.rm_id}
+                      onChange={handleChange}
+                      className="w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-xs outline-none focus:border-blue-900"
+                      placeholder="RM123"
+                    />
+                    <Button type="button" size="sm" onClick={handleRMSearch} disabled={!formData.rm_id || isSearchingRM} className="bg-blue-900">
+                      {isSearchingRM ? <i className="fas fa-spinner fa-spin"></i> : "V"}
+                    </Button>
                   </div>
-                  <div className="space-y-1.5">
-                      <label className="text-xs font-bold uppercase tracking-widest text-gray-500">Referral</label>
-                      <input
-                          type="text"
-                          name="referral_code"
-                          value={formData.referral_code}
-                          onChange={handleChange}
-                          className="w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-xs outline-none focus:border-blue-900"
-                          placeholder="CODE"
-                      />
-                  </div>
+                  {rmDetails && <p className="text-[10px] font-bold text-green-600">RM: {rmDetails.name}</p>}
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase tracking-widest text-gray-500">Referral</label>
+                  <input
+                    type="text"
+                    name="referral_code"
+                    value={formData.referral_code}
+                    onChange={handleChange}
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50 py-3 px-4 text-xs outline-none focus:border-blue-900"
+                    placeholder="CODE"
+                  />
+                </div>
               </div>
 
               <div className="flex items-start gap-2 pt-2">
@@ -358,7 +358,7 @@ export default function RegisterPage() {
                   className="mt-1 rounded border-gray-300 text-blue-900"
                 />
                 <label htmlFor="terms" className="text-xs text-gray-500 leading-tight">
-                    By clicking, you agree to our <Link href="/terms" className="font-bold text-blue-900 hover:underline">Terms</Link> and <Link href="/privacy" className="font-bold text-blue-900 hover:underline">Privacy Policy</Link>.
+                  By clicking, you agree to our <Link href="/terms" className="font-bold text-blue-900 hover:underline">Terms</Link> and <Link href="/privacy" className="font-bold text-blue-900 hover:underline">Privacy Policy</Link>.
                 </label>
               </div>
 
@@ -401,26 +401,26 @@ export default function RegisterPage() {
               </p>
             </div>
             <div className="mt-8 space-y-6">
-                <div className="rounded-2xl bg-white/10 p-6 backdrop-blur-md">
-                    <p className="italic text-blue-100">&quot;The fastest and most reliable filing service I&apos;ve ever used. Their CA experts are top-notch!&quot;</p>
-                    <div className="mt-4 flex items-center gap-3">
-                        <img src="https://i.pravatar.cc/100?u=rahul" className="h-10 w-10 rounded-full border-2 border-amber-500" alt="Rahul" />
-                        <div>
-                            <p className="font-bold">Rahul Sharma</p>
-                            <p className="text-xs text-blue-300">SME Owner</p>
-                        </div>
-                    </div>
+              <div className="rounded-2xl bg-white/10 p-6 backdrop-blur-md">
+                <p className="italic text-blue-100">&quot;The fastest and most reliable filing service I&apos;ve ever used. Their CA experts are top-notch!&quot;</p>
+                <div className="mt-4 flex items-center gap-3">
+                  <img src="https://i.pravatar.cc/100?u=rahul" className="h-10 w-10 rounded-full border-2 border-amber-500" alt="Rahul" />
+                  <div>
+                    <p className="font-bold">Rahul Sharma</p>
+                    <p className="text-xs text-blue-300">SME Owner</p>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                    <div className="flex items-center gap-3 text-sm">
-                        <i className="fas fa-check-circle text-amber-400"></i>
-                        <span>Zero Hidden Charges</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-sm">
-                        <i className="fas fa-check-circle text-amber-400"></i>
-                        <span>24/7 Expert Support</span>
-                    </div>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-3 text-sm">
+                  <i className="fas fa-check-circle text-amber-400"></i>
+                  <span>Zero Hidden Charges</span>
                 </div>
+                <div className="flex items-center gap-3 text-sm">
+                  <i className="fas fa-check-circle text-amber-400"></i>
+                  <span>24/7 Expert Support</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>

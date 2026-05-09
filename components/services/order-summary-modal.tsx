@@ -51,111 +51,103 @@ export function OrderSummaryModal({
       <button
         type="button"
         aria-label="Close order summary"
-        className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/50"
         onClick={onClose}
       />
 
-      <div className="relative z-10 w-full max-w-md overflow-hidden rounded-[2rem] bg-white shadow-2xl">
-        <div className="bg-blue-950 p-6 text-white">
+      <div className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl">
+        <div className="bg-[#1e3a8a] p-6 text-white">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.22em] text-blue-100">
-                Order Summary
-              </p>
-              <h2 className="mt-2 text-2xl font-black">Review before payment</h2>
-              <p className="mt-2 text-sm leading-7 text-blue-100">
-                Your application is saved. Confirm payment to continue processing.
+              <h2 className="text-xl font-bold">Application Summary</h2>
+              <p className="mt-1 text-xs text-blue-100 font-medium">
+                Review your order details before proceeding to payment.
               </p>
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="rounded-full border border-white/15 bg-white/10 px-3 py-2 text-sm font-bold text-white transition hover:bg-white/20"
+              className="text-white hover:text-blue-200 transition-colors"
             >
-              <i className="fas fa-times" />
+              <i className="fas fa-times text-lg" />
             </button>
           </div>
         </div>
 
         <div className="space-y-6 p-6">
-          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-700">
+          <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-blue-700">
               {serviceDetails?.category?.name ?? "Service"}
             </p>
-            <h3 className="mt-2 text-xl font-black text-slate-900">
+            <h3 className="mt-1 text-lg font-bold text-gray-900">
               {serviceDetails?.name ?? "Selected Service"}
             </h3>
-            {serviceDetails?.short_description ? (
-              <p className="mt-3 text-sm leading-7 text-slate-600">
-                {serviceDetails.short_description}
-              </p>
-            ) : null}
           </div>
 
-          <div className="rounded-3xl border border-slate-200 bg-white p-5">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">
-              Price Breakdown
-            </p>
-
-            {selectedPlan ? (
-              <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-bold text-blue-900">
-                <i className="fas fa-tag mr-2 text-blue-600" />
-                {selectedPlan.name}
-              </div>
-            ) : null}
-
-            <div className="mt-5 space-y-3 text-sm text-slate-600">
-              <div className="flex items-center justify-between">
-                <span>Base Price</span>
-                <span className="font-bold text-slate-900">
-                  INR {basePrice.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>GST (18%)</span>
-                <span className="font-bold text-slate-900">
-                  INR {gstAmount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
-              </div>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between text-sm text-gray-600">
+              <span>Service Fee</span>
+              <span className="font-bold text-gray-900">
+                ₹{basePrice.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+              </span>
             </div>
-
-            <div className="mt-5 border-t border-dashed border-slate-200 pt-4">
+            <div className="flex items-center justify-between text-sm text-gray-600">
+              <span>GST (18%)</span>
+              <span className="font-bold text-gray-900">
+                ₹{gstAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+            <div className="pt-4 border-t border-gray-100">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-black uppercase tracking-[0.18em] text-slate-500">
-                    Grand Total
-                  </p>
-                  <p className="mt-1 text-xs text-slate-500">Including GST</p>
+                  <p className="text-sm font-bold text-gray-900">Total Amount</p>
+                  <p className="text-[10px] text-gray-500 font-medium italic">Including all applicable taxes</p>
                 </div>
-                <span className="text-3xl font-black text-blue-950">
-                  INR {formatPrice(grandTotal)}
+                <span className="text-2xl font-bold text-[#1e3a8a]">
+                  ₹{formatPrice(grandTotal)}
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="rounded-3xl border border-amber-200 bg-amber-50 p-4 text-sm leading-7 text-amber-900">
-            Government charges may still apply separately where the service requires them.
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+             <div className="flex gap-3">
+                <i className="fas fa-info-circle text-amber-500 mt-1"></i>
+                <p className="text-xs leading-relaxed text-amber-900 font-medium">
+                    Government charges and official fees may apply separately depending on your specific requirements.
+                </p>
+             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={onConfirm}
-            disabled={loading}
-            className="inline-flex w-full items-center justify-center gap-3 rounded-2xl bg-amber-500 px-6 py-4 text-sm font-black uppercase tracking-[0.18em] text-white transition hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {loading ? "Starting Payment..." : `Pay Now - INR ${formatPrice(grandTotal)}`}
-            <i className={`fas ${loading ? "fa-spinner fa-spin" : "fa-lock"} text-xs`} />
-          </button>
+          <div className="space-y-3">
+            <button
+                type="button"
+                onClick={onConfirm}
+                disabled={loading}
+                className="flex w-full items-center justify-center gap-3 rounded-xl bg-[#1e3a8a] px-6 py-4 text-sm font-bold text-white transition hover:bg-blue-800 shadow-lg shadow-blue-900/20 disabled:opacity-50"
+            >
+                {loading ? (
+                    <>
+                        <i className="fas fa-spinner fa-spin" />
+                        Initiating Payment...
+                    </>
+                ) : (
+                    <>
+                        <i className="fas fa-lock text-xs" />
+                        Pay Securely ₹{formatPrice(grandTotal)}
+                    </>
+                )}
+            </button>
 
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={loading}
-            className="w-full text-sm font-bold text-slate-500 transition hover:text-slate-700 disabled:opacity-50"
-          >
-            Pay Later
-          </button>
+            <button
+                type="button"
+                onClick={onClose}
+                disabled={loading}
+                className="w-full py-2 text-sm font-bold text-gray-500 hover:text-gray-700 transition-colors"
+            >
+                Pay Later
+            </button>
+          </div>
         </div>
       </div>
     </div>

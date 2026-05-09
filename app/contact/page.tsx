@@ -99,7 +99,7 @@ export default function ContactPage() {
               {/* Contact Info */}
               <div>
                 <h2 className="mb-6 text-3xl font-bold text-gray-900">
-                  Let's Discuss Your Requirements
+                  Let&apos;s Discuss Your Requirements
                 </h2>
                 <p className="mb-8 text-lg text-gray-600">
                   Whether you need assistance with taxation, compliance, or
@@ -219,7 +219,7 @@ export default function ContactPage() {
                     <i className="fas fa-check-circle mb-4 text-4xl"></i>
                     <h4 className="mb-2 text-lg font-bold">Thank You!</h4>
                     <p>
-                      Your message has been sent successfully. We'll get back to
+                      Your message has been sent successfully. We&apos;ll get back to
                       you soon.
                     </p>
                   </div>
