@@ -7,10 +7,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { apiClient } from '@/lib/api/client';
 import { getStatusColor, getStatusLabel } from '@/lib/status-helpers';
-import { FileText, Download } from 'lucide-react';
+import { FileText, Download, Trash2, Loader2 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
 type MyServiceListItem = {
-    id: number | string;
+    id: number;
     status: string;
     created_at?: string | null;
     certificate_url?: string | null;
@@ -22,20 +23,37 @@ type MyServiceListItem = {
 export function MyServicesList() {
     const [services, setServices] = useState<MyServiceListItem[]>([]);
     const [loading, setLoading] = useState(true);
+    const [deletingId, setDeletingId] = useState<number | null>(null);
+
+    const fetchMyServices = async () => {
+        try {
+            const response = await apiClient.get('/service/my-services');
+            setServices(response.data?.data || []);
+        } catch (error) {
+            console.error('Failed to fetch your services', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchMyServices = async () => {
-            try {
-                const response = await apiClient.get('/service/my-services');
-                setServices(response.data?.data || []);
-            } catch (error) {
-                console.error('Failed to fetch your services', error);
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchMyServices();
     }, []);
+
+    const handleDelete = async (id: number) => {
+        if (!confirm('Are you sure you want to cancel this application?')) return;
+        
+        setDeletingId(id);
+        try {
+            await apiClient.delete(`/service/my-services/${id}`);
+            toast.success('Application cancelled successfully');
+            setServices(prev => prev.filter(s => s.id !== id));
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || 'Failed to cancel application');
+        } finally {
+            setDeletingId(null);
+        }
+    };
 
     if (loading) return <div className="p-8 text-center text-slate-500">Loading your services...</div>;
 
@@ -83,24 +101,41 @@ export function MyServicesList() {
                                     </Badge>
                                 </TableCell>
                                 <TableCell className="text-right">
-                                    {service.certificate_url ? (
-                                        <a
-                                            href={service.certificate_url}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="inline-flex items-center rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-600 transition-colors hover:bg-emerald-100"
-                                        >
-                                            <Download className="mr-2 h-4 w-4" />
-                                            Certificate
-                                        </a>
-                                    ) : (
-                                        <Link
-                                            href={`/dashboard/services/${service.id}`}
-                                            className="inline-flex items-center rounded-md px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
-                                        >
-                                            Track Flow
-                                        </Link>
-                                    )}
+                                    <div className="flex items-center justify-end gap-2">
+                                        {service.certificate_url ? (
+                                            <a
+                                                href={service.certificate_url}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="inline-flex items-center rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-600 transition-colors hover:bg-emerald-100"
+                                            >
+                                                <Download className="mr-2 h-4 w-4" />
+                                                Certificate
+                                            </a>
+                                        ) : (
+                                            <Link
+                                                href={`/dashboard/services/${service.id}`}
+                                                className="inline-flex items-center rounded-md px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
+                                            >
+                                                Track Flow
+                                            </Link>
+                                        )}
+                                        
+                                        {['applied', 'in_cart'].includes(service.status) && (
+                                            <button
+                                                onClick={() => handleDelete(service.id)}
+                                                disabled={deletingId === service.id}
+                                                className="inline-flex items-center rounded-md p-2 text-sm font-medium text-red-500 transition-colors hover:bg-red-50 disabled:opacity-50"
+                                                title="Cancel Application"
+                                            >
+                                                {deletingId === service.id ? (
+                                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                                ) : (
+                                                    <Trash2 className="h-4 w-4" />
+                                                )}
+                                            </button>
+                                        )}
+                                    </div>
                                 </TableCell>
                             </TableRow>
                         ))}

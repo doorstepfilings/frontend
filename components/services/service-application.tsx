@@ -521,7 +521,34 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
         prefill: { name: user?.name, email: user?.email, contact: user?.mobile_number },
         theme: { color: "#1e3a8a" },
       };
-      new (window as any).Razorpay(options).open();
+      const rzp = new (window as any).Razorpay({
+        ...options,
+        modal: {
+          ondismiss: async () => {
+            try {
+              await apiClient.post("/payments/razorpay/fail", {
+                payment_id: order.payment_id,
+                reason: "Payment modal closed by user",
+              });
+            } catch (e) {
+              console.warn("Failed to report payment cancellation", e);
+            }
+          },
+        },
+      });
+
+      rzp.on("payment.failed", async (response: any) => {
+        try {
+          await apiClient.post("/payments/razorpay/fail", {
+            payment_id: order.payment_id,
+            reason: response.error?.description || "Payment failed",
+          });
+        } catch (e) {
+          console.warn("Failed to report payment failure", e);
+        }
+      });
+
+      rzp.open();
     } catch { setError("Payment failed"); } finally { setPaymentLoading(false); }
   };
 
