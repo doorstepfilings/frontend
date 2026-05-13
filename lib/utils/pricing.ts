@@ -16,6 +16,15 @@ type ServiceLike = {
   } | null;
 };
 
+function toCurrencyNumber(amount: number | string | null | undefined) {
+  const numericAmount = Number(amount ?? 0);
+  return Number.isFinite(numericAmount) ? numericAmount : 0;
+}
+
+export function roundCurrency(amount: number | string | null | undefined) {
+  return Math.round((toCurrencyNumber(amount) + Number.EPSILON) * 100) / 100;
+}
+
 export function calculateServicePrice(service?: ServiceLike | null) {
   if (!service) {
     return 0;
@@ -27,7 +36,7 @@ export function calculateServicePrice(service?: ServiceLike | null) {
     ? pricingPlans.find((plan) => plan.name === selectedPlanName)
     : null;
 
-  return Number(
+  return toCurrencyNumber(
     selectedPlan?.price ??
       service.service?.price ??
       service.price ??
@@ -38,7 +47,7 @@ export function calculateServicePrice(service?: ServiceLike | null) {
 
 export function calculateServiceTotal(service?: ServiceLike | null) {
   const basePrice = calculateServicePrice(service);
-  const gstAmount = basePrice * 0.18;
+  const gstAmount = roundCurrency(basePrice * 0.18);
   const grandTotal = Math.round(basePrice + gstAmount);
 
   return {
@@ -48,6 +57,26 @@ export function calculateServiceTotal(service?: ServiceLike | null) {
   };
 }
 
+export function formatCurrency(
+  amount: number | string | null | undefined,
+  options: Intl.NumberFormatOptions = {},
+) {
+  return roundCurrency(amount).toLocaleString("en-IN", {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 0,
+    ...options,
+  });
+}
+
+export function formatCurrencyFixed(
+  amount: number | string | null | undefined,
+) {
+  return formatCurrency(amount, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
 export function formatPrice(amount: number | string | null | undefined) {
-  return Math.round(Number(amount || 0)).toLocaleString("en-IN");
+  return formatCurrency(amount);
 }

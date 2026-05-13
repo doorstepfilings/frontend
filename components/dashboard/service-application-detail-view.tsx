@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
+import { toast } from "react-hot-toast";
 import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
 import { fetchMyServices } from "@/lib/features/services/services-slice";
 import {
@@ -12,7 +13,10 @@ import { StatusIndicator } from "@/components/ui/status-indicator";
 import { format } from "date-fns";
 import Link from "next/link";
 import {
+    ensureDocumentAccessible,
+    getDocumentSourceUrl,
     isImageDocument,
+    openDocumentInNewTab,
     resolveStorageUrl,
 } from "@/lib/utils/document-helpers";
 
@@ -81,6 +85,39 @@ export function ServiceApplicationDetailView() {
             }, []),
         [requestDocuments],
     );
+
+    const handleOpenDocument = async (doc: ServiceDocument) => {
+        try {
+            await openDocumentInNewTab(
+                getDocumentSourceUrl(doc),
+                doc.file_name ?? doc.document_name ?? "document",
+            );
+        } catch (error: unknown) {
+            const message =
+                error instanceof Error
+                    ? error.message
+                    : "Unable to open this document.";
+            toast.error(message);
+        }
+    };
+
+    const handleOpenPreview = async (previewIndex: number) => {
+        const slide = documentGallery[previewIndex]?.slide;
+        if (!slide) {
+            return;
+        }
+
+        try {
+            await ensureDocumentAccessible(slide.src);
+            setLightboxIndex(previewIndex);
+        } catch (error: unknown) {
+            const message =
+                error instanceof Error
+                    ? error.message
+                    : "Unable to preview this image.";
+            toast.error(message);
+        }
+    };
 
     if (loading && !service) {
         return (
@@ -254,9 +291,6 @@ export function ServiceApplicationDetailView() {
                                 </p>
                             ) : (
                                 requestDocuments.map((doc) => {
-                                    const resolvedUrl = resolveStorageUrl(
-                                        doc.file_url ?? null,
-                                    );
                                     const previewIndex =
                                         documentGallery.findIndex(
                                             (item) =>
@@ -294,7 +328,7 @@ export function ServiceApplicationDetailView() {
                                                 {previewIndex >= 0 ? (
                                                     <button
                                                         onClick={() =>
-                                                            setLightboxIndex(
+                                                            void handleOpenPreview(
                                                                 previewIndex,
                                                             )
                                                         }
@@ -305,16 +339,17 @@ export function ServiceApplicationDetailView() {
                                                         <i className="fas fa-eye text-xs"></i>
                                                     </button>
                                                 ) : null}
-                                                <a
-                                                    href={
-                                                        resolvedUrl ?? undefined
+                                                <button
+                                                    onClick={() =>
+                                                        void handleOpenDocument(
+                                                            doc,
+                                                        )
                                                     }
-                                                    target="_blank"
-                                                    rel="noreferrer"
                                                     className={`${isDeliverable ? "text-blue-200 hover:text-white" : "text-slate-500 hover:text-white"} transition-colors`}
+                                                    type="button"
                                                 >
                                                     <i className="fas fa-download text-xs"></i>
-                                                </a>
+                                                </button>
                                             </div>
                                         </div>
                                     );

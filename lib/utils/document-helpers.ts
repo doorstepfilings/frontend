@@ -24,6 +24,7 @@ export const isClientDocument = (doc: any) => {
   const type = String(doc?.document_type || "").toLowerCase();
   const category = String(doc?.document_category || "").toLowerCase();
   const role = String(doc?.uploaded_by?.role || "").toLowerCase();
+  const status = String(doc?.status || "").toLowerCase();
 
   const isStaffRole = [
     "accountant",
@@ -137,13 +138,122 @@ export const resolveStorageUrl = (url: string | null) => {
   if (!url) return null;
   if (/^https?:\/\//i.test(url)) return url;
 
-  const cleanUrl = String(url).replace(/^\/+/, "");
+  const cleanUrl = String(url)
+    .trim()
+    .replace(/\\/g, "/")
+    .replace(/^\/+/, "");
+
+  if (!cleanUrl) return null;
+
+  const encodeSegment = (segment: string) => {
+    try {
+      return encodeURIComponent(decodeURIComponent(segment));
+    } catch {
+      return encodeURIComponent(segment);
+    }
+  };
+
+  const encodePath = (value: string) =>
+    value
+      .split("/")
+      .filter(Boolean)
+      .map(encodeSegment)
+      .join("/");
+
   // If the path already begins with "storage/", we just ensure it has a leading slash
   if (cleanUrl.startsWith("storage/")) {
-    return `/${cleanUrl}`;
+    return `/${encodePath(cleanUrl)}`;
   }
 
-  return `/storage/${cleanUrl}`;
+  return `/storage/${encodePath(cleanUrl)}`;
+};
+
+export const getDocumentSourceUrl = (doc: any) => {
+  const candidates = [
+    doc?.file_url,
+    doc?.fileUrl,
+    doc?.file_path,
+    doc?.filePath,
+    doc?.url,
+    doc?.path,
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === "string" && candidate.trim().length > 0) {
+      return candidate;
+    }
+  }
+
+  return null;
+};
+
+async function verifyDocumentAccess(url: string) {
+  const response = await fetch(url, {
+    cache: "no-store",
+    method: "HEAD",
+  });
+
+  if (response.ok || response.status === 405) {
+    return;
+  }
+
+  if (response.status === 404) {
+    throw new Error(
+      "This file is not available in current or legacy storage yet.",
+    );
+  }
+
+  throw new Error("Unable to open this document right now.");
+}
+
+export const ensureDocumentAccessible = async (url: string | null) => {
+  const resolvedUrl = resolveStorageUrl(url);
+  if (!resolvedUrl) {
+    throw new Error("Document link is missing.");
+  }
+
+  if (/^https?:\/\//i.test(resolvedUrl) || typeof window === "undefined") {
+    return resolvedUrl;
+  }
+
+  await verifyDocumentAccess(resolvedUrl);
+  return resolvedUrl;
+};
+
+export const openDocumentInNewTab = async (
+  url: string | null,
+  fileName?: string | null,
+) => {
+  const resolvedUrl = resolveStorageUrl(url);
+  if (!resolvedUrl) {
+    throw new Error("Document link is missing.");
+  }
+
+  if (typeof window === "undefined") {
+    return resolvedUrl;
+  }
+
+  const popup = window.open("", "_blank");
+  if (!popup) {
+    throw new Error("Please allow pop-ups to view this document.");
+  }
+
+  try {
+    popup.opener = null;
+
+    if (!/^https?:\/\//i.test(resolvedUrl)) {
+      popup.document.title = fileName || "Opening document";
+      popup.document.body.innerHTML =
+        '<p style="font-family:Arial,sans-serif;padding:16px">Opening document...</p>';
+      await verifyDocumentAccess(resolvedUrl);
+    }
+
+    popup.location.href = resolvedUrl;
+    return resolvedUrl;
+  } catch (error) {
+    popup.close();
+    throw error;
+  }
 };
 
 export const formatFileSize = (bytes: number) => {
@@ -197,9 +307,10 @@ export const getDocumentIcon = (mimeType = "", fileName = "") => {
 };
 
 export const forceDownload = (url: string | null, fileName: string) => {
-  if (!url) return;
+  const resolvedUrl = resolveStorageUrl(url);
+  if (!resolvedUrl) return;
   const link = document.createElement("a");
-  link.href = url;
+  link.href = resolvedUrl;
   link.setAttribute("download", fileName);
   document.body.appendChild(link);
   link.click();

@@ -3,6 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
 import {
+    ConfirmationModal,
+} from "@/components/ui/confirmation-modal";
+import {
     ImageLightbox,
     type ImageLightboxSlide,
 } from "@/components/ui/image-lightbox";
@@ -17,8 +20,11 @@ import {
 } from "@/lib/features/services/services-slice";
 import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
 import {
+    ensureDocumentAccessible,
     getClientUploadedDocuments,
+    getDocumentSourceUrl,
     isImageDocument,
+    openDocumentInNewTab,
     resolveStorageUrl,
 } from "@/lib/utils/document-helpers";
 import { useStoredUser } from "@/lib/auth/hooks";
@@ -30,6 +36,7 @@ type DashboardUploadRow = DocumentUploadRow & {
 };
 
 type DashboardDocumentArchiveItem = {
+    document_name?: string | null;
     document_type?: string | null;
     file_name?: string | null;
     file_url?: string | null;
@@ -65,6 +72,9 @@ const DOC_TYPE_ICON = (mime: string | null | undefined) => {
     return "fa-file-alt text-gray-400";
 };
 
+const getArchiveDocumentLabel = (doc: DashboardDocumentArchiveItem) =>
+    doc.document_name || doc.document_type || doc.file_name || "Document";
+
 export function DashboardDocumentsView() {
     const dispatch = useAppDispatch();
     const { myServices, loading } = useAppSelector((state) => state.services);
@@ -77,6 +87,9 @@ export function DashboardDocumentsView() {
     const [fileErrors, setFileErrors] = useState<Record<number, string>>({});
     const [isUploading, setIsUploading] = useState(false);
     const [lightboxIndex, setLightboxIndex] = useState(-1);
+    const [documentToDelete, setDocumentToDelete] =
+        useState<DashboardDocumentArchiveItem | null>(null);
+    const [isDeletingDocument, setIsDeletingDocument] = useState(false);
 
     useEffect(() => {
         void dispatch(fetchMyServices());
@@ -122,6 +135,9 @@ export function DashboardDocumentsView() {
                     doc.file_name
                         ?.toLowerCase()
                         .includes(searchQuery.toLowerCase()) ||
+                    doc.document_name
+                        ?.toLowerCase()
+                        .includes(searchQuery.toLowerCase()) ||
                     doc.document_type
                         ?.toLowerCase()
                         .includes(searchQuery.toLowerCase()) ||
@@ -149,10 +165,7 @@ export function DashboardDocumentsView() {
                 gallery.push({
                     docId: String(doc.id),
                     slide: {
-                        alt:
-                            doc.document_type ||
-                            doc.file_name ||
-                            "Document preview",
+                        alt: getArchiveDocumentLabel(doc),
                         download: doc.file_name
                             ? {
                                   filename: doc.file_name,
@@ -250,11 +263,11 @@ export function DashboardDocumentsView() {
     };
 
     const handleDelete = async (docId: string, serviceId: string) => {
-        if (!confirm("Delete this document?")) return;
-
+        setIsDeletingDocument(true);
         try {
             await dispatch(deleteMyDocument({ serviceId, docId })).unwrap();
             toast.success("Document deleted");
+            setDocumentToDelete(null);
         } catch (error: unknown) {
             const message =
                 typeof error === "string"
@@ -263,15 +276,47 @@ export function DashboardDocumentsView() {
                       ? error.message
                       : "Delete failed";
             toast.error(message);
+        } finally {
+            setIsDeletingDocument(false);
         }
     };
 
-    const handleOpenPreview = (docId: number | string) => {
+    const handleDeleteClick = (doc: DashboardDocumentArchiveItem) => {
+        setDocumentToDelete(doc);
+    };
+
+    const handleOpenDocument = async (doc: DashboardDocumentArchiveItem) => {
+        try {
+            await openDocumentInNewTab(
+                getDocumentSourceUrl(doc),
+                doc.file_name ?? getArchiveDocumentLabel(doc),
+            );
+        } catch (error: unknown) {
+            const message =
+                error instanceof Error
+                    ? error.message
+                    : "Unable to open this document.";
+            toast.error(message);
+        }
+    };
+
+    const handleOpenPreview = async (docId: number | string) => {
         const previewIndex = imageGallery.findIndex(
             (item) => item.docId === String(docId),
         );
         if (previewIndex >= 0) {
-            setLightboxIndex(previewIndex);
+            try {
+                await ensureDocumentAccessible(
+                    imageGallery[previewIndex]?.slide.src ?? null,
+                );
+                setLightboxIndex(previewIndex);
+            } catch (error: unknown) {
+                const message =
+                    error instanceof Error
+                        ? error.message
+                        : "Unable to preview this image.";
+                toast.error(message);
+            }
         }
     };
 
@@ -417,8 +462,9 @@ export function DashboardDocumentsView() {
                                             </div>
                                             <div>
                                                 <h4 className="max-w-[150px] truncate text-sm font-bold text-gray-900">
-                                                    {doc.document_type ||
-                                                        doc.file_name}
+                                                    {getArchiveDocumentLabel(
+                                                        doc,
+                                                    )}
                                                 </h4>
                                                 <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
                                                     {doc.status}
@@ -429,7 +475,7 @@ export function DashboardDocumentsView() {
                                             {isImageDocument(doc) ? (
                                                 <button
                                                     onClick={() =>
-                                                        handleOpenPreview(
+                                                        void handleOpenPreview(
                                                             doc.id,
                                                         )
                                                     }
@@ -440,24 +486,18 @@ export function DashboardDocumentsView() {
                                                     <i className="fas fa-eye text-xs" />
                                                 </button>
                                             ) : null}
-                                            <a
-                                                href={
-                                                    resolveStorageUrl(
-                                                        doc.file_url ?? null,
-                                                    ) ?? undefined
-                                                }
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-50 text-gray-400 transition-all hover:bg-blue-900 hover:text-white"
-                                            >
-                                                <i className="fas fa-external-link-alt text-xs" />
-                                            </a>
                                             <button
                                                 onClick={() =>
-                                                    void handleDelete(
-                                                        String(doc.id),
-                                                        String(doc.serviceId),
-                                                    )
+                                                    void handleOpenDocument(doc)
+                                                }
+                                                className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-50 text-gray-400 transition-all hover:bg-blue-900 hover:text-white"
+                                                type="button"
+                                            >
+                                                <i className="fas fa-external-link-alt text-xs" />
+                                            </button>
+                                            <button
+                                                onClick={() =>
+                                                    handleDeleteClick(doc)
                                                 }
                                                 className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-50 text-rose-500 transition-all hover:bg-rose-600 hover:text-white"
                                                 type="button"
@@ -486,6 +526,28 @@ export function DashboardDocumentsView() {
                 index={lightboxIndex >= 0 ? lightboxIndex : 0}
                 slides={imageGallery.map((item) => item.slide)}
                 onClose={() => setLightboxIndex(-1)}
+            />
+
+            <ConfirmationModal
+                isOpen={documentToDelete !== null}
+                loading={isDeletingDocument}
+                onClose={() => {
+                    if (!isDeletingDocument) {
+                        setDocumentToDelete(null);
+                    }
+                }}
+                onConfirm={() =>
+                    documentToDelete
+                        ? void handleDelete(
+                              String(documentToDelete.id),
+                              String(documentToDelete.serviceId),
+                          )
+                        : undefined
+                }
+                title="Delete Document"
+                message="Are you sure you want to delete this document? This action cannot be undone."
+                confirmLabel="Delete Document"
+                variant="danger"
             />
         </div>
     );

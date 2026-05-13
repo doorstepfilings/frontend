@@ -20,6 +20,7 @@ import type { AuthUser } from "@/lib/auth/types";
 import { apiClient } from "@/lib/api/client";
 import { parseApiError } from "@/lib/utils/error-parser";
 import { getDocumentIcon } from "@/lib/utils/document-helpers";
+import { formatPrice } from "@/lib/utils/pricing";
 import {
   SLOT_TIMES,
   formatTimeSlot,
@@ -526,7 +527,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
                       <div key={index} className="flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition-all hover:shadow-md">
                         <div className="bg-blue-900 p-6 text-center text-white">
                           <h4 className="mb-1 text-lg font-bold">{plan.name}</h4>
-                          <div className="text-2xl font-black text-amber-400">₹{Math.round(plan.price).toLocaleString("en-IN")}</div>
+                          <div className="text-2xl font-black text-amber-400">₹{formatPrice(plan.price)}</div>
                         </div>
                         <div className="flex flex-1 flex-col p-6">
                           <ul className="mb-6 flex-1 space-y-3">
@@ -589,7 +590,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
                   {service?.price && (
                     <div className="mb-4 text-center">
                       <p className="text-sm text-gray-500">Starting from</p>
-                      <p className="text-4xl font-bold text-blue-900">₹{Math.round(Number(service.price)).toLocaleString("en-IN")}</p>
+                      <p className="text-4xl font-bold text-blue-900">₹{formatPrice(service.price)}</p>
                       <p className="text-[10px] text-gray-400 uppercase tracking-widest">+ GST | Govt. fee extra</p>
                     </div>
                   )}
@@ -688,7 +689,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
                         <div>
                           <p className="text-base font-bold text-gray-900">{plan.name}</p>
                           <p className="mt-1 text-sm font-semibold text-blue-900">
-                            Rs. {Math.round(Number(plan.price || 0)).toLocaleString("en-IN")}
+                            Rs. {formatPrice(plan.price)}
                           </p>
                         </div>
                         <span
@@ -709,7 +710,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
               {selectedPlanDetails && (
                 <div className="rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900">
                   <span className="font-bold">{selectedPlanDetails.name}</span>
-                  <span className="ml-2">Rs. {Math.round(Number(selectedPlanDetails.price || 0)).toLocaleString("en-IN")}</span>
+                  <span className="ml-2">Rs. {formatPrice(selectedPlanDetails.price)}</span>
                 </div>
               )}
             </div>

@@ -25,6 +25,7 @@ import {
 } from "@/lib/utils/razorpay";
 import { buildDashboardDocumentsUrl } from "@/lib/utils/payment-navigation";
 import { parseApiError } from "@/lib/utils/error-parser";
+import { formatPrice } from "@/lib/utils/pricing";
 
 const COUNTRIES = [
   { iso: 'in', name: 'India', dialCode: '91', flag: 'https://flagcdn.com/24x18/in.png' },
@@ -501,12 +502,14 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
 
   const handleConfirmPayment = async () => {
     if (!createdApplication?.id) return;
+    const applicationId = createdApplication.id;
     setPaymentLoading(true);
     try {
       const loaded = await loadRazorpay();
       if (!loaded) return setError("Razorpay load failed");
       const res = await apiClient.post("/payments/razorpay/order-single", { user_service_id: createdApplication.id });
       const order = res.data.data;
+      setShowOrderModal(false);
       const options: RazorpayCheckoutOptions = {
         key: order.key_id,
         amount: order.amount_paise,
@@ -516,7 +519,7 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
         order_id: order.razorpay_order_id,
         handler: async (r: any) => {
           await apiClient.post("/payments/razorpay/verify", { ...r, payment_id: order.payment_id });
-          router.push(buildDashboardDocumentsUrl({ status: "success", serviceIds: [String(createdApplication.id)] }));
+          router.push(buildDashboardDocumentsUrl({ status: "success", serviceIds: [String(applicationId)] }));
         },
         prefill: { name: user?.name, email: user?.email, contact: user?.mobile_number },
         theme: { color: "#1e3a8a" },
@@ -624,7 +627,7 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
                                             <p className="text-base font-bold text-gray-900">{plan.name}</p>
                                             {typeof plan.price === "number" && (
                                                 <p className="mt-1 text-sm font-semibold text-blue-900">
-                                                    Rs. {plan.price}
+                                                    Rs. {formatPrice(plan.price)}
                                                 </p>
                                             )}
                                         </div>
@@ -658,7 +661,9 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
                         <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900">
                             <span className="font-bold">{selectedPlanDetails.name}</span>
                             {selectedPlanDetails.price !== undefined && (
-                                <span className="ml-2">Rs. {selectedPlanDetails.price}</span>
+                                <span className="ml-2">
+                                    Rs. {formatPrice(selectedPlanDetails.price)}
+                                </span>
                             )}
                         </div>
                     )}
@@ -983,7 +988,13 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
                   <p className="text-[10px] font-bold text-gray-400 uppercase mb-2">Selected Plan</p>
                   <div className="flex items-center justify-between font-bold text-gray-800">
                     <span>{selectedPricingPlan}</span>
-                    <span className="text-blue-900">₹{selectedService?.pricing_plans?.find(p => p.name === selectedPricingPlan)?.price}</span>
+                    <span className="text-blue-900">
+                      ₹{formatPrice(
+                        selectedService?.pricing_plans?.find(
+                          (p) => p.name === selectedPricingPlan,
+                        )?.price,
+                      )}
+                    </span>
                   </div>
                 </div>
               )}

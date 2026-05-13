@@ -1,6 +1,10 @@
 "use client";
 
-import { calculateServiceTotal, formatPrice } from "@/lib/utils/pricing";
+import {
+  calculateServiceTotal,
+  formatCurrencyFixed,
+  formatPrice,
+} from "@/lib/utils/pricing";
 
 type OrderSummaryService = {
   amount?: number | string | null;
@@ -42,7 +46,9 @@ export function OrderSummaryModal({
   const serviceDetails = service.service ?? null;
   const selectedPlanName = service.form_data?.pricing_plan;
   const selectedPlan = selectedPlanName
-    ? (serviceDetails?.pricing_plans ?? []).find((plan) => plan.name === selectedPlanName)
+    ? (serviceDetails?.pricing_plans ?? []).find(
+        (plan) => plan.name === selectedPlanName,
+      )
     : null;
   const { basePrice, gstAmount, grandTotal } = calculateServiceTotal(service);
 
@@ -60,14 +66,14 @@ export function OrderSummaryModal({
           <div className="flex items-start justify-between gap-4">
             <div>
               <h2 className="text-xl font-bold">Application Summary</h2>
-              <p className="mt-1 text-xs text-blue-100 font-medium">
+              <p className="mt-1 text-xs font-medium text-blue-100">
                 Review your order details before proceeding to payment.
               </p>
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="text-white hover:text-blue-200 transition-colors"
+              className="text-white transition-colors hover:text-blue-200"
             >
               <i className="fas fa-times text-lg" />
             </button>
@@ -82,26 +88,35 @@ export function OrderSummaryModal({
             <h3 className="mt-1 text-lg font-bold text-gray-900">
               {serviceDetails?.name ?? "Selected Service"}
             </h3>
+            {selectedPlan?.name ? (
+              <p className="mt-1 text-xs font-medium text-gray-500">
+                Plan: {selectedPlan.name}
+              </p>
+            ) : null}
           </div>
 
           <div className="space-y-4">
             <div className="flex items-center justify-between text-sm text-gray-600">
               <span>Service Fee</span>
               <span className="font-bold text-gray-900">
-                ₹{basePrice.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                ₹{formatCurrencyFixed(basePrice)}
               </span>
             </div>
             <div className="flex items-center justify-between text-sm text-gray-600">
               <span>GST (18%)</span>
               <span className="font-bold text-gray-900">
-                ₹{gstAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                ₹{formatCurrencyFixed(gstAmount)}
               </span>
             </div>
-            <div className="pt-4 border-t border-gray-100">
+            <div className="border-t border-gray-100 pt-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-bold text-gray-900">Total Amount</p>
-                  <p className="text-[10px] text-gray-500 font-medium italic">Including all applicable taxes</p>
+                  <p className="text-sm font-bold text-gray-900">
+                    Total Amount
+                  </p>
+                  <p className="text-[10px] font-medium italic text-gray-500">
+                    Including all applicable taxes
+                  </p>
                 </div>
                 <span className="text-2xl font-bold text-[#1e3a8a]">
                   ₹{formatPrice(grandTotal)}
@@ -111,41 +126,42 @@ export function OrderSummaryModal({
           </div>
 
           <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-             <div className="flex gap-3">
-                <i className="fas fa-info-circle text-amber-500 mt-1"></i>
-                <p className="text-xs leading-relaxed text-amber-900 font-medium">
-                    Government charges and official fees may apply separately depending on your specific requirements.
-                </p>
-             </div>
+            <div className="flex gap-3">
+              <i className="fas fa-info-circle mt-1 text-amber-500" />
+              <p className="text-xs font-medium leading-relaxed text-amber-900">
+                Government charges and official fees may apply separately
+                depending on your specific requirements.
+              </p>
+            </div>
           </div>
 
           <div className="space-y-3">
             <button
-                type="button"
-                onClick={onConfirm}
-                disabled={loading}
-                className="flex w-full items-center justify-center gap-3 rounded-xl bg-[#1e3a8a] px-6 py-4 text-sm font-bold text-white transition hover:bg-blue-800 shadow-lg shadow-blue-900/20 disabled:opacity-50"
+              type="button"
+              onClick={onConfirm}
+              disabled={loading}
+              className="flex w-full items-center justify-center gap-3 rounded-xl bg-[#1e3a8a] px-6 py-4 text-sm font-bold text-white shadow-lg shadow-blue-900/20 transition hover:bg-blue-800 disabled:opacity-50"
             >
-                {loading ? (
-                    <>
-                        <i className="fas fa-spinner fa-spin" />
-                        Initiating Payment...
-                    </>
-                ) : (
-                    <>
-                        <i className="fas fa-lock text-xs" />
-                        Pay Securely ₹{formatPrice(grandTotal)}
-                    </>
-                )}
+              {loading ? (
+                <>
+                  <i className="fas fa-spinner fa-spin" />
+                  Initiating Payment...
+                </>
+              ) : (
+                <>
+                  <i className="fas fa-lock text-xs" />
+                  Pay Securely ₹{formatPrice(grandTotal)}
+                </>
+              )}
             </button>
 
             <button
-                type="button"
-                onClick={onClose}
-                disabled={loading}
-                className="w-full py-2 text-sm font-bold text-gray-500 hover:text-gray-700 transition-colors"
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              className="w-full py-2 text-sm font-bold text-gray-500 transition-colors hover:text-gray-700"
             >
-                Pay Later
+              Pay Later
             </button>
           </div>
         </div>

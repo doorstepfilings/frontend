@@ -239,6 +239,7 @@ export function DashboardServicesView() {
       return;
     }
 
+    const serviceId = orderService.id;
     setPaymentLoading(true);
 
     try {
@@ -261,6 +262,8 @@ export function DashboardServicesView() {
         return;
       }
 
+      setShowOrderModal(false);
+
       const options: RazorpayCheckoutOptions = {
         amount:
           order.amount_paise ?? Math.round(Number(order.amount || 0) * 100),
@@ -278,7 +281,7 @@ export function DashboardServicesView() {
                 message: "Payment Successful",
                 orderId: order.razorpay_order_id,
                 paymentId: String(order.payment_id),
-                serviceIds: [String(orderService.id)],
+                serviceIds: [String(serviceId)],
                 status: "success",
               }),
             );

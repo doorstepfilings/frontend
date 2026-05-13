@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { PublicShell } from "@/components/layout/public-shell";
 import { apiClient } from "@/lib/api/client";
 import { useStoredUser } from "@/lib/auth/hooks";
+import { formatPrice } from "@/lib/utils/pricing";
 import { ApplyServiceModal } from "./apply-service-modal";
 
 type ServiceDetailResponse = {
@@ -191,7 +192,7 @@ export function ServiceDetailView({ slug }: { slug: string }) {
                           <div className="p-8 bg-blue-900 text-white text-center">
                             <h4 className="font-bold text-sm uppercase tracking-widest opacity-70 mb-2">{plan.name}</h4>
                             <div className="text-3xl font-black text-amber-400">
-                              {typeof plan.price === 'number' ? `₹${plan.price.toLocaleString('en-IN')}` : plan.price}
+                              {`₹${formatPrice(plan.price)}`}
                             </div>
                           </div>
                           <div className="p-8 flex-1 flex flex-col">
@@ -285,7 +286,7 @@ export function ServiceDetailView({ slug }: { slug: string }) {
                   {service.price && (
                     <div className="mb-8 text-center bg-slate-50 rounded-2xl py-6">
                       <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Service Fee Starting At</p>
-                      <p className="text-4xl font-black text-blue-900">₹{Math.round(Number(service.price)).toLocaleString('en-IN')}</p>
+                      <p className="text-4xl font-black text-blue-900">₹{formatPrice(service.price)}</p>
                       <p className="text-[10px] text-slate-400 font-bold mt-2 uppercase tracking-tighter">+ GST | GOVT. FEE EXTRA</p>
                     </div>
                   )}

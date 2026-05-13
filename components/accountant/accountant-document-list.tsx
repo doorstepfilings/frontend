@@ -1,7 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
-import { getDocumentIcon, resolveStorageUrl, formatFileSize } from "@/lib/utils/document-helpers";
+import { toast } from "react-hot-toast";
+import {
+  formatFileSize,
+  getDocumentIcon,
+  getDocumentSourceUrl,
+  openDocumentInNewTab,
+} from "@/lib/utils/document-helpers";
 import { format } from "date-fns";
 
 const DOC_STATUS: any = {
@@ -56,6 +62,21 @@ export const AccountantDocumentList = ({
       setRemark("");
     } finally {
       setUpdatingId(null);
+    }
+  };
+
+  const handleOpenDocument = async (doc: any) => {
+    try {
+      await openDocumentInNewTab(
+        getDocumentSourceUrl(doc),
+        doc.file_name ?? doc.document_name ?? "document",
+      );
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Unable to open this document.";
+      toast.error(message);
     }
   };
 
@@ -149,15 +170,14 @@ export const AccountantDocumentList = ({
                     )}
 
                     <div className="flex items-center gap-2 rounded-lg bg-white border border-slate-100 p-1 shadow-sm">
-                      <a
-                        href={resolveStorageUrl(doc.file_url || doc.file_path) ?? undefined}
-                        target="_blank"
-                        rel="noreferrer"
+                      <button
+                        onClick={() => void handleOpenDocument(doc)}
                         className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-900 hover:text-white transition-all"
                         title="View Document"
+                        type="button"
                       >
                         <i className="fas fa-eye text-[10px]" />
-                      </a>
+                      </button>
                       {canUpload && (
                         <>
                           <div className="h-4 w-px bg-slate-100" />
