@@ -2,8 +2,12 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { TestimonialSlider } from "@/components/ui/testimonial-slider";
+import {
+  homeHeroAvatars,
+  homeTestimonials,
+} from "@/lib/constants/testimonials";
 import { fetchServices } from "@/lib/features/services/services-slice";
 import type { ServiceCategory, ServiceItem } from "@/lib/features/services/types";
 import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
@@ -14,68 +18,6 @@ const stats = [
   { number: 15, suffix: "+", label: "Years Experience" },
   { number: 1000, suffix: "+", label: "Projects Completed" },
   { number: 50, suffix: "+", label: "Expert Team" },
-];
-
-const heroAvatars = [
-  {
-    src: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80",
-    alt: "Client portrait 1",
-  },
-  {
-    src: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80",
-    alt: "Client portrait 2",
-  },
-  {
-    src: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80",
-    alt: "Client portrait 3",
-  },
-  {
-    src: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&auto=format&fit=crop&q=80",
-    alt: "Client portrait 4",
-  },
-];
-
-const testimonials = [
-  {
-    image:
-      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80",
-    name: "Rajesh Patel",
-    designation: "CEO, Patel Enterprises",
-    quote:
-      "Our Firm has been instrumental in our company's growth. Their GST and tax planning expertise saved us significant time and money. Highly recommended!",
-  },
-  {
-    image:
-      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&auto=format&fit=crop&q=80",
-    name: "Priya Sharma",
-    designation: "Director, Sharma & Co.",
-    quote:
-      "Professional, responsive, and knowledgeable. They handled our company registration and compliance with utmost care. A trusted partner for our business.",
-  },
-  {
-    image:
-      "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&auto=format&fit=crop&q=80",
-    name: "Amit Gupta",
-    designation: "Founder, TechStart India",
-    quote:
-      "Excellent service! They helped us secure government subsidies and project finance. Their expertise in MSME schemes is unparalleled.",
-  },
-  {
-    image:
-      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80",
-    name: "Suresh Mehta",
-    designation: "Managing Director, Mehta Industries",
-    quote:
-      "Outstanding financial advisory services! Their team guided us through complex tax regulations and helped optimize our business structure.",
-  },
-  {
-    image:
-      "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&auto=format&fit=crop&q=80",
-    name: "Sunita Reddy",
-    designation: "Managing Partner, SR Associates",
-    quote:
-      "Exceptional service and attention to detail. They made our compliance process smooth and hassle-free. Truly a reliable partner for any business.",
-  },
 ];
 
 function Counter({ target }: { target: number }) {
@@ -242,14 +184,17 @@ export default function HomePage() {
 
                 <div className="animate-fade-in-up delay-400 flex flex-col items-start gap-6 border-t border-slate-800/50 pt-8 sm:flex-row sm:items-center">
                   <div className="-space-x-3 flex">
-                    {heroAvatars.map((avatar) => (
+                    {homeHeroAvatars.map((avatar) => (
                       <Image
                         key={avatar.src}
                         src={avatar.src}
                         alt={avatar.alt}
-                        width={48}
-                        height={48}
-                        className="h-12 w-12 rounded-full border-2 border-slate-950 object-cover transition-transform hover:z-10 hover:scale-110"
+                        width={52}
+                        height={52}
+                        sizes="52px"
+                        quality={100}
+                        style={{ objectPosition: avatar.imagePosition }}
+                        className="h-[52px] w-[52px] rounded-full border-2 border-slate-950 bg-slate-200 object-cover transition-transform hover:z-10 hover:scale-110"
                       />
                     ))}
                     <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-slate-950 bg-amber-50 text-xs font-bold text-white transition-transform hover:scale-110">
@@ -603,7 +548,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        <TestimonialSlider testimonials={testimonials} />
+        <TestimonialSlider testimonials={homeTestimonials} />
 
         <section className="bg-white py-16">
           <div className="container mx-auto px-4 text-center">

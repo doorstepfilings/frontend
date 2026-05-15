@@ -1,99 +1,121 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
-
-interface Testimonial {
-  image: string;
-  name: string;
-  designation: string;
-  quote: string;
-}
+import type { TestimonialEntry } from "@/lib/constants/testimonials";
+import { cn } from "@/lib/utils";
 
 interface TestimonialSliderProps {
-  testimonials: Testimonial[];
+  testimonials: ReadonlyArray<TestimonialEntry>;
 }
 
 export function TestimonialSlider({ testimonials }: TestimonialSliderProps) {
   const itemsPerView = 2;
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const hasTestimonials = testimonials.length > 0;
+  const groupedTestimonials: TestimonialEntry[][] = [];
+
+  for (let index = 0; index < testimonials.length; index += itemsPerView) {
+    groupedTestimonials.push(testimonials.slice(index, index + itemsPerView));
+  }
+
+  const hasLoop = groupedTestimonials.length > 1;
+  const slides = hasLoop
+    ? [
+        groupedTestimonials[groupedTestimonials.length - 1],
+        ...groupedTestimonials,
+        groupedTestimonials[0],
+      ]
+    : groupedTestimonials;
+  const totalSlides = slides.length;
+  const totalOriginalGroups = groupedTestimonials.length;
+  const transitionDurationMs = 700;
+
+  const [currentIndex, setCurrentIndex] = useState(
+    testimonials.length > itemsPerView ? 1 : 0,
+  );
   const [isPaused, setIsPaused] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
-  const extendedTestimonials = [
-    ...testimonials.slice(-itemsPerView),
-    ...testimonials,
-    ...testimonials.slice(0, itemsPerView),
-  ];
-
-  const totalSlides = Math.ceil(extendedTestimonials.length / itemsPerView);
-  const totalOriginalGroups = Math.ceil(testimonials.length / itemsPerView);
-
   useEffect(() => {
-    if (isPaused || isTransitioning) return;
+    if (!hasLoop || isPaused || isTransitioning) return;
 
-    const interval = setInterval(() => {
+    const interval = window.setInterval(() => {
       setIsTransitioning(true);
       setCurrentIndex((prev) => {
         const nextIndex = prev + 1;
         if (nextIndex >= totalSlides - 1) {
-          setTimeout(() => {
+          window.setTimeout(() => {
             setCurrentIndex(1);
             setIsTransitioning(false);
-          }, 700);
+          }, transitionDurationMs);
           return nextIndex;
         }
         return nextIndex;
       });
 
-      setTimeout(() => {
+      window.setTimeout(() => {
         setIsTransitioning(false);
-      }, 700);
-    }, 3000);
+      }, transitionDurationMs);
+    }, 4500);
 
-    return () => clearInterval(interval);
-  }, [isPaused, isTransitioning, totalSlides]);
+    return () => window.clearInterval(interval);
+  }, [hasLoop, isPaused, isTransitioning, totalSlides]);
 
   useEffect(() => {
+    if (!hasLoop) {
+      return;
+    }
+
     if (currentIndex === 0) {
-      const timer = setTimeout(() => {
+      const timer = window.setTimeout(() => {
         setCurrentIndex(totalSlides - 2);
         setIsTransitioning(false);
       }, 50);
-      return () => clearTimeout(timer);
+      return () => window.clearTimeout(timer);
     }
 
     if (currentIndex === totalSlides - 1) {
-      const timer = setTimeout(() => {
+      const timer = window.setTimeout(() => {
         setCurrentIndex(1);
         setIsTransitioning(false);
       }, 50);
-      return () => clearTimeout(timer);
+      return () => window.clearTimeout(timer);
     }
-  }, [currentIndex, totalSlides]);
+  }, [currentIndex, hasLoop, totalSlides]);
 
   const handleNext = () => {
+    if (!hasLoop) {
+      return;
+    }
+
     setIsTransitioning(true);
     setCurrentIndex((prev) => prev + 1);
     setIsPaused(true);
 
-    setTimeout(() => {
+    window.setTimeout(() => {
       setIsTransitioning(false);
-    }, 700);
+    }, transitionDurationMs);
   };
 
   const handlePrev = () => {
+    if (!hasLoop) {
+      return;
+    }
+
     setIsTransitioning(true);
     setCurrentIndex((prev) => prev - 1);
     setIsPaused(true);
 
-    setTimeout(() => {
+    window.setTimeout(() => {
       setIsTransitioning(false);
-    }, 700);
+    }, transitionDurationMs);
   };
 
   const getDisplayIndex = () => {
+    if (!hasLoop) {
+      return 0;
+    }
+
     let idx = currentIndex - 1;
     if (idx < 0) idx = totalOriginalGroups - 1;
     if (idx >= totalOriginalGroups) idx = 0;
@@ -101,13 +123,17 @@ export function TestimonialSlider({ testimonials }: TestimonialSliderProps) {
   };
 
   const goToSlide = (slideIndex: number) => {
+    if (!hasLoop) {
+      return;
+    }
+
     setIsTransitioning(true);
     setIsPaused(true);
     setCurrentIndex(slideIndex + 1);
 
-    setTimeout(() => {
+    window.setTimeout(() => {
       setIsTransitioning(false);
-    }, 700);
+    }, transitionDurationMs);
   };
 
   const getTransform = () => {
@@ -115,6 +141,10 @@ export function TestimonialSlider({ testimonials }: TestimonialSliderProps) {
     const offset = -(currentIndex * slideWidth);
     return `translateX(${offset}%)`;
   };
+
+  if (!hasTestimonials) {
+    return null;
+  }
 
   return (
     <section className="overflow-hidden bg-gradient-to-b from-gray-50 to-white py-20">
@@ -136,9 +166,8 @@ export function TestimonialSlider({ testimonials }: TestimonialSliderProps) {
 
         <div
           className="relative mx-auto max-w-6xl"
-          ref={containerRef}
           onMouseEnter={() => setIsPaused(true)}
-          onMouseLeave={() => setTimeout(() => setIsPaused(false), 300)}
+          onMouseLeave={() => setIsPaused(false)}
         >
           <div className="overflow-hidden rounded-2xl">
             <div
@@ -150,21 +179,25 @@ export function TestimonialSlider({ testimonials }: TestimonialSliderProps) {
                   : "none",
               }}
             >
-              {Array.from({ length: totalSlides }).map((_, groupIndex) => (
+              {slides.map((group, groupIndex) => (
                 <div
                   key={groupIndex}
-                  className="grid shrink-0 grid-cols-1 gap-6 px-2 md:grid-cols-2"
+                  className={cn(
+                    "shrink-0 px-2",
+                    group.length === 1 && "mx-auto max-w-2xl",
+                  )}
                   style={{
                     width: "100%",
                     minWidth: "100%",
                   }}
                 >
-                  {extendedTestimonials
-                    .slice(
-                      groupIndex * itemsPerView,
-                      (groupIndex + 1) * itemsPerView
-                    )
-                    .map((testimonial, idx) => (
+                  <div
+                    className={cn(
+                      "grid grid-cols-1 gap-6",
+                      group.length > 1 && "md:grid-cols-2",
+                    )}
+                  >
+                    {group.map((testimonial, idx) => (
                       <div
                         key={`${groupIndex}-${idx}`}
                         className="group flex h-full flex-col rounded-2xl border border-gray-100 bg-white p-6 shadow-lg transition-all duration-300 hover:shadow-2xl md:p-8"
@@ -196,13 +229,18 @@ export function TestimonialSlider({ testimonials }: TestimonialSliderProps) {
                         </div>
 
                         <div className="mt-auto flex items-center gap-4 border-t border-gray-100 pt-6">
-                          <Image
-                            src={testimonial.image}
-                            alt={testimonial.name}
-                            width={56}
-                            height={56}
-                            className="h-14 w-14 rounded-full border-2 border-amber-500 object-cover shadow-md transition-transform duration-300 group-hover:scale-110"
-                          />
+                          <div className="flex h-[72px] w-[72px] shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-amber-500/80 bg-slate-100 shadow-md transition-transform duration-300 group-hover:scale-105">
+                            <Image
+                              src={testimonial.image}
+                              alt={testimonial.name}
+                              width={72}
+                              height={72}
+                              sizes="72px"
+                              quality={100}
+                              style={{ objectPosition: testimonial.imagePosition }}
+                              className="h-full w-full object-cover"
+                            />
+                          </div>
                           <div>
                             <h4 className="text-lg font-bold text-gray-900">
                               {testimonial.name}
@@ -214,64 +252,71 @@ export function TestimonialSlider({ testimonials }: TestimonialSliderProps) {
                         </div>
                       </div>
                     ))}
+                  </div>
                 </div>
               ))}
             </div>
           </div>
 
-          <button
-            onClick={handlePrev}
-            className="group absolute left-0 top-1/2 z-10 flex h-12 w-12 -translate-x-2 -translate-y-1/2 items-center justify-center rounded-full border border-gray-100 bg-white text-blue-900 shadow-xl transition-all duration-300 hover:bg-blue-900 hover:text-white md:-translate-x-6"
-            aria-label="Previous slide"
-          >
-            <svg
-              className="h-5 w-5 transition-transform group-hover:-translate-x-0.5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
-          </button>
-          <button
-            onClick={handleNext}
-            className="group absolute right-0 top-1/2 z-10 flex h-12 w-12 -translate-y-1/2 translate-x-2 items-center justify-center rounded-full border border-gray-100 bg-white text-blue-900 shadow-xl transition-all duration-300 hover:bg-blue-900 hover:text-white md:translate-x-6"
-            aria-label="Next slide"
-          >
-            <svg
-              className="h-5 w-5 transition-transform group-hover:translate-x-0.5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 5l7 7-7 7"
-              />
-            </svg>
-          </button>
-
-          <div className="mt-10 flex justify-center gap-3">
-            {Array.from({ length: totalOriginalGroups }).map((_, index) => (
+          {hasLoop ? (
+            <>
               <button
-                key={index}
-                onClick={() => goToSlide(index)}
-                className={`h-2.5 rounded-full transition-all duration-500 ${
-                  getDisplayIndex() === index
-                    ? "w-10 bg-blue-900"
-                    : "w-2.5 bg-gray-300 hover:bg-gray-400"
-                }`}
-                aria-label={`Go to slide ${index + 1}`}
-              />
-            ))}
-          </div>
+                onClick={handlePrev}
+                className="group absolute left-0 top-1/2 z-10 flex h-12 w-12 -translate-x-2 -translate-y-1/2 items-center justify-center rounded-full border border-gray-100 bg-white text-blue-900 shadow-xl transition-all duration-300 hover:bg-blue-900 hover:text-white md:-translate-x-6"
+                aria-label="Previous slide"
+              >
+                <svg
+                  className="h-5 w-5 transition-transform group-hover:-translate-x-0.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 19l-7-7 7-7"
+                  />
+                </svg>
+              </button>
+              <button
+                onClick={handleNext}
+                className="group absolute right-0 top-1/2 z-10 flex h-12 w-12 -translate-y-1/2 translate-x-2 items-center justify-center rounded-full border border-gray-100 bg-white text-blue-900 shadow-xl transition-all duration-300 hover:bg-blue-900 hover:text-white md:translate-x-6"
+                aria-label="Next slide"
+              >
+                <svg
+                  className="h-5 w-5 transition-transform group-hover:translate-x-0.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </button>
+            </>
+          ) : null}
+
+          {hasLoop ? (
+            <div className="mt-10 flex justify-center gap-3">
+              {Array.from({ length: totalOriginalGroups }).map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => goToSlide(index)}
+                  className={`h-2.5 rounded-full transition-all duration-500 ${
+                    getDisplayIndex() === index
+                      ? "w-10 bg-blue-900"
+                      : "w-2.5 bg-gray-300 hover:bg-gray-400"
+                  }`}
+                  aria-label={`Go to slide ${index + 1}`}
+                />
+              ))}
+            </div>
+          ) : null}
         </div>
       </div>
     </section>
