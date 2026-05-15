@@ -1,59 +1,15 @@
-"use client";
-
 import Link from "next/link";
-import { useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
 import { PublicShell } from "@/components/layout/public-shell";
-import {
-  buildDashboardDocumentsUrl,
-  normalizePaymentServiceIds,
-} from "@/lib/utils/payment-navigation";
 
-export function PaymentSuccessView() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
-  const status = searchParams.get("status") ?? "success";
-  const message = searchParams.get("message") ?? "Payment processed.";
-  const paymentId = searchParams.get("payment_id") ?? "";
-  const orderId = searchParams.get("order_id") ?? "";
-  const serviceIds = normalizePaymentServiceIds(searchParams.get("service_ids"));
-
-  useEffect(() => {
-    if (status !== "success") {
-      return;
-    }
-
-    router.replace(
-      buildDashboardDocumentsUrl({
-        status,
-        message,
-        paymentId,
-        orderId,
-        serviceIds,
-      }),
-    );
-  }, [message, orderId, paymentId, router, serviceIds, status]);
-
-  if (status === "success") {
-    return (
-      <PublicShell>
-        <section className="container mx-auto px-4 py-20">
-          <div className="mx-auto max-w-xl rounded-[2rem] border border-emerald-100 bg-emerald-50 p-10 text-center">
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-white text-emerald-600 shadow-sm">
-              <i className="fas fa-check text-3xl" />
-            </div>
-            <h1 className="mt-6 text-3xl font-black text-slate-900">
-              Payment Successful
-            </h1>
-            <p className="mt-3 text-sm leading-7 text-slate-600">
-              Redirecting you to the migrated dashboard documents route.
-            </p>
-          </div>
-        </section>
-      </PublicShell>
-    );
-  }
+export function PaymentSuccessView({
+  message = "Payment processed.",
+  paymentId = "",
+  status = "error",
+}: {
+  message?: string;
+  paymentId?: string;
+  status?: string;
+}) {
 
   const statusMap = {
     cancelled: {

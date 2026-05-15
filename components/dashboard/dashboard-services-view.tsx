@@ -84,8 +84,10 @@ type CreateOrderResponse = {
 
 const ACTIVE_STATUSES = new Set([
   "applied",
+  "in_cart",
   "paid",
   "pending",
+  "payment_pending",
   "under_review",
   "update_required",
   "in_progress",
@@ -98,6 +100,20 @@ const HISTORY_STATUSES = new Set([
   "cancelled",
   "rejected",
 ]);
+
+const PAYABLE_STATUSES = new Set([
+  "applied",
+  "in_cart",
+  "payment_pending",
+]);
+
+function canPayForService(service: DashboardService | null | undefined) {
+  return PAYABLE_STATUSES.has(String(service?.status || "").toLowerCase());
+}
+
+function canDeleteService(service: DashboardService | null | undefined) {
+  return PAYABLE_STATUSES.has(String(service?.status || "").toLowerCase());
+}
 
 function getTrackingId(service: DashboardService) {
   return (
@@ -262,6 +278,19 @@ export function DashboardServicesView() {
         return;
       }
 
+      const reportFailedPaymentAttempt = async (reason: string) => {
+        try {
+          await apiClient.post("/payments/razorpay/fail", {
+            payment_id: order.payment_id,
+            reason,
+          });
+        } catch (error) {
+          console.warn("Failed to report payment failure", error);
+        } finally {
+          refreshDashboardData();
+        }
+      };
+
       setShowOrderModal(false);
 
       const options: RazorpayCheckoutOptions = {
@@ -276,9 +305,10 @@ export function DashboardServicesView() {
               payment_id: order.payment_id,
             });
 
-            router.push(
+            router.replace(
               buildDashboardDocumentsUrl({
-                message: "Payment Successful",
+                message:
+                  "Payment successfully done. You can upload your documents now.",
                 orderId: order.razorpay_order_id,
                 paymentId: String(order.payment_id),
                 serviceIds: [String(serviceId)],
@@ -292,6 +322,11 @@ export function DashboardServicesView() {
           }
         },
         key: order.key_id,
+        modal: {
+          ondismiss: async () => {
+            await reportFailedPaymentAttempt("Payment modal closed by user");
+          },
+        },
         name: "DoorstepFilings",
         order_id: order.razorpay_order_id,
         prefill: {
@@ -305,6 +340,11 @@ export function DashboardServicesView() {
       };
 
       const checkout = new window.Razorpay(options);
+      checkout.on("payment.failed", async (response) => {
+        await reportFailedPaymentAttempt(
+          response.error?.description || "Payment failed",
+        );
+      });
       checkout.open();
     } catch {
       toast.error("Unable to initiate payment.");
@@ -473,7 +513,7 @@ export function DashboardServicesView() {
                           >
                             {getStatusLabel(service.status)}
                           </span>
-                          {service.status === "applied" ? (
+                          {canPayForService(service) ? (
                             <button
                               onClick={(event) => {
                                 event.stopPropagation();
@@ -483,7 +523,9 @@ export function DashboardServicesView() {
                               type="button"
                             >
                               <i className="fas fa-shopping-cart text-xs" />
-                              Checkout
+                              {String(service.status || "").toLowerCase() === "payment_pending"
+                                ? "Pay Now"
+                                : "Checkout"}
                             </button>
                           ) : null}
                         </div>
@@ -607,7 +649,7 @@ export function DashboardServicesView() {
                   </div>
                 ) : null}
 
-                {selectedService.status === "applied" ? (
+                {canPayForService(selectedService) ? (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between rounded-xl border border-indigo-100 bg-indigo-50/50 p-3">
                       <div>
@@ -627,7 +669,11 @@ export function DashboardServicesView() {
                       className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-900 py-3.5 text-sm font-bold text-white shadow-md transition-all hover:bg-blue-800 active:scale-[0.98]"
                       type="button"
                     >
-                      <i className="fas fa-shopping-cart text-xs" /> Pay Now
+                      <i className="fas fa-shopping-cart text-xs" />
+                      {String(selectedService.status || "").toLowerCase() ===
+                      "payment_pending"
+                        ? "Continue Payment"
+                        : "Pay Now"}
                     </button>
                   </div>
                 ) : null}
@@ -687,7 +733,7 @@ export function DashboardServicesView() {
                 ) : null}
 
                 <div className="flex gap-2 pt-3">
-                  {selectedService.status === "applied" ? (
+                  {canDeleteService(selectedService) ? (
                     <button
                       onClick={() => handleDeleteClick(selectedService)}
                       disabled={deletingId === selectedService.id}

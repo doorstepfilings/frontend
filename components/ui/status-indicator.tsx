@@ -14,6 +14,7 @@ const STATUS_CONFIG: any = {
     completed: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', label: 'Completed' },
     paid: { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200', label: 'Paid' },
     applied: { bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-200', label: 'Applied' },
+    payment_pending: { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200', label: 'Payment Pending' },
     in_progress: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', label: 'Processing' },
     document_collection: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', label: 'Doc Collection' },
     submitted_to_ca: { bg: 'bg-teal-50', text: 'text-teal-700', border: 'border-teal-200', label: 'Forwarded to CA' },
@@ -25,7 +26,7 @@ export function StatusIndicator({ status, size = 'sm', className = '' }: { statu
 
     return (
         <span className={`inline-flex items-center gap-2 rounded-full font-black uppercase tracking-widest border ${config.bg} ${config.text} ${config.border} ${sizeClasses} ${className}`}>
-            <span className={`w-1.5 h-1.5 rounded-full bg-current ${['pending', 'under_review', 'in_progress'].includes(status) ? 'animate-pulse' : ''}`} />
+            <span className={`w-1.5 h-1.5 rounded-full bg-current ${['pending', 'under_review', 'in_progress', 'payment_pending'].includes(status?.toLowerCase()) ? 'animate-pulse' : ''}`} />
             {config.label}
         </span>
     );

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
+import { apiClient } from "@/lib/api/client";
 import { useStoredUser } from "@/lib/auth/hooks";
 import {
   createRazorpayOrder,
@@ -61,6 +62,18 @@ export function CartView() {
         currency: data.currency || "INR",
         name: "DoorstepFilings",
         description: "Service Payment",
+        modal: {
+          ondismiss: async () => {
+            try {
+              await apiClient.post("/payments/razorpay/fail", {
+                payment_id: data.payment_id,
+                reason: "Payment modal closed by user",
+              });
+            } catch (error) {
+              console.warn("Failed to report payment cancellation", error);
+            }
+          },
+        },
         order_id: data.razorpay_order_id,
         handler: async (razorpayResponse: any) => {
           try {
@@ -74,12 +87,13 @@ export function CartView() {
             ).unwrap();
 
             toast.success("Payment Successful!");
-            router.push(
+            router.replace(
               buildDashboardDocumentsUrl({
                 paymentId: String(data.payment_id),
                 orderId: verification?.data?.order_unique_id,
                 serviceIds: cartItemIds.map(String),
-                message: "Payment Successful",
+                message:
+                  "Payment successfully done. You can upload your documents now.",
                 status: "success",
               }),
             );
@@ -98,6 +112,16 @@ export function CartView() {
       };
 
       const rzp = new window.Razorpay(options);
+      rzp.on("payment.failed", async (response) => {
+        try {
+          await apiClient.post("/payments/razorpay/fail", {
+            payment_id: data.payment_id,
+            reason: response.error?.description || "Payment failed",
+          });
+        } catch (error) {
+          console.warn("Failed to report payment failure", error);
+        }
+      });
       rzp.open();
     } catch (err: any) {
       toast.error(err || "Checkout initialization failed");

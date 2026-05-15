@@ -10,6 +10,9 @@ export type RazorpayCheckoutOptions = {
   description: string;
   handler?: (response: RazorpayPaymentResponse) => void | Promise<void>;
   key: string;
+  modal?: {
+    ondismiss?: () => void | Promise<void>;
+  };
   name: string;
   order_id: string;
   prefill?: {
@@ -22,11 +25,21 @@ export type RazorpayCheckoutOptions = {
   };
 };
 
-type RazorpayConstructor = new (
-  options: RazorpayCheckoutOptions,
-) => {
+type RazorpayInstance = {
+  on: (
+    event: "payment.failed",
+    handler: (response: {
+      error?: {
+        description?: string;
+      };
+    }) => void | Promise<void>,
+  ) => void;
   open: () => void;
 };
+
+type RazorpayConstructor = new (
+  options: RazorpayCheckoutOptions,
+) => RazorpayInstance;
 
 declare global {
   interface Window {

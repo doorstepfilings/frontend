@@ -21,7 +21,7 @@ export function normalizePaymentServiceIds(
 
 export function buildDashboardDocumentsUrl({
   status = "success",
-  message = "Payment Successful",
+  message = "Payment successfully done. You can upload your documents now.",
   paymentId,
   orderId,
   serviceIds = [],

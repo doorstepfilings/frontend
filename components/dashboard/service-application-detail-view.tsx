@@ -1,17 +1,27 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
+import Link from "next/link";
 import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
 import { fetchMyServices } from "@/lib/features/services/services-slice";
+import { useStoredUser } from "@/lib/auth/hooks";
+import { apiClient } from "@/lib/api/client";
+import { OrderSummaryModal } from "@/components/services/order-summary-modal";
 import {
     ImageLightbox,
     type ImageLightboxSlide,
 } from "@/components/ui/image-lightbox";
 import { StatusIndicator } from "@/components/ui/status-indicator";
 import { format } from "date-fns";
-import Link from "next/link";
+import {
+    buildDashboardDocumentsUrl,
+} from "@/lib/utils/payment-navigation";
+import {
+    calculateServicePrice,
+    formatPrice,
+} from "@/lib/utils/pricing";
 import {
     ensureDocumentAccessible,
     getDocumentSourceUrl,
@@ -19,6 +29,11 @@ import {
     openDocumentInNewTab,
     resolveStorageUrl,
 } from "@/lib/utils/document-helpers";
+import {
+    loadRazorpay,
+    type RazorpayCheckoutOptions,
+    type RazorpayPaymentResponse,
+} from "@/lib/utils/razorpay";
 
 type ServiceDocument = {
     document_type?: string | null;
@@ -35,11 +50,32 @@ type DocumentLightboxItem = {
     slide: ImageLightboxSlide;
 };
 
+type CreateOrderResponse = {
+    data: {
+        amount?: number | string;
+        amount_paise?: number;
+        currency: string;
+        key_id: string;
+        payment_id: number | string;
+        razorpay_order_id: string;
+    };
+};
+
+const PAYABLE_STATUSES = new Set(["applied", "in_cart", "payment_pending"]);
+
+function canPayForService(service: { status?: string | null } | null | undefined) {
+    return PAYABLE_STATUSES.has(String(service?.status || "").toLowerCase());
+}
+
 export function ServiceApplicationDetailView() {
     const { id } = useParams();
+    const router = useRouter();
     const dispatch = useAppDispatch();
     const { myServices, loading } = useAppSelector((state) => state.services);
+    const user = useStoredUser();
     const [lightboxIndex, setLightboxIndex] = useState(-1);
+    const [showOrderModal, setShowOrderModal] = useState(false);
+    const [paymentLoading, setPaymentLoading] = useState(false);
 
     useEffect(() => {
         if (myServices.length === 0) {
@@ -116,6 +152,111 @@ export function ServiceApplicationDetailView() {
                     ? error.message
                     : "Unable to preview this image.";
             toast.error(message);
+        }
+    };
+
+    const handleConfirmPayment = async () => {
+        if (!service?.id) {
+            return;
+        }
+
+        const serviceId = Number(service.id);
+        setPaymentLoading(true);
+
+        try {
+            const loaded = await loadRazorpay();
+            if (!loaded || !window.Razorpay) {
+                toast.error("Razorpay SDK failed to load. Please refresh and try again.");
+                return;
+            }
+
+            const response = await apiClient.post<CreateOrderResponse>(
+                "/payments/razorpay/order-single",
+                {
+                    user_service_id: service.id,
+                },
+            );
+            const order = response.data.data;
+
+            if (!order?.razorpay_order_id || !order?.key_id) {
+                toast.error("Unable to create a payment order right now.");
+                return;
+            }
+
+            const reportFailedPaymentAttempt = async (reason: string) => {
+                try {
+                    await apiClient.post("/payments/razorpay/fail", {
+                        payment_id: order.payment_id,
+                        reason,
+                    });
+                } catch (error) {
+                    console.warn("Failed to report payment failure", error);
+                } finally {
+                    void dispatch(fetchMyServices());
+                }
+            };
+
+            setShowOrderModal(false);
+
+            const options: RazorpayCheckoutOptions = {
+                amount:
+                    order.amount_paise ?? Math.round(Number(order.amount || 0) * 100),
+                currency: order.currency,
+                description: "Doorstep service payment",
+                handler: async (paymentResponse: RazorpayPaymentResponse) => {
+                    try {
+                        await apiClient.post("/payments/razorpay/verify", {
+                            ...paymentResponse,
+                            payment_id: order.payment_id,
+                        });
+
+                        router.replace(
+                            buildDashboardDocumentsUrl({
+                                message:
+                                    "Payment successfully done. You can upload your documents now.",
+                                orderId: order.razorpay_order_id,
+                                paymentId: String(order.payment_id),
+                                serviceIds: [String(serviceId)],
+                                status: "success",
+                            }),
+                        );
+                    } catch {
+                        toast.error(
+                            "Payment verification failed. Please check your dashboard documents.",
+                        );
+                    }
+                },
+                key: order.key_id,
+                modal: {
+                    ondismiss: async () => {
+                        await reportFailedPaymentAttempt(
+                            "Payment modal closed by user",
+                        );
+                    },
+                },
+                name: "DoorstepFilings",
+                order_id: order.razorpay_order_id,
+                prefill: {
+                    contact: user?.mobile_number ?? undefined,
+                    email: user?.email ?? undefined,
+                    name: user?.name ?? undefined,
+                },
+                theme: {
+                    color: "#1e3a8a",
+                },
+            };
+
+            const checkout = new window.Razorpay(options);
+            checkout.on("payment.failed", async (response) => {
+                await reportFailedPaymentAttempt(
+                    response.error?.description || "Payment failed",
+                );
+            });
+            checkout.open();
+        } catch {
+            toast.error("Unable to initiate payment.");
+        } finally {
+            setPaymentLoading(false);
         }
     };
 
@@ -271,6 +412,47 @@ export function ServiceApplicationDetailView() {
                 </div>
 
                 <div className="space-y-10">
+                    {canPayForService(service) && (
+                        <div className="bg-white rounded-[3rem] border border-indigo-100 p-10 shadow-sm">
+                            <h3 className="text-lg font-black tracking-tight text-slate-900">
+                                Complete Payment
+                            </h3>
+                            <p className="mt-2 text-[10px] font-black uppercase tracking-widest text-indigo-500">
+                                {String(service?.status || "").toLowerCase() === "payment_pending"
+                                    ? "Your application is waiting for payment confirmation"
+                                    : "Your application is ready for checkout"}
+                            </p>
+
+                            <div className="mt-8 rounded-2xl border border-indigo-100 bg-indigo-50/60 p-5">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-indigo-400">
+                                    Service Fee
+                                </p>
+                                <p className="mt-2 text-3xl font-black tracking-tight text-indigo-900">
+                                    INR {formatPrice(calculateServicePrice(service))}
+                                </p>
+                            </div>
+
+                            <button
+                                onClick={() => setShowOrderModal(true)}
+                                className="mt-6 flex h-14 w-full items-center justify-center gap-3 rounded-2xl bg-blue-900 text-[10px] font-black uppercase tracking-[0.2em] text-white transition-all hover:bg-blue-800 disabled:opacity-50"
+                                disabled={paymentLoading}
+                                type="button"
+                            >
+                                {paymentLoading ? (
+                                    <i className="fas fa-spinner animate-spin" />
+                                ) : (
+                                    <>
+                                        <i className="fas fa-shopping-cart text-xs" />
+                                        {String(service?.status || "").toLowerCase() ===
+                                        "payment_pending"
+                                            ? "Continue Payment"
+                                            : "Pay Now"}
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    )}
+
                     {/* Documents Segment */}
                     <div className="bg-slate-900 rounded-[3rem] p-10 text-white shadow-2xl shadow-slate-900/20">
                         <div className="flex items-center justify-between mb-8">
@@ -384,6 +566,14 @@ export function ServiceApplicationDetailView() {
                 slides={documentGallery.map((item) => item.slide)}
                 onClose={() => setLightboxIndex(-1)}
             />
+
+            <OrderSummaryModal
+                isOpen={showOrderModal}
+                loading={paymentLoading}
+                onClose={() => setShowOrderModal(false)}
+                onConfirm={() => void handleConfirmPayment()}
+                service={service ?? null}
+            />
         </div>
     );
 }
@@ -404,7 +594,9 @@ function DetailItem({ label, value }: { label: string; value: string }) {
 function getProgressPercentage(status: string = "applied") {
     const states: Record<string, number> = {
         applied: 10,
+        in_cart: 15,
         paid: 20,
+        payment_pending: 30,
         document_collection: 40,
         submitted_to_ca: 60,
         under_review: 80,

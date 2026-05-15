@@ -519,7 +519,14 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
         order_id: order.razorpay_order_id,
         handler: async (r: any) => {
           await apiClient.post("/payments/razorpay/verify", { ...r, payment_id: order.payment_id });
-          router.push(buildDashboardDocumentsUrl({ status: "success", serviceIds: [String(applicationId)] }));
+          router.replace(
+            buildDashboardDocumentsUrl({
+              message:
+                "Payment successfully done. You can upload your documents now.",
+              status: "success",
+              serviceIds: [String(applicationId)],
+            }),
+          );
         },
         prefill: { name: user?.name, email: user?.email, contact: user?.mobile_number },
         theme: { color: "#1e3a8a" },
