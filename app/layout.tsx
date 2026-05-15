@@ -1,6 +1,7 @@
 "use client";
 
 import { Inter } from "next/font/google";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
 import { StoreProvider } from "@/lib/store/StoreProvider";
 import { Toaster } from "react-hot-toast";
@@ -26,6 +27,7 @@ export default function RootLayout({
                     {children}
                 </StoreProvider>
             </body>
+            <GoogleAnalytics gaId="G-0ZXCCTJT5N" />
         </html>
     );
 }
