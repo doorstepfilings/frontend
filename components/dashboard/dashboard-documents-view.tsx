@@ -101,9 +101,6 @@ export function DashboardDocumentsView({
   const [documentToDelete, setDocumentToDelete] =
     useState<DashboardDocumentArchiveItem | null>(null);
   const [isDeletingDocument, setIsDeletingDocument] = useState(false);
-  const [postPaymentMessage, setPostPaymentMessage] = useState<string | null>(
-    null,
-  );
 
   useEffect(() => {
     void dispatch(fetchMyServices());
@@ -118,9 +115,6 @@ export function DashboardDocumentsView({
     }
 
     successMessageHandled.current = true;
-    setPostPaymentMessage(
-      paymentFeedback?.message || "Payment successfully done.",
-    );
     toast.success(
       paymentFeedback?.message || "Payment successfully done.",
     );
@@ -363,20 +357,6 @@ export function DashboardDocumentsView({
 
   return (
     <div className="space-y-6">
-      {postPaymentMessage ? (
-        <div className="flex items-start gap-4 rounded-2xl border border-emerald-100 bg-emerald-50 px-6 py-5 text-emerald-700 shadow-sm">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-emerald-600">
-            <i className="fas fa-check" />
-          </div>
-          <div>
-            <p className="text-xs font-black uppercase tracking-widest text-emerald-500">
-              Payment Successful
-            </p>
-            <p className="mt-1 text-sm font-semibold">{postPaymentMessage}</p>
-          </div>
-        </div>
-      ) : null}
-
       <div>
         <h1 className="text-2xl font-bold text-gray-800">My Documents</h1>
         <p className="text-xs text-gray-500">

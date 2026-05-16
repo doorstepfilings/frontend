@@ -16,6 +16,61 @@ export function DashboardOrdersView() {
   );
   const [downloadingId, setDownloadingId] = useState<number | string | null>(null);
 
+  const getOrderStatus = (order: any) =>
+    String(order.status || order.payment_status || "").toLowerCase();
+
+  const canDownloadInvoice = (order: any) =>
+    Boolean(
+      order.invoice_available ??
+        ["paid", "refunded"].includes(getOrderStatus(order)),
+    );
+
+  const getOrderStatusLabel = (order: any) => {
+    const status = getOrderStatus(order);
+
+    if (status === "paid") {
+      return "Payment Successful";
+    }
+
+    if (status === "refunded") {
+      return "Refunded";
+    }
+
+    if (status === "failed") {
+      return "Payment Failed";
+    }
+
+    if (status === "cancelled") {
+      return "Payment Cancelled";
+    }
+
+    return String(order.status || order.payment_status || "Unknown")
+      .replace(/_/g, " ")
+      .toUpperCase();
+  };
+
+  const getOrderStatusMessage = (order: any) => {
+    const status = getOrderStatus(order);
+
+    if (status === "paid") {
+      return "Your transaction has been verified and processed successfully.";
+    }
+
+    if (status === "refunded") {
+      return "This payment has been refunded to your original payment method.";
+    }
+
+    if (status === "failed") {
+      return "This payment attempt failed. You can retry the service checkout.";
+    }
+
+    if (status === "cancelled") {
+      return "This checkout was cancelled before payment completion.";
+    }
+
+    return "Your transaction is being processed.";
+  };
+
   useEffect(() => {
     void dispatch(fetchMyOrders());
   }, [dispatch]);
@@ -176,29 +231,23 @@ export function DashboardOrdersView() {
                       <div className="flex items-center gap-3">
                         <div
                           className={`h-2.5 w-2.5 rounded-full ${
-                            order.status === "paid"
+                            getOrderStatus(order) === "paid"
                               ? "animate-pulse bg-green-500"
-                              : order.status === "refunded"
+                              : getOrderStatus(order) === "refunded"
                                 ? "bg-amber-500"
-                                : "bg-gray-400"
+                                : getOrderStatus(order) === "failed"
+                                  ? "bg-red-500"
+                                  : getOrderStatus(order) === "cancelled"
+                                    ? "bg-slate-500"
+                                    : "bg-gray-400"
                           }`}
                         />
                         <p className="text-sm font-bold text-gray-800">
-                          {order.status === "paid"
-                            ? "Payment Successful"
-                            : order.status === "refunded"
-                              ? "Refunded"
-                              : String(order.status || "")
-                                  .charAt(0)
-                                  .toUpperCase() + String(order.status || "").slice(1)}
+                          {getOrderStatusLabel(order)}
                         </p>
                       </div>
                       <p className="text-xs text-gray-500">
-                        {order.status === "paid"
-                          ? "Your transaction has been verified and processed successfully."
-                          : order.status === "refunded"
-                            ? "This payment has been refunded to your original payment method."
-                            : "Your transaction is being processed."}
+                        {getOrderStatusMessage(order)}
                       </p>
                     </div>
                   </div>
@@ -211,7 +260,7 @@ export function DashboardOrdersView() {
                     Transaction: {order.payment_provider_transaction_id || "-"}
                   </span>
                 </div>
-                {order.status === "paid" ? (
+                {canDownloadInvoice(order) ? (
                   <button
                     onClick={() => void handleDownload(order.id)}
                     disabled={downloadingId === order.id}

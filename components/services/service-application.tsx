@@ -948,13 +948,6 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
 
             <div className="flex items-center justify-end gap-4 pt-4">
                 <button 
-                    type="button" 
-                    onClick={() => onModalClose ? onModalClose() : router.back()} 
-                    className="px-8 py-3 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-all font-bold text-sm"
-                >
-                    Cancel
-                </button>
-                <button 
                     type="submit" 
                     disabled={submitLoading} 
                     className="flex-1 max-w-[240px] px-8 py-3 bg-[#1e3a8a] text-white rounded-xl hover:bg-blue-800 transition-all font-bold text-sm flex items-center justify-center gap-3 shadow-lg shadow-blue-900/20 disabled:opacity-50"

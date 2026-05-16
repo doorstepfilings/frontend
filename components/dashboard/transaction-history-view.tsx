@@ -14,6 +14,37 @@ export function TransactionHistoryView() {
   );
   const [downloadingId, setDownloadingId] = useState<number | string | null>(null);
 
+  const getOrderStatus = (order: any) =>
+    String(order.status || order.payment_status || "").toLowerCase();
+
+  const canDownloadInvoice = (order: any) =>
+    Boolean(
+      order.invoice_available ??
+        ["paid", "refunded"].includes(getOrderStatus(order)),
+    );
+
+  const getOrderStatusLabel = (order: any) => {
+    const status = getOrderStatus(order);
+
+    if (status === "paid") {
+      return "PAID";
+    }
+
+    if (status === "refunded") {
+      return "REFUNDED";
+    }
+
+    if (status === "failed") {
+      return "PAYMENT FAILED";
+    }
+
+    if (status === "cancelled") {
+      return "PAYMENT CANCELLED";
+    }
+
+    return String(order.status || order.payment_status || "UNKNOWN").toUpperCase();
+  };
+
   useEffect(() => {
     void dispatch(fetchMyOrders());
   }, [dispatch]);
@@ -39,6 +70,8 @@ export function TransactionHistoryView() {
         return "bg-amber-100 text-amber-700 border-amber-200";
       case "failed":
         return "bg-red-100 text-red-700 border-red-200";
+      case "cancelled":
+        return "bg-slate-100 text-slate-700 border-slate-300";
       default:
         return "bg-gray-100 text-gray-700 border-gray-200";
     }
@@ -140,14 +173,14 @@ export function TransactionHistoryView() {
                     <td className="px-6 py-4">
                       <span
                         className={`rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-wider ${getStatusColor(
-                          order.status,
+                          getOrderStatus(order),
                         )}`}
                       >
-                        {order.status}
+                        {getOrderStatusLabel(order)}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      {order.status === "paid" ? (
+                      {canDownloadInvoice(order) ? (
                         <button
                           onClick={() => void handleDownload(order.id)}
                           disabled={downloadingId === order.id}

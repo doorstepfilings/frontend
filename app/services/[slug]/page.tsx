@@ -956,9 +956,6 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
           </div>
 
           <div className="flex justify-end gap-3 border-t pt-6">
-            <Button variant="outline" type="button" onClick={handleCloseApplyModal}>
-              Cancel
-            </Button>
             <Button type="submit" disabled={applyLoading} className="bg-blue-900 px-8 py-6 text-base font-bold text-white hover:bg-blue-800">
               {applyLoading ? <i className="fas fa-spinner fa-spin mr-2"></i> : <i className="fas fa-paper-plane mr-2 text-amber-400"></i>}
               Submit Application

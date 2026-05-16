@@ -13,6 +13,37 @@ export function MyOrdersView() {
     const { myOrders, ordersLoading } = useAppSelector((state) => state.services);
     const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
+    const getOrderStatus = (order: any) =>
+        String(order.status || order.payment_status || "").toLowerCase();
+
+    const canDownloadInvoice = (order: any) =>
+        Boolean(
+            order.invoice_available ??
+                ["paid", "refunded"].includes(getOrderStatus(order)),
+        );
+
+    const getOrderStatusLabel = (order: any) => {
+        const status = getOrderStatus(order);
+
+        if (status === "paid") {
+            return "Verified Payment";
+        }
+
+        if (status === "refunded") {
+            return "Refunded";
+        }
+
+        if (status === "failed") {
+            return "Payment Failed";
+        }
+
+        if (status === "cancelled") {
+            return "Payment Cancelled";
+        }
+
+        return String(order.status || order.payment_status || "UNKNOWN").toUpperCase();
+    };
+
     useEffect(() => {
         dispatch(fetchMyOrders());
     }, [dispatch]);
@@ -106,9 +137,21 @@ export function MyOrdersView() {
                                                     <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Service Plan • Active</p>
                                                 </div>
                                                 <div className="flex items-center gap-4">
-                                                    <div className={`h-2 w-2 rounded-full ${order.status === 'paid' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-300'}`}></div>
+                                                    <div
+                                                        className={`h-2 w-2 rounded-full ${
+                                                            getOrderStatus(order) === "paid"
+                                                                ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
+                                                                : getOrderStatus(order) === "failed"
+                                                                    ? "bg-red-500"
+                                                                    : getOrderStatus(order) === "cancelled"
+                                                                        ? "bg-slate-500"
+                                                                        : getOrderStatus(order) === "refunded"
+                                                                            ? "bg-amber-500"
+                                                                            : "bg-slate-300"
+                                                        }`}
+                                                    ></div>
                                                     <span className="text-[10px] font-black text-slate-900 uppercase tracking-[0.2em]">
-                                                        {order.status === 'paid' ? 'Verified Payment' : order.status}
+                                                        {getOrderStatusLabel(order)}
                                                     </span>
                                                 </div>
                                             </div>
@@ -130,7 +173,7 @@ export function MyOrdersView() {
                             </div>
 
                             {/* Order Footer */}
-                            {order.status === "paid" && (
+                            {canDownloadInvoice(order) && (
                                 <div className="px-8 md:px-10 py-6 bg-slate-50/30 border-t border-slate-50 flex items-center justify-between">
                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Txn ID: {order.payment_provider_transaction_id || "N/A"}</p>
                                     <button 
