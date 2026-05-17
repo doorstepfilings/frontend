@@ -15,7 +15,7 @@ import { PublicShell } from "@/components/layout/public-shell";
 
 const stats = [
   { number: 500, suffix: "+", label: "Happy Clients" },
-  { number: 15, suffix: "+", label: "Years Experience" },
+  { number: 11, suffix: "+", label: "Years Experience" },
   { number: 1000, suffix: "+", label: "Projects Completed" },
   { number: 50, suffix: "+", label: "Expert Team" },
 ];
@@ -197,9 +197,6 @@ export default function HomePage() {
                         className="h-[52px] w-[52px] rounded-full border-2 border-slate-950 bg-slate-200 object-cover transition-transform hover:z-10 hover:scale-110"
                       />
                     ))}
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-slate-950 bg-amber-50 text-xs font-bold text-white transition-transform hover:scale-110">
-                      500+
-                    </div>
                   </div>
                   <div>
                     <div className="mb-1 flex items-center gap-1">
@@ -297,7 +294,7 @@ export default function HomePage() {
                         <p className="text-xs font-semibold uppercase text-gray-500">
                           Success Rate
                         </p>
-                        <p className="text-2xl font-bold text-gray-900">99.9%</p>
+                        <p className="text-2xl font-bold text-gray-900">99%</p>
                       </div>
                     </div>
                   </div>
@@ -323,7 +320,7 @@ export default function HomePage() {
                         <p className="text-xs font-semibold uppercase text-white/80">
                           Experience
                         </p>
-                        <p className="text-2xl font-bold">15+ Years</p>
+                        <p className="text-2xl font-bold">11+ Years</p>
                       </div>
                     </div>
                   </div>
