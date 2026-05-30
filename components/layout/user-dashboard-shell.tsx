@@ -7,6 +7,7 @@ import { useAppSelector } from "@/lib/store/hooks";
 import DashboardSidebar from "@/components/layout/DashboardSidebar";
 import { getDefaultRedirectPath } from "@/lib/auth/redirects";
 import { useAuthStatus, useStoredToken, useStoredUser } from "@/lib/auth/hooks";
+import { LogoLoader } from "@/components/ui/logo-loader";
 
 const pageItems = [
   { path: "/dashboard", label: "Dashboard" },
@@ -59,10 +60,7 @@ export function UserDashboardShell({
   if (loading || authStatus === "loading") {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-blue-900 border-t-transparent" />
-          <p className="text-sm text-gray-600">Loading dashboard...</p>
-        </div>
+        <LogoLoader size={64} />
       </div>
     );
   }

@@ -338,13 +338,13 @@ export function ServiceDetailView({ slug }: { slug: string }) {
                     Our experts are available to clarify your doubts and guide you through the compliance journey.
                   </p>
                   <a
-                    href="tel:+918401626032"
+                    href="tel:+919898196396"
                     className="flex items-center gap-4 bg-white/10 rounded-2xl p-4 hover:bg-white/20 transition-all border border-white/5"
                   >
                     <div className="w-10 h-10 rounded-xl bg-amber-400 text-blue-900 flex items-center justify-center shadow-lg">
                       <i className="fas fa-phone-alt text-sm"></i>
                     </div>
-                    <span className="font-black text-base">+91 84016 26032</span>
+                    <span className="font-black text-base">+91 9898 196 396</span>
                   </a>
                 </div>
 

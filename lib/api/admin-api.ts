@@ -95,13 +95,7 @@ export type UpdateApplicationStageInput = {
   client_message?: string | null;
 };
 
-export type AdminCrmInquiryFilters = {
-  search?: string;
-  customer_type?: string;
-  current_stage?: string;
-  payment_status?: string;
-  assigned_accountant_id?: string | number;
-};
+
 
 export const adminApi = {
   // Users
@@ -182,51 +176,4 @@ export const adminApi = {
 
   // Enquiries
   getEnquiries: () => api.get("/admin/enquiries"),
-
-  // CRM inquiries
-  getCrmInquiries: (params?: AdminCrmInquiryFilters) =>
-    api.get("/admin/crm/inquiries", { params }),
-  getCrmInquiry: (id: number) => api.get(`/admin/crm/inquiries/${id}`),
-  updateCrmInquiryStage: (
-    id: number,
-    data: { current_stage: string; note?: string | null },
-  ) => api.patch(`/admin/crm/inquiries/${id}/stage`, data),
-  assignCrmInquiryAccountant: (
-    id: number,
-    data: { accountant_id: number | null },
-  ) => api.patch(`/admin/crm/inquiries/${id}/assign-accountant`, data),
-  createCrmInquiryNote: (id: number, data: { note: string }) =>
-    api.post(`/admin/crm/inquiries/${id}/notes`, data),
-  uploadCrmInquiryDocuments: (id: number, formData: FormData) =>
-    api.post(`/admin/crm/inquiries/${id}/documents`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    }),
-  recommendCrmService: (
-    id: number,
-    data: {
-      service_id: number;
-      notes?: string;
-      quoted_amount?: number | string | null;
-    },
-  ) => api.post(`/admin/crm/inquiries/${id}/recommended-services`, data),
-  createCrmQuotation: (
-    id: number,
-    data: {
-      subtotal: number | string;
-      tax_amount: number | string;
-      total_amount: number | string;
-      status?: string;
-      notes?: string;
-    },
-  ) => api.post(`/admin/crm/inquiries/${id}/quotations`, data),
-  createCrmPayment: (
-    id: number,
-    data: {
-      amount: number | string;
-      payment_status: string;
-      payment_method?: string;
-      reference_number?: string;
-      received_at?: string;
-    },
-  ) => api.post(`/admin/crm/inquiries/${id}/payments`, data),
 };
