@@ -1,57 +1,96 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from "react";
+import type { PincodeLookupResponse, PincodeLookupResult } from "@/lib/pincode/lookup";
+
+const lookupCache = new Map<string, PincodeLookupResult>();
 
 /**
  * Custom hook for fetching city and state based on Indian Pincode.
  */
-export const usePincodeLookup = (pincode: string | undefined, onSuccess: (data: { city: string; state: string }) => void) => {
-    const [loading, setLoading] = useState(false);
+export const usePincodeLookup = (
+  pincode: string | number | undefined,
+  onSuccess: (data: Pick<PincodeLookupResult, "city" | "state">) => void,
+) => {
+  const [loading, setLoading] = useState(false);
 
-    const onSuccessRef = useRef(onSuccess);
-    useEffect(() => {
-        onSuccessRef.current = onSuccess;
-    }, [onSuccess]);
+  const onSuccessRef = useRef(onSuccess);
+  useEffect(() => {
+    onSuccessRef.current = onSuccess;
+  }, [onSuccess]);
 
-    useEffect(() => {
-        const normalizedPincode = String(pincode ?? '')
-            .trim()
-            .replace(/\D/g, '');
+  useEffect(() => {
+    const normalizedPincode = String(pincode ?? "")
+      .trim()
+      .replace(/\D/g, "");
 
-        if (normalizedPincode.length !== 6) {
-            return;
+    if (normalizedPincode.length !== 6) {
+      return;
+    }
+
+    const cachedResult = lookupCache.get(normalizedPincode);
+    if (cachedResult) {
+      onSuccessRef.current?.({
+        city: cachedResult.city,
+        state: cachedResult.state,
+      });
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const fetchDetails = async () => {
+      try {
+        setLoading(true);
+
+        // Keep this request isolated from axios interceptors because it is a plain location lookup.
+        const response = await fetch(`/api/pincode/${normalizedPincode}`, {
+          cache: "no-store",
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          return;
         }
 
-        const fetchDetails = async () => {
-            try {
-                setLoading(true);
+        const responseData = (await response.json()) as PincodeLookupResponse;
 
-                // Use `fetch` to avoid global axios interceptors/headers leaking auth tokens to third-party APIs.
-                const response = await fetch(`https://api.postalpincode.in/pincode/${normalizedPincode}`);
-                const responseData = await response.json();
+        if (!responseData.success) {
+          return;
+        }
 
-                const data = Array.isArray(responseData)
-                    ? responseData[0]
-                    : responseData;
-
-                if (data && (data.Status === 'Success' || data.Status === 'success')) {
-                    const postOffice = data.PostOffice?.[0];
-                    if (postOffice) {
-                        const result = {
-                            city: postOffice.District,
-                            state: postOffice.State,
-                        };
-                        onSuccessRef.current?.(result);
-                    }
-                }
-            } catch {
-                // Ignore network errors here; form still allows manual entry.
-            } finally {
-                setLoading(false);
-            }
+        const result = {
+          city: responseData.city,
+          pincode: responseData.pincode,
+          state: responseData.state,
         };
 
-        const timer = setTimeout(fetchDetails, 500);
-        return () => clearTimeout(timer);
-    }, [pincode]);
+        lookupCache.set(normalizedPincode, result);
+        onSuccessRef.current?.({
+          city: result.city,
+          state: result.state,
+        });
+      } catch (error) {
+        if (
+          !(error instanceof DOMException && error.name === "AbortError")
+        ) {
+          // Ignore lookup failures here; forms still allow manual entry.
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      }
+    };
 
-    return { loading };
+    const timer = window.setTimeout(() => {
+      void fetchDetails();
+    }, 300);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timer);
+      setLoading(false);
+    };
+  }, [pincode]);
+
+  return { loading };
 };

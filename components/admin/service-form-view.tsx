@@ -12,6 +12,7 @@ import { ToggleCard } from "@/components/ui/core/toggle-card";
 import { FormField } from "@/components/ui/core/form-field";
 import { DynamicList } from "@/components/ui/core/dynamic-list";
 import { useFormHandler } from "@/hooks/use-form-handler";
+import { ServiceWorkflowBuilder } from "@/components/admin/service-workflow-builder";
 
 const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
 import "react-quill-new/dist/quill.snow.css";
@@ -72,11 +73,16 @@ export function ServiceFormView() {
 
       if (isEditMode) {
         await apiClient.patch(`/admin/services/update/${id}`, payload);
+        router.push("/admin/services");
       } else {
-        await apiClient.post("/admin/services/store", payload);
+        const response = await apiClient.post("/admin/services/store", payload);
+        const createdService = response.data?.data || response.data;
+        if (createdService?.id) {
+          router.push(`/admin/services/edit/${createdService.id}`);
+          return;
+        }
+        router.push("/admin/services");
       }
-
-      router.push("/admin/services");
     },
     validate: (v) => {
       if (!v.service_category_id) return "Please select a parent category";
@@ -154,31 +160,6 @@ export function ServiceFormView() {
                 <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
                   {isEditMode ? "Edit Service" : "Create Service"}
                 </h1>
-                <p className="max-w-2xl text-sm leading-7 text-slate-600">
-                  A simple, structured setup for clean catalog entries. Start
-                  with the essentials, then enable tiers, FAQs, and supporting
-                  documents only when the service needs them.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:min-w-[360px]">
-                <SummaryCard
-                  label="Category"
-                  value={
-                    categories.find(
-                      (cat: any) =>
-                        String(cat.id) === String(form.service_category_id),
-                    )?.name || "Not selected"
-                  }
-                />
-                <SummaryCard
-                  label="Pricing Tiers"
-                  value={showPlans ? "Enabled" : "Off"}
-                />
-                <SummaryCard
-                  label="Optional Docs"
-                  value={showExtraDocs ? "Enabled" : "Off"}
-                />
               </div>
             </div>
           </div>
@@ -522,6 +503,10 @@ export function ServiceFormView() {
                 className={TEXTAREA_CLASS}
               />
             </div>
+
+            <ServiceWorkflowBuilder
+              serviceId={isEditMode ? Number(id) : null}
+            />
 
             <div className="flex items-center justify-end gap-4">
               <button

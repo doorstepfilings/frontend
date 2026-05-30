@@ -110,7 +110,7 @@ export function AccountSettingsView() {
         setIsConnecting(true);
         try {
             await dispatch(connectRM(rmSearchResult.rm_unique_id)).unwrap();
-            toast.success("Connected to Regional Manager!");
+            toast.success("Connected to Relationship Manager!");
             setRmSearchResult(null);
             setRmSearchId("");
         } catch (err: any) {

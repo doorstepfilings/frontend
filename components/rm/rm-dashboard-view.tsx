@@ -57,7 +57,7 @@ export function RMDashboardView() {
         setUsers(usersRes.data?.data || []);
         setRequests(requestsRes.data?.data || []);
       } catch {
-        toast.error("Failed to load regional dashboard");
+        toast.error("Failed to load dashboard");
       } finally {
         setLoading(false);
       }
@@ -102,7 +102,7 @@ export function RMDashboardView() {
           <div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
             <div>
               <h1 className="text-4xl font-black tracking-tight text-slate-900">
-                Regional Overview
+                Relationship Overview
               </h1>
               <p className="mt-2 text-sm font-bold uppercase tracking-widest text-slate-500 opacity-60">
                 Operations Hub - {user?.name}

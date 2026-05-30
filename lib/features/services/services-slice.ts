@@ -1,6 +1,7 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { isAxiosError } from "axios";
 import { apiClient } from "@/lib/api/client";
+import type { RootState } from "@/lib/store";
 import type {
   ServiceCategory,
   ServiceItem,
@@ -10,6 +11,8 @@ import type {
 const initialState: ServicesState = {
   items: [],
   serviceDetails: null,
+  serviceDetailsLoading: false,
+  serviceDetailsError: null,
   cart: [],
   myServices: [],
   myOrders: [],
@@ -41,15 +44,29 @@ async function readBlobErrorMessage(blob: Blob) {
 export const fetchServices = createAsyncThunk<
   ServiceCategory[],
   void,
-  { rejectValue: string }
->("services/fetchServices", async (_, { rejectWithValue }) => {
-  try {
-    const response = await apiClient.get("/services");
-    return response.data?.data ?? [];
-  } catch (error: any) {
-    return rejectWithValue(error.response?.data?.message || "Failed to fetch services");
-  }
-});
+  { rejectValue: string; state: RootState }
+>(
+  "services/fetchServices",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await apiClient.get("/services");
+      return response.data?.data ?? [];
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || "Failed to fetch services");
+    }
+  },
+  {
+    condition: (_, { getState }) => {
+      const { services } = getState();
+
+      if (services.status === "loading") {
+        return false;
+      }
+
+      return services.items.length === 0;
+    },
+  },
+);
 
 export const fetchServiceDetails = createAsyncThunk<
   ServiceItem,
@@ -286,6 +303,8 @@ const servicesSlice = createSlice({
   reducers: {
     clearServiceDetails: (state) => {
       state.serviceDetails = null;
+      state.serviceDetailsLoading = false;
+      state.serviceDetailsError = null;
     },
     clearApplyStatus: (state) => {
       state.applySuccess = false;
@@ -310,16 +329,18 @@ const servicesSlice = createSlice({
         state.error = action.payload as string;
       })
       .addCase(fetchServiceDetails.pending, (state) => {
-        state.loading = true;
-        state.error = null;
+        state.serviceDetailsLoading = true;
+        state.serviceDetailsError = null;
       })
       .addCase(fetchServiceDetails.fulfilled, (state, action) => {
-        state.loading = false;
+        state.serviceDetailsLoading = false;
+        state.serviceDetailsError = null;
         state.serviceDetails = action.payload;
       })
       .addCase(fetchServiceDetails.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
+        state.serviceDetailsLoading = false;
+        state.serviceDetails = null;
+        state.serviceDetailsError = action.payload as string;
       })
       .addCase(addToCart.pending, (state) => {
         state.cartLoading = true;

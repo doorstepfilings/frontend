@@ -51,7 +51,7 @@ export function AccountantServiceRequestsView() {
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                         <div>
                             <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Service Pipeline</h1>
-                            <p className="text-sm text-slate-500 mt-1">Lifecycle management for active service workflows.</p>
+                            <p className="text-sm text-slate-500 mt-1">Lifecycle management and milestone tracking for active services.</p>
                         </div>
                         <div className="flex items-center gap-4">
                             <div className="relative group w-full md:w-72">

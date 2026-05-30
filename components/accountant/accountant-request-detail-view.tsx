@@ -1,59 +1,81 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { AuthGuard } from "@/components/auth/auth-guard";
 import { StatusIndicator } from "@/components/ui/status-indicator";
+import { DetailViewSkeleton } from "@/components/ui/skeletons/detail-view-skeleton";
 import { apiClient } from "@/lib/api/client";
 import { toast } from "react-hot-toast";
-import { splitDocumentsByOwner } from "@/lib/utils/document-helpers";
-import { AccountantDocumentList } from "./accountant-document-list";
-import { AccountantUploadForm } from "./accountant-upload-form";
+
 import { FormDataRenderer } from "@/components/ui/form-data-renderer";
+import { LifecycleStatusPicker } from "@/components/ui/lifecycle-status-picker";
+import { formatDateWithPattern } from "@/lib/utils/formatters";
 import { Modal } from "@/components/ui/modal";
 import { FormSelect, FormTextarea } from "@/components/ui/form-controls";
 import { Button } from "@/components/ui/button";
+import {
+  ACCOUNTANT_DEFAULT_LIFECYCLE_STATUSES,
+  ACCOUNTANT_SPECIAL_LIFECYCLE_STATUSES,
+  buildLifecycleStatusGroups,
+  canTransitionLifecycleStatus,
+  filterLifecycleStatusOptions,
+  normalizeSharedLifecycleStage,
+  resolveInitialLifecycleStatusSelection,
+  type SharedLifecycleStage,
+  type WorkflowStage,
+  type TimelineStage,
+  type DefaultWorkflowTemplateItem,
+  normalizeWorkflowStage,
+  sortWorkflowStages,
+  attachTimelineMetadata,
+  buildSharedTimelineStages,
+  getWorkflowStageLabel,
+  stageIdentityMatches,
+  parsePositiveNumber,
+} from "@/lib/workflows/lifecycle-status";
+import { MilestoneTimeline } from "@/components/ui/milestone-timeline";
+import { RequestDocumentList } from "@/components/ui/request-document-list";
 
-const STEPS = ["applied", "under_review", "in_progress", "submitted_to_ca", "completed"];
-const STATUS_LABELS: any = {
-  applied: "New Application",
-  under_review: "Verifying Documents",
-  in_progress: "Processing Task",
-  submitted_to_ca: "Pending CA Approval",
-  approved: "Completed",
-  completed: "Completed",
-  rejected: "Rejected",
-  update_required: "Information Required",
-  cancelled: "Cancelled",
-  pending: "Submitted",
-};
 
 export function AccountantRequestDetailView() {
   const params = useParams();
-  const router = useRouter();
   const id = params?.id as string;
-  
+
   const [req, setReq] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
+  const [showStageModal, setShowStageModal] = useState(false);
+  const [lifecycleStages, setLifecycleStages] = useState<SharedLifecycleStage[]>(
+    [],
+  );
+  const [defaultWorkflowTemplate, setDefaultWorkflowTemplate] = useState<
+    DefaultWorkflowTemplateItem[]
+  >([]);
+  const [lifecycleStagesLoading, setLifecycleStagesLoading] = useState(false);
   const [statusForm, setStatusForm] = useState({
     status: "",
     ca_notes: "",
     update_note: "",
     rejection_reason: "",
   });
-  const [activeDocTab, setActiveDocTab] = useState<"client" | "internal">("client");
+  const [stageForm, setStageForm] = useState({
+    service_workflow_id: "",
+    client_message: "",
+  });
   const [revisionNotes, setRevisionNotes] = useState("");
+  const applyRequestState = (payload: any) => {
+    setReq(payload);
+    setStatusForm((prev) => ({ ...prev, status: payload?.status || prev.status }));
+  };
 
   const fetchData = async () => {
     try {
       const res = await apiClient.get(`/accountant/service-requests/${id}`);
-      setReq(res.data?.data || res.data);
-      // Initialize status form with current status
-      setStatusForm(prev => ({ ...prev, status: res.data?.data?.status || prev.status }));
+      applyRequestState(res.data?.data || res.data);
     } catch (err) {
       toast.error("Failed to synchronize dossier");
     } finally {
@@ -62,39 +84,311 @@ export function AccountantRequestDetailView() {
   };
 
   useEffect(() => {
-    if (id) fetchData();
+    if (!id) {
+      return;
+    }
+
+    let isMounted = true;
+
+    async function loadRequest() {
+      setLoading(true);
+      setReq(null);
+      setDefaultWorkflowTemplate([]);
+
+      try {
+        const res = await apiClient.get(`/accountant/service-requests/${id}`);
+
+        if (!isMounted) {
+          return;
+        }
+
+        applyRequestState(res.data?.data || res.data);
+      } catch {
+        if (isMounted) {
+          toast.error("Failed to synchronize dossier");
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void loadRequest();
+
+    return () => {
+      isMounted = false;
+    };
   }, [id]);
+
+  useEffect(() => {
+    const hasServiceWorkflow =
+      Boolean(req?.has_workflow) ||
+      Boolean(req?.progression_control?.has_workflow) ||
+      Boolean(req?.current_workflow) ||
+      req?.progression_control?.mode === "workflow" ||
+      (Array.isArray(req?.workflow_stages) && req.workflow_stages.length > 0) ||
+      req?.progress?.mode === "custom";
+
+    if (!req) {
+      return;
+    }
+
+    if (hasServiceWorkflow) {
+      Promise.resolve().then(() => {
+        setDefaultWorkflowTemplate([]);
+      });
+      return;
+    }
+
+    let isMounted = true;
+
+    async function loadDefaultWorkflowTemplate() {
+      try {
+        const response = await apiClient.get("/accountant/workflows/default");
+        const payload = response.data?.data ?? response.data;
+
+        if (!isMounted) {
+          return;
+        }
+
+        setDefaultWorkflowTemplate(
+          Array.isArray(payload)
+            ? (payload as DefaultWorkflowTemplateItem[])
+            : [],
+        );
+      } catch {
+        if (isMounted) {
+          setDefaultWorkflowTemplate([]);
+        }
+      }
+    }
+
+    void loadDefaultWorkflowTemplate();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [req]);
+
+  useEffect(() => {
+    if (!showStatusModal) {
+      return;
+    }
+
+    let isMounted = true;
+
+    async function loadLifecycleStages() {
+      setLifecycleStagesLoading(true);
+
+      try {
+        const response = await apiClient.get("/accountant/lifecycle-stages");
+        const payload = response.data?.data ?? response.data;
+
+        if (!isMounted) {
+          return;
+        }
+
+        setLifecycleStages(
+          Array.isArray(payload)
+            ? payload.map(normalizeSharedLifecycleStage)
+            : [],
+        );
+      } catch (error: any) {
+        if (isMounted) {
+          toast.error(
+            error?.response?.data?.message ||
+            "Failed to load shared lifecycle milestones",
+          );
+        }
+      } finally {
+        if (isMounted) {
+          setLifecycleStagesLoading(false);
+        }
+      }
+    }
+
+    void loadLifecycleStages();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [showStatusModal]);
 
   const stepIndex = useMemo(() => {
     if (!req?.status) return 0;
     if (req.status === "update_required" || req.status === "rejected") return 0;
     if (req.status === "approved" || req.status === "completed") return 4;
-    const idx = STEPS.indexOf(req.status);
+    const idx = ACCOUNTANT_DEFAULT_LIFECYCLE_STATUSES.indexOf(
+      req.status as (typeof ACCOUNTANT_DEFAULT_LIFECYCLE_STATUSES)[number],
+    );
     return idx >= 0 ? idx : 0;
   }, [req?.status]);
 
-  const progress = Math.round(((stepIndex + 1) / STEPS.length) * 100);
+  const currentStageFromProgress = req?.progress?.current_stage
+    ? normalizeWorkflowStage(req.progress.current_stage)
+    : null;
+  const requestedWorkflowId = parsePositiveNumber(req?.current_service_workflow_id);
+  const serviceWorkflowStages: TimelineStage[] = (() => {
+    const rawStages = Array.isArray(req?.workflow_stages) && req.workflow_stages.length > 0
+      ? req.workflow_stages
+      : Array.isArray(req?.progress?.stages)
+        ? req.progress.stages
+        : [];
+    const normalizedStages = Array.isArray(rawStages)
+      ? [...rawStages]
+        .map(normalizeWorkflowStage)
+        .sort(sortWorkflowStages)
+      : [];
 
-  const handleUpdateStatus = async (eOrData?: React.FormEvent | { status: string }) => {
-    let data: any = statusForm;
-    
-    // Check if it's a direct data object or a form event
-    if (eOrData && typeof eOrData === 'object' && 'status' in eOrData) {
-      data = eOrData;
-    } else if (eOrData) {
-      (eOrData as React.FormEvent).preventDefault();
-    }
+    const mergedStages =
+      currentStageFromProgress &&
+        !normalizedStages.some((stage) =>
+          stageIdentityMatches(stage, currentStageFromProgress),
+        )
+        ? [...normalizedStages, currentStageFromProgress].sort(sortWorkflowStages)
+        : normalizedStages;
 
-    if (!data.status) return toast.error("Please select a target status");
-    
+    return attachTimelineMetadata(mergedStages);
+  })();
+  const sharedWorkflowStages = buildSharedTimelineStages(
+    defaultWorkflowTemplate,
+    req?.status,
+  );
+  const hasCustomWorkflow = Boolean(req?.is_custom_workflow);
+  const hasServiceSpecificWorkflow =
+    Boolean(req?.has_workflow) ||
+    Boolean(req?.progression_control?.has_workflow) ||
+    Boolean(req?.current_workflow) ||
+    req?.progression_control?.mode === "workflow" ||
+    serviceWorkflowStages.length > 0;
+  const showingSharedWorkflowTemplate =
+    !hasServiceSpecificWorkflow && sharedWorkflowStages.length > 0;
+  const timelineStages = hasServiceSpecificWorkflow
+    ? serviceWorkflowStages
+    : showingSharedWorkflowTemplate
+      ? sharedWorkflowStages
+      : [];
+  const currentWorkflowStage =
+    timelineStages.find(
+      (stage) =>
+        stage.is_current ||
+        (requestedWorkflowId !== null &&
+          parsePositiveNumber(stage.id) === requestedWorkflowId) ||
+        stageIdentityMatches(stage, currentStageFromProgress),
+    ) ||
+    timelineStages[0] ||
+    null;
+  const currentWorkflowId =
+    !showingSharedWorkflowTemplate
+      ? parsePositiveNumber(currentWorkflowStage?.id) ?? requestedWorkflowId ?? 0
+      : 0;
+  const currentWorkflowOrder =
+    currentWorkflowStage &&
+      Number.isFinite(
+        Number(
+          timelineStages.find((stage) =>
+            stageIdentityMatches(stage, currentWorkflowStage),
+          )
+            ?.timeline_index,
+        ),
+      )
+      ? Number(
+        timelineStages.find((stage) =>
+          stageIdentityMatches(stage, currentWorkflowStage),
+        )
+          ?.timeline_index,
+      )
+      : null;
+  const workflowStepIndex =
+    currentWorkflowOrder && currentWorkflowOrder > 0 ? currentWorkflowOrder - 1 : 0;
+  const workflowTrackFill =
+    timelineStages.length <= 1
+      ? 0
+      : workflowStepIndex / (timelineStages.length - 1);
+  const workflowStageSummary =
+    hasServiceSpecificWorkflow
+      ? serviceWorkflowStages
+        .map(
+          (stage) =>
+            `${stage.timeline_index}. ${getWorkflowStageLabel(
+              stage,
+              stage.timeline_index,
+            )}`,
+        )
+        .join(" -> ")
+      : null;
+  const selectableWorkflowStages = hasServiceSpecificWorkflow
+    ? serviceWorkflowStages.filter(
+      (stage) =>
+        parsePositiveNumber(stage.id) !== null &&
+        (stage.is_active ||
+          (!showingSharedWorkflowTemplate &&
+            stageIdentityMatches(stage, currentWorkflowStage))),
+    )
+    : [];
+  const availableLifecycleStatuses = useMemo(
+    () =>
+      filterLifecycleStatusOptions({
+        currentStatus: req?.status,
+        selectedStatus: statusForm.status,
+        defaultStatuses: [...ACCOUNTANT_DEFAULT_LIFECYCLE_STATUSES],
+        specialStatuses: [...ACCOUNTANT_SPECIAL_LIFECYCLE_STATUSES],
+      }),
+    [req?.status, statusForm.status],
+  );
+  const lifecycleStatusGroups = useMemo(
+    () =>
+      buildLifecycleStatusGroups({
+        defaultStages: lifecycleStages,
+        defaultStatuses: availableLifecycleStatuses.defaultStatuses,
+        specialStatuses: availableLifecycleStatuses.specialStatuses,
+      }),
+    [availableLifecycleStatuses, lifecycleStages],
+  );
+
+  const handleQuickStageUpdate = async (targetStatus: string) => {
     setUpdating(true);
     try {
-      await apiClient.patch(`/accountant/service-requests/${id}/status`, data);
-      toast.success("Workflow stage recalibrated");
-      setShowStatusModal(false);
+      await apiClient.patch(`/accountant/service-requests/${id}/stage`, {
+        target_status: targetStatus,
+      });
+      toast.success("Stage updated successfully");
       fetchData();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Failed to update status");
+      toast.error(error.response?.data?.message || "Failed to update stage");
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const openStageModal = () => {
+    setStageForm({
+      service_workflow_id:
+        currentWorkflowId > 0
+          ? String(currentWorkflowId)
+          : "",
+      client_message: req?.client_message || "",
+    });
+    setShowStageModal(true);
+  };
+
+  const handleUpdateWorkflowStage = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setUpdating(true);
+
+    try {
+      await apiClient.patch(`/accountant/service-requests/${id}/stage`, {
+        service_workflow_id: stageForm.service_workflow_id
+          ? Number(stageForm.service_workflow_id)
+          : null,
+        client_message: stageForm.client_message.trim() || null,
+      });
+      toast.success("Milestone updated");
+      setShowStageModal(false);
+      fetchData();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Failed to update milestone");
     } finally {
       setUpdating(false);
     }
@@ -125,9 +419,9 @@ export function AccountantRequestDetailView() {
     }
   };
 
-  const handleUpdateDocStatus = async (doc: any, status: string) => {
+  const handleUpdateDocStatus = async (doc: any, status: string, notes?: string) => {
     try {
-      await apiClient.patch(`/accountant/service-requests/${id}/documents/${doc.id}/status`, { status });
+      await apiClient.patch(`/accountant/service-requests/${id}/documents/${doc.id}/status`, { status, notes });
       toast.success("Artifact status updated");
       fetchData();
     } catch (err) {
@@ -135,93 +429,145 @@ export function AccountantRequestDetailView() {
     }
   };
 
+  const handleCopyApplicationId = async () => {
+    const applicationLabel = String(req?.application_unique_id || req?.id || "").trim();
+
+    if (!applicationLabel || typeof navigator === "undefined" || !navigator.clipboard) {
+      toast.error("Application ID is not available to copy");
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(applicationLabel);
+      toast.success("Application ID copied");
+    } catch {
+      toast.error("Unable to copy application ID");
+    }
+  };
+
   if (loading || !req) {
     return (
       <AdminLayout>
-        <div className="h-96 flex items-center justify-center">
-          <div className="flex flex-col items-center gap-6">
-            <div className="h-16 w-16 animate-spin rounded-full border-4 border-blue-600 border-t-transparent shadow-xl"></div>
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 animate-pulse">Accessing Work Order...</p>
-          </div>
-        </div>
+        <DetailViewSkeleton />
       </AdminLayout>
     );
   }
 
-  const { clientDocs, internalDocs } = splitDocumentsByOwner(req.request_documents || [], req.user?.id);
   const canRevise = req.status === "update_required";
-  const canUpload = req.status !== "cancelled" && req.status !== "approved";
+  const workflowLabel = showingSharedWorkflowTemplate
+    ? "Global workflow"
+    : hasCustomWorkflow
+      ? "Custom service workflow"
+      : hasServiceSpecificWorkflow
+        ? "Service workflow"
+        : "No workflow";
 
   return (
     <AuthGuard allowedRoles={["accountant"]}>
       <AdminLayout>
-        <div className="max-w-6xl mx-auto space-y-8 pb-24 px-6">
-          {/* Professional Navigation Header */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pt-4">
-            <div className="flex items-center gap-5">
-              <Link 
-                href="/accountant/service-requests"
-                className="h-10 w-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-900 transition-all shadow-sm"
-              >
-                <i className="fas fa-chevron-left text-xs"></i>
-              </Link>
-              <div>
-                <div className="flex items-center gap-3 mb-1">
-                  <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{req.service?.name}</h1>
-                  <StatusIndicator status={req.status} />
+        <div className="mx-auto max-w-[96rem] space-y-8 pb-24 px-4 md:px-6">
+          <div className="overflow-hidden rounded-[2.25rem] border border-slate-200/70 bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.98),_rgba(240,249,255,0.92)_42%,_rgba(255,255,255,1)_75%)] px-5 py-6 shadow-[0_30px_80px_rgba(15,23,42,0.08)] md:px-8 md:py-8">
+            <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
+              <div className="flex items-start gap-4 md:gap-6">
+                <Link
+                  href="/accountant/service-requests"
+                  className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[1.2rem] border border-slate-200 bg-white text-blue-600 shadow-lg shadow-slate-200/70 transition-all hover:-translate-y-0.5 hover:text-blue-700"
+                >
+                  <i className="fas fa-chevron-left text-sm"></i>
+                </Link>
+                <div className="min-w-0">
+                  <h1 className="text-3xl font-black tracking-tight text-slate-950 md:text-5xl">
+                    {req.service?.name}
+                  </h1>
+                  <div className="mt-4 flex flex-wrap items-center gap-3 text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">
+                    <span>Order ID:</span>
+                    <span className="text-blue-600">#{req.application_unique_id || req.id}</span>
+                    <button
+                      type="button"
+                      onClick={() => void handleCopyApplicationId()}
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-blue-100 bg-blue-50 text-blue-600 transition-colors hover:bg-blue-100"
+                      title="Copy application ID"
+                    >
+                      <i className="far fa-copy text-sm" />
+                    </button>
+                  </div>
                 </div>
-                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
-                  Order ID: <span className="text-slate-600">#{req.application_unique_id || req.id}</span>
-                </p>
               </div>
-            </div>
-            <div className="flex gap-2">
-               <button className="h-10 px-5 bg-white border border-slate-200 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-50 transition-all flex items-center gap-2">
-                <i className="fas fa-print opacity-50"></i> Export Dossier
-               </button>
+
+              <div className="flex flex-wrap gap-3 xl:justify-end">
+                <StatusIndicator
+                  status={req.status}
+                  className="px-5 py-3 text-xs shadow-sm"
+                  size="lg"
+                />
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-            <div className="lg:col-span-2 space-y-10">
-              {/* Refined Progress Tracker */}
-              <div className="bg-white rounded-3xl border border-slate-200/60 shadow-sm p-10">
-                <div className="flex items-center justify-between mb-10">
-                  <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Processing Roadmap</h3>
-                  <div className="px-3 py-1 bg-slate-900 text-white rounded-lg text-[10px] font-bold">
-                    Stage {stepIndex + 1} of {STEPS.length}
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
+                Client
+              </p>
+              <p className="mt-2 text-base font-bold text-slate-950">
+                {req.user?.name || "Unknown"}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
+                Phone
+              </p>
+              <p className="mt-2 text-base font-bold text-slate-950">
+                {req.user?.mobile_number || "---"}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
+                Email
+              </p>
+              <p className="mt-2 truncate text-base font-bold text-slate-950">
+                {req.user?.email || "---"}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
+                Workflow
+              </p>
+              <p className="mt-2 text-base font-bold text-slate-950">
+                {workflowLabel}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+            <div className="space-y-10 lg:col-span-2">
+              <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm md:p-8">
+                <div className="mb-6">
+                  <div>
+                    <h3 className="text-lg font-bold tracking-tight text-slate-950">
+                      Milestone timeline
+                    </h3>
                   </div>
                 </div>
 
-                <div className="relative px-2">
-                  <div className="absolute top-[1.125rem] left-10 right-10 h-0.5 bg-slate-100" />
-                  <div
-                    className="absolute top-[1.125rem] left-10 h-0.5 bg-slate-900 transition-all duration-1000"
-                    style={{ width: `calc((100% - 5rem) * ${stepIndex / (STEPS.length - 1)})` }}
-                  />
-
-                  <div className="relative z-10 flex justify-between">
-                    {STEPS.map((step, i) => (
-                      <div key={step} className="flex flex-col items-center gap-4">
-                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold border-2 transition-all duration-500 ${
-                          i <= stepIndex ? "bg-white border-slate-900 text-slate-900 shadow-sm" : "bg-white border-slate-100 text-slate-200"
-                        }`}>
-                          {i < stepIndex ? <i className="fas fa-check text-[10px]" /> : i + 1}
-                        </div>
-                        <span className={`text-[10px] font-bold uppercase tracking-wide text-center max-w-[80px] ${i <= stepIndex ? "text-slate-900" : "text-slate-300"}`}>
-                          {STATUS_LABELS[step]}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                <MilestoneTimeline
+                  timelineStages={timelineStages}
+                  currentWorkflowStage={currentWorkflowStage}
+                  currentWorkflowOrder={currentWorkflowOrder}
+                  workflowTrackFill={workflowTrackFill}
+                  clientMessage={req.client_message}
+                  hasCustomWorkflow={hasServiceSpecificWorkflow}
+                  status={req.status}
+                  stepIndex={stepIndex}
+                  completedAt={req.updated_at ? formatDateWithPattern(req.updated_at, "d MMM yyyy, h:mm a") : undefined}
+                />
               </div>
 
               {/* Information Provided */}
-              <FormDataRenderer 
-                formData={req.form_data} 
-                title="Application Artifacts" 
-                icon="fa-id-card" 
+              <FormDataRenderer
+                formData={req.form_data}
+                title="Application Artifacts"
+                icon="fa-id-card"
               />
 
               {/* Instructions Section */}
@@ -269,52 +615,39 @@ export function AccountantRequestDetailView() {
               )}
 
               {/* Document Repository */}
-              <div className="space-y-8">
-                {canUpload && (
-                  <AccountantUploadForm 
-                    requestId={id} 
-                    onSuccess={fetchData} 
-                    showFinalToggle={req.status === "in_progress"}
-                  />
-                )}
-
-                {/* Repository Filter */}
-                <div className="flex p-1.5 bg-slate-100/80 rounded-2xl">
-                  <button 
-                    onClick={() => setActiveDocTab("client")}
-                    className={`flex-1 py-3 rounded-xl text-[11px] font-bold uppercase tracking-wide transition-all ${activeDocTab === "client" ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}
-                  >
-                    Client Submissions ({clientDocs.length})
-                  </button>
-                  <button 
-                    onClick={() => setActiveDocTab("internal")}
-                    className={`flex-1 py-3 rounded-xl text-[11px] font-bold uppercase tracking-wide transition-all ${activeDocTab === "internal" ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}
-                  >
-                    Internal Repository ({internalDocs.length})
-                  </button>
-                </div>
-
-                <div className="animate-in fade-in duration-500">
-                  <AccountantDocumentList 
-                    title={activeDocTab === "client" ? "Client Documents" : "Internal Documents"}
-                    documents={activeDocTab === "client" ? clientDocs : internalDocs}
-                    onDelete={handleDeleteDoc}
-                    onUpdateStatus={activeDocTab === "client" ? handleUpdateDocStatus : undefined}
-                  />
-                </div>
-              </div>
+              <RequestDocumentList
+                documents={req.request_documents || []}
+                role="accountant"
+                userId={req.user?.id}
+                onDeleteDocument={handleDeleteDoc}
+                onUpdateDocumentStatus={handleUpdateDocStatus}
+                onUploadDocument={async (file, docType, notes) => {
+                  const formData = new FormData();
+                  formData.append("document", file);
+                  formData.append("document_type", docType);
+                  formData.append("notes", notes);
+                  if (req.status === "in_progress" && docType === "internal") {
+                    formData.append("is_final", "true");
+                  }
+                  await apiClient.post(`/accountant/service-requests/${id}/documents`, formData, {
+                    headers: { "Content-Type": "multipart/form-data" },
+                  });
+                  fetchData();
+                }}
+                actionLoading={updating}
+              />
             </div>
 
             {/* Strategic Controls */}
             <div className="space-y-10">
               {/* Task Management */}
-              <div className="bg-white rounded-3xl border border-slate-200 p-10 shadow-sm">
-                <h3 className="text-lg font-bold text-slate-900 tracking-tight mb-8">Management</h3>
-                
+              <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm md:p-8">
+                <h3 className="mb-6 text-lg font-bold tracking-tight text-slate-900">Management</h3>
+
                 {["completed", "approved", "submitted_to_ca"].includes(req.status) && (
-                  <div className="mb-8">
-                    <div className={`p-4 rounded-2xl border text-center ${req.status === 'submitted_to_ca' ? 'bg-amber-50 border-amber-100 text-amber-700' : 'bg-emerald-50 border-emerald-100 text-emerald-700'}`}>
-                      <p className="text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2">
+                  <div className="mb-6">
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-center">
+                      <p className="flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-600">
                         <i className={`fas ${req.status === 'submitted_to_ca' ? 'fa-hourglass-half' : 'fa-check-circle'}`}></i>
                         {req.status === 'submitted_to_ca' ? 'Review Pending' : 'Workflow Finalized'}
                       </p>
@@ -324,85 +657,70 @@ export function AccountantRequestDetailView() {
 
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 gap-3">
+                    {hasServiceSpecificWorkflow &&
+                      selectableWorkflowStages.length > 0 && (
+                        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">
+                            Service Milestones
+                          </p>
+                          <button
+                            onClick={openStageModal}
+                            className="h-12 w-full rounded-2xl border border-slate-900 bg-white text-[11px] font-bold uppercase tracking-wider text-slate-900 transition-all hover:bg-slate-900 hover:text-white"
+                          >
+                            Update Milestone
+                          </button>
+                        </div>
+                      )}
+
                     {(req.status === "applied" || req.status === "paid") && (
-                      <button 
-                        onClick={() => handleUpdateStatus({ status: "under_review" })}
-                        className="w-full h-12 bg-slate-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-wider hover:bg-slate-800 transition-all shadow-sm"
+                      <button
+                        onClick={() => handleQuickStageUpdate("under_review")}
+                        disabled={updating}
+                        className="w-full h-12 bg-slate-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-wider hover:bg-slate-800 transition-all shadow-sm disabled:opacity-50"
                       >
-                        Initiate Review
+                        {updating ? <i className="fas fa-spinner fa-spin" /> : "Initiate Review"}
                       </button>
                     )}
 
                     {req.status === "under_review" && (
-                      <>
-                        <button 
-                          onClick={() => handleUpdateStatus({ status: "in_progress" } as any)}
-                          className="w-full h-12 bg-slate-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-wider hover:bg-slate-800 transition-all shadow-sm"
+                      <div className="space-y-4">
+                        <button
+                          onClick={() => handleQuickStageUpdate("in_progress")}
+                          disabled={updating}
+                          className="w-full h-12 bg-slate-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-wider hover:bg-slate-800 transition-all shadow-sm disabled:opacity-50"
                         >
-                          Approve Docs
+                          {updating ? <i className="fas fa-spinner fa-spin" /> : "Approve Docs"}
                         </button>
-                        <button 
-                          onClick={() => {
-                            setStatusForm({ ...statusForm, status: "update_required" });
-                            setShowStatusModal(true);
-                          }}
-                          className="w-full h-12 bg-white border border-slate-200 text-slate-700 rounded-2xl text-[11px] font-bold uppercase tracking-wider hover:bg-slate-50 transition-all"
-                        >
-                          Request Updates
-                        </button>
-                      </>
+                        <div className="rounded-2xl border border-blue-100 bg-blue-50/50 p-4 text-left">
+                          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-blue-700 flex items-center gap-1.5 mb-1.5">
+                            <i className="fas fa-info-circle" /> How to Request Updates
+                          </p>
+                          <p className="text-[11px] font-medium leading-relaxed text-blue-900">
+                            To request corrections or updates, simply select <strong className="text-rose-700">Corrections</strong> for any document in the Client Documents section below.
+                          </p>
+                        </div>
+                      </div>
                     )}
 
                     {req.status === "in_progress" && (
-                      <button 
-                        onClick={() => handleUpdateStatus({ status: "submitted_to_ca" } as any)}
-                        className="w-full h-12 bg-slate-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-wider hover:bg-slate-800 transition-all shadow-sm"
+                      <button
+                        onClick={() => handleQuickStageUpdate("submitted_to_ca")}
+                        disabled={updating}
+                        className="w-full h-12 bg-slate-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-wider hover:bg-slate-800 transition-all shadow-sm disabled:opacity-50"
                       >
-                        Submit Dossier
+                        {updating ? <i className="fas fa-spinner fa-spin" /> : "Submit Dossier"}
                       </button>
                     )}
 
                     {req.status === "update_required" && (
-                      <button 
-                        onClick={() => handleUpdateStatus({ status: "under_review" } as any)}
-                        className="w-full h-12 bg-slate-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-wider hover:bg-slate-800 transition-all shadow-sm"
+                      <button
+                        onClick={() => handleQuickStageUpdate("under_review")}
+                        disabled={updating}
+                        className="w-full h-12 bg-slate-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-wider hover:bg-slate-800 transition-all shadow-sm disabled:opacity-50"
                       >
-                        Restart Review
+                        {updating ? <i className="fas fa-spinner fa-spin" /> : "Restart Review"}
                       </button>
                     )}
-                  </div>
-
-                  <button 
-                    onClick={() => setShowStatusModal(true)}
-                    className="w-full h-10 text-slate-400 hover:text-slate-600 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all border border-slate-100 hover:border-slate-200"
-                  >
-                    Advanced controls
-                  </button>
-                </div>
-              </div>
-
-              {/* User Context */}
-              <div className="bg-white rounded-3xl border border-slate-200 p-10 shadow-sm">
-                <h3 className="text-lg font-bold text-slate-900 tracking-tight mb-8">Client Profile</h3>
-                <div className="space-y-8">
-                  <div className="flex items-center gap-5">
-                    <div className="h-14 w-14 rounded-2xl bg-slate-900 text-white flex items-center justify-center font-bold text-lg shadow-sm">
-                      {req.user?.name?.charAt(0)}
-                    </div>
-                    <div>
-                      <h4 className="text-base font-bold text-slate-900 leading-none mb-1.5">{req.user?.name}</h4>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Validated Account</p>
-                    </div>
-                  </div>
-                  <div className="space-y-6 pt-2 border-t border-slate-50">
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Direct Line</p>
-                      <p className="text-sm font-bold text-slate-700">{req.user?.mobile_number || "---"}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Email Base</p>
-                      <p className="text-sm font-bold text-slate-700 truncate">{req.user?.email}</p>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -411,56 +729,60 @@ export function AccountantRequestDetailView() {
         </div>
       </AdminLayout>
 
-      <Modal isOpen={showStatusModal} onClose={() => setShowStatusModal(false)} title="Workflow Management">
-        <form onSubmit={handleUpdateStatus} className="space-y-8">
+      <Modal isOpen={showStageModal} onClose={() => setShowStageModal(false)} title="Update Service Milestone">
+        <form onSubmit={handleUpdateWorkflowStage} className="space-y-6">
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-700">
+              This Service Only
+            </p>
+            <p className="mt-2 text-sm leading-6 text-slate-700">
+              These milestones belong to this service only. Updating this does
+              not change the shared lifecycle status used across all services.
+            </p>
+          </div>
           <FormSelect
-            label="Override Status"
-            value={statusForm.status}
-            onChange={(e) => setStatusForm({ ...statusForm, status: e.target.value })}
-            options={[
-              { value: "applied", label: "Initial Submission" },
-              { value: "under_review", label: "Verification Stage" },
-              { value: "in_progress", label: "Processing Stage" },
-              { value: "submitted_to_ca", label: "Submit to CA/Admin" },
-              { value: "update_required", label: "Request Client Correction" },
-              { value: "rejected", label: "Reject Filing" },
-              { value: "cancelled", label: "Cancel Application" },
-            ]}
+            label="Target Milestone"
+            value={stageForm.service_workflow_id}
+            onChange={(e) =>
+              setStageForm({ ...stageForm, service_workflow_id: e.target.value })
+            }
+            placeholder="Clear current milestone"
+            options={selectableWorkflowStages
+              .map((stage) => ({
+                value: stage.id,
+                label: `${stage.timeline_index}. ${getWorkflowStageLabel(
+                  stage,
+                  stage.timeline_index,
+                )}${stage.is_required ? " (Required)" : " (Optional)"
+                  }`,
+              }))}
+            helpText={
+              workflowStageSummary
+            }
           />
-          
-          {statusForm.status === "update_required" && (
-            <FormTextarea
-              label="Update Directives"
-              required
-              value={statusForm.update_note}
-              onChange={(e) => setStatusForm({ ...statusForm, update_note: e.target.value })}
-              placeholder="Clearly state what the client must address..."
-            />
-          )}
-
-          {statusForm.status === "rejected" && (
-            <FormTextarea
-              label="Grounds for Rejection"
-              required
-              value={statusForm.rejection_reason}
-              onChange={(e) => setStatusForm({ ...statusForm, rejection_reason: e.target.value })}
-              placeholder="State the official reason for refusal..."
-            />
-          )}
-
           <FormTextarea
-            label="Internal Dossier Notes"
-            value={statusForm.ca_notes}
-            onChange={(e) => setStatusForm({ ...statusForm, ca_notes: e.target.value })}
-            placeholder="Private context for internal review..."
+            label="Client Message"
+            value={stageForm.client_message}
+            onChange={(e) =>
+              setStageForm({ ...stageForm, client_message: e.target.value })
+            }
+            placeholder="Optional progress note for the client."
           />
-
           <div className="flex gap-4 pt-4">
-            <Button type="button" variant="outline" className="flex-1 rounded-2xl h-14 font-bold text-xs uppercase tracking-widest" onClick={() => setShowStatusModal(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1 rounded-2xl h-14 font-bold text-xs uppercase tracking-widest"
+              onClick={() => setShowStageModal(false)}
+            >
               Cancel
             </Button>
-            <Button type="submit" className="flex-1 rounded-2xl h-14 bg-slate-900 text-white font-bold text-xs uppercase tracking-widest shadow-xl" loading={updating}>
-              Apply Change
+            <Button
+              type="submit"
+              className="flex-1 rounded-2xl h-14 bg-emerald-500 text-slate-950 font-bold text-xs uppercase tracking-widest shadow-xl hover:bg-emerald-400"
+              loading={updating}
+            >
+              Save Milestone
             </Button>
           </div>
         </form>

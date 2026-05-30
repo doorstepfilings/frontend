@@ -7,7 +7,7 @@ import { AdminLayout } from "@/components/layout/AdminLayout";
 import { AuthGuard } from "@/components/auth/auth-guard";
 import { toast } from "react-hot-toast";
 import Link from "next/link";
-import { format } from "date-fns";
+import { formatDateWithPattern } from "@/lib/utils/formatters";
 
 export function AccountantAssignedUserDetailView() {
     const { id } = useParams();
@@ -163,7 +163,7 @@ export function AccountantAssignedUserDetailView() {
                                                 <div className="flex items-center gap-6">
                                                     <div className="text-right">
                                                         <p className="text-[10px] font-bold text-slate-900 uppercase tracking-wide">{s.status.replace(/_/g, ' ')}</p>
-                                                        <p className="text-[10px] text-slate-400 font-medium">Last Update: {format(new Date(s.updated_at), 'dd MMM')}</p>
+                                                        <p className="text-[10px] text-slate-400 font-medium">Last Update: {formatDateWithPattern(s.updated_at, "dd MMM")}</p>
                                                     </div>
                                                     <Link 
                                                         href={`/accountant/service-requests/${s.id}`}
@@ -188,7 +188,7 @@ export function AccountantAssignedUserDetailView() {
                             <div className="bg-white rounded-3xl border border-slate-200/60 shadow-sm p-10">
                                 <h3 className="text-lg font-bold text-slate-900 tracking-tight mb-8">Account Support</h3>
                                 <div className="space-y-10">
-                                    {/* Regional Manager */}
+                                    {/* Relationship Manager */}
                                     {user.regional_manager ? (
                                         <div className="space-y-6">
                                             <div className="flex items-center gap-5">
@@ -197,7 +197,7 @@ export function AccountantAssignedUserDetailView() {
                                                 </div>
                                                 <div>
                                                     <h4 className="text-base font-bold text-slate-900 leading-none mb-1.5">{user.regional_manager.name}</h4>
-                                                    <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest">Regional Manager</p>
+                                                    <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest">Relationship Manager</p>
                                                 </div>
                                             </div>
                                             <div className="space-y-4 pt-4 border-t border-slate-50">
@@ -242,11 +242,11 @@ export function AccountantAssignedUserDetailView() {
                                 <div className="space-y-6">
                                     <div className="flex justify-between items-center">
                                         <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wide">Onboarding Date</span>
-                                        <span className="text-xs font-bold text-slate-700">{user.created_at ? format(new Date(user.created_at), 'dd MMM yyyy') : "---"}</span>
+                                        <span className="text-xs font-bold text-slate-700">{formatDateWithPattern(user.created_at, "dd MMM yyyy", "---")}</span>
                                     </div>
                                     <div className="flex justify-between items-center">
                                         <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wide">Last Log Activity</span>
-                                        <span className="text-xs font-bold text-slate-700">{user.updated_at ? format(new Date(user.updated_at), 'dd MMM yyyy') : "---"}</span>
+                                        <span className="text-xs font-bold text-slate-700">{formatDateWithPattern(user.updated_at, "dd MMM yyyy", "---")}</span>
                                     </div>
                                     <div className="flex justify-between items-center">
                                         <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wide">Identity Check</span>

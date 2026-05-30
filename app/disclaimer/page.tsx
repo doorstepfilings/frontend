@@ -39,37 +39,41 @@ export default function DisclaimerPolicyPage() {
       icon: "fa-building-columns",
       content: (
         <div className="space-y-4">
-          <p>We are a private service provider offering assistance in:</p>
-          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <p className="font-bold text-gray-700">• We are a private service provider offering assistance in:</p>
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-3 pl-4">
             {["Business registration", "Tax compliance", "Legal & regulatory filings"].map(
               (item) => (
                 <li
                   key={item}
                   className="rounded-xl border border-gray-100 bg-gray-50 p-3 text-center text-xs font-bold text-gray-700"
                 >
-                  {item}
+                  o {item}
                 </li>
               )
             )}
           </ul>
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-sm font-black text-rose-600">
-              <i className="fas fa-circle-exclamation shrink-0" />
+              <span className="text-lg">❗</span>
               <span>
-                We are NOT a government authority, department, or agency.
+                We are NOT a government authority, department, or agency
               </span>
             </div>
             <div className="flex items-center gap-2 text-sm font-black text-rose-600">
-              <i className="fas fa-circle-exclamation shrink-0" />
+              <span className="text-lg">❗</span>
               <span>
-                We do not issue licenses, registrations, or approvals directly.
+                We do not issue licenses, registrations, or approvals directly
               </span>
             </div>
           </div>
-          <p className="text-xs italic text-gray-500">
-            All approvals are granted by respective government authorities such as
-            MCA, GST Department, and Income Tax Department.
-          </p>
+          <div className="text-sm text-gray-600 space-y-2">
+            <p>All approvals are granted by respective government authorities such as:</p>
+            <ul className="space-y-1 pl-4">
+              <li>• MCA</li>
+              <li>• GST Department</li>
+              <li>• Income Tax Department</li>
+            </ul>
+          </div>
         </div>
       ),
     },
@@ -78,14 +82,16 @@ export default function DisclaimerPolicyPage() {
       icon: "fa-user-tie",
       content: (
         <div className="space-y-3">
-          <p className="text-sm text-gray-700">
-            All content on this website is for general informational purposes only
-            and does NOT constitute legal, financial, or professional advice.
-          </p>
+          <p className="text-sm text-gray-700 font-bold">All content on this website:</p>
+          <ul className="space-y-2 pl-4 text-sm text-gray-700">
+            <li>• Is for general informational purposes only</li>
+            <li>• Does NOT constitute legal, financial, or professional advice</li>
+          </ul>
           <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-            <p className="text-sm font-black italic text-amber-900">
-              👉 Users are advised to consult qualified professionals (CA, CS,
-              Advocate) before making decisions.
+            <p className="text-sm font-black italic text-amber-900 flex items-start gap-2">
+              <span className="text-lg">👉</span>
+              <span>Users are advised to consult qualified professionals (CA, CS,
+              Advocate) before making decisions.</span>
             </p>
           </div>
         </div>
@@ -96,7 +102,7 @@ export default function DisclaimerPolicyPage() {
       icon: "fa-ban",
       content: (
         <div className="space-y-4">
-          <p className="text-xs font-bold uppercase tracking-widest text-rose-600">
+          <p className="text-sm font-bold uppercase tracking-widest text-rose-600">
             We do NOT guarantee:
           </p>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -104,22 +110,24 @@ export default function DisclaimerPolicyPage() {
               "Approval of applications",
               "Registration success",
               "Processing timelines",
-              "Accuracy of govt systems",
+              "Accuracy of government systems",
               "Final results of any service",
             ].map((item) => (
               <div
                 key={item}
                 className="flex items-center gap-2 rounded-lg bg-gray-50 p-2 text-xs font-medium text-gray-600"
               >
-                <i className="fas fa-minus text-[8px] text-gray-400" />
+                <span className="font-bold text-gray-400">•</span>
                 {item}
               </div>
             ))}
           </div>
-          <p className="text-[11px] leading-relaxed text-gray-500">
-            All outcomes depend on Government policies, Legal scrutiny, and the
-            Accuracy of documents submitted.
-          </p>
+          <p className="text-sm font-bold text-gray-700 mt-2">All outcomes depend on:</p>
+          <ul className="space-y-1 text-sm text-gray-600 pl-4">
+            <li>• Government policies</li>
+            <li>• Legal scrutiny</li>
+            <li>• Accuracy of documents submitted</li>
+          </ul>
         </div>
       ),
     },
@@ -128,26 +136,23 @@ export default function DisclaimerPolicyPage() {
       icon: "fa-triangle-exclamation",
       content: (
         <div className="space-y-4">
-          <p className="text-sm font-bold uppercase text-gray-900">
-            You use this website and services at your own risk.
-          </p>
+          <ul className="space-y-2 text-sm text-gray-800 font-medium pl-4">
+            <li>• You use this website and services at your own risk</li>
+            <li>• The platform is provided on an “as-is” and “as-available” basis</li>
+          </ul>
           <div className="space-y-2 rounded-xl border border-gray-100 bg-gray-50 p-4">
-            <p className="text-xs italic text-gray-600">
-              The platform is provided on an “as-is” and “as-available” basis. We
-              do not warrant that:
+            <p className="text-sm font-bold text-gray-800">
+              We do not warrant that:
             </p>
-            <ul className="space-y-1 text-xs font-medium text-gray-700">
+            <ul className="space-y-2 text-sm font-medium text-gray-700 pl-4">
               <li className="flex items-center gap-2">
-                <i className="fas fa-circle text-[4px] text-blue-500" /> The
-                website will be uninterrupted
+                <span className="text-blue-500 font-bold">•</span> The website will be uninterrupted or error-free
               </li>
               <li className="flex items-center gap-2">
-                <i className="fas fa-circle text-[4px] text-blue-500" /> The
-                platform will be virus-free
+                <span className="text-blue-500 font-bold">•</span> The platform will be free from viruses or harmful components
               </li>
               <li className="flex items-center gap-2">
-                <i className="fas fa-circle text-[4px] text-blue-500" /> All
-                information is always accurate
+                <span className="text-blue-500 font-bold">•</span> All information is always accurate or updated
               </li>
             </ul>
           </div>
@@ -159,18 +164,18 @@ export default function DisclaimerPolicyPage() {
       icon: "fa-copyright",
       content: (
         <div className="space-y-4">
-          <p className="text-sm font-medium leading-relaxed text-gray-700">
-            All content on this website (text, graphics, logo, design, software)
-            is owned by Doorstep Filings.
-          </p>
+          <ul className="space-y-2 text-sm font-medium leading-relaxed text-gray-700 pl-4">
+            <li>• All content on this website (text, graphics, logo, design, software) is owned by Doorstep Filings or its licensors</li>
+            <li>• Protected under applicable copyright and trademark laws</li>
+          </ul>
           <div className="rounded-xl border border-rose-100 bg-rose-50 p-4">
-            <p className="mb-2 text-xs font-black uppercase text-rose-900">
-              ❌ Prohibited Actions:
+            <p className="mb-2 text-sm font-black uppercase text-rose-900 flex items-center gap-2">
+              <span className="text-lg">❌</span> You may NOT:
             </p>
-            <ul className="space-y-1 text-xs text-rose-800">
-              <li>• Copy, reproduce, or distribute content</li>
+            <ul className="space-y-2 text-sm text-rose-800 pl-4 font-medium">
+              <li>• Copy, reproduce, republish, or distribute content</li>
               <li>• Modify or create derivative works</li>
-              <li>• Use for commercial purposes without permission</li>
+              <li>• Use content for commercial purposes without written permission</li>
             </ul>
           </div>
         </div>
@@ -180,10 +185,13 @@ export default function DisclaimerPolicyPage() {
       title: "7. User Submissions",
       icon: "fa-hand-holding-heart",
       content: (
-        <p className="text-sm italic leading-relaxed text-gray-600">
-          By submitting information, you grant us a non-exclusive license to use
-          such input to improve our services.
-        </p>
+        <div className="space-y-3">
+          <p className="text-sm text-gray-700 font-bold">By submitting any information, feedback, or content to us:</p>
+          <ul className="space-y-2 text-sm italic leading-relaxed text-gray-600 pl-4">
+            <li>• You grant us a non-exclusive, royalty-free, worldwide license to use, reproduce, and display such content</li>
+            <li>• We may use such inputs to improve our services</li>
+          </ul>
+        </div>
       ),
     },
     {
@@ -192,12 +200,18 @@ export default function DisclaimerPolicyPage() {
       content: (
         <div className="space-y-3">
           <p className="text-sm text-gray-600">
-            Our platform may contain links to external sites. We do NOT control or
-            endorse them.
+            Our platform may contain links to third-party websites or services.
           </p>
-          <div className="rounded-lg border border-amber-100 bg-amber-50 p-3">
-            <p className="text-xs font-bold uppercase tracking-tighter text-amber-900">
-              ⚠️ Use of third-party platforms is at your own risk.
+          <div className="rounded-xl border border-amber-100 bg-amber-50 p-4 space-y-2">
+            <p className="text-sm font-bold text-amber-900 flex items-center gap-2">
+              <span className="text-lg">⚠️</span> We:
+            </p>
+            <ul className="space-y-1 text-sm text-amber-800 pl-4 font-medium">
+              <li>• Do NOT control or endorse such websites</li>
+              <li>• Are NOT responsible for their content, policies, or practices</li>
+            </ul>
+            <p className="text-xs font-bold uppercase tracking-tighter text-amber-900 mt-2">
+              Use of third-party platforms is at your own risk.
             </p>
           </div>
         </div>
@@ -207,16 +221,25 @@ export default function DisclaimerPolicyPage() {
       title: "9. Third-Party Dependencies",
       icon: "fa-diagram-project",
       content: (
-        <div className="space-y-3">
-          <p className="text-sm text-gray-700">
-            Our services depend on external entities (Govt. portals, Banks,
-            External professionals).
+        <div className="space-y-4">
+          <p className="text-sm text-gray-700 font-bold">
+            Our services depend on external entities such as:
           </p>
-          <div className="rounded-xl bg-gray-900 p-4 text-[10px] font-black uppercase leading-loose tracking-widest text-gray-400">
-            We are NOT responsible for:<br />
-            <span className="text-white">
-              Delays / Rejections / Technical failures / Service interruptions
-            </span>
+          <ul className="space-y-2 text-sm text-gray-600 pl-4">
+            <li>• Government portals (MCA, GST, Income Tax)</li>
+            <li>• Banks and payment gateways</li>
+            <li>• External professionals (CA, CS, legal advisors)</li>
+          </ul>
+          <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
+            <p className="font-bold text-blue-900 flex items-center gap-2 mb-2 text-sm">
+              <span className="text-lg">👉</span> We are not responsible for:
+            </p>
+            <ul className="space-y-1 text-sm text-blue-800 pl-4 font-medium">
+              <li>• Delays</li>
+              <li>• Rejections</li>
+              <li>• Technical failures</li>
+              <li>• Service interruptions caused by these entities</li>
+            </ul>
           </div>
         </div>
       ),
@@ -226,20 +249,22 @@ export default function DisclaimerPolicyPage() {
       icon: "fa-shield",
       content: (
         <div className="space-y-3">
-          <p className="text-xs font-black uppercase text-gray-500">
+          <p className="text-sm text-gray-600 font-medium">To the maximum extent permitted by law:</p>
+          <p className="text-sm font-black uppercase text-gray-700">
             Doorstep Filings shall NOT be liable for:
           </p>
-          <ul className="grid grid-cols-1 gap-2 text-sm font-medium text-gray-700 md:grid-cols-2">
-            <li className="flex items-center gap-2">
-              Indirect or incidental damages
-            </li>
-            <li className="flex items-center gap-2">
-              Loss of profits or data
-            </li>
-            <li className="flex items-center gap-2">Business interruption</li>
-            <li className="flex items-center gap-2">
-              Errors due to client info
-            </li>
+          <ul className="grid grid-cols-1 gap-2 text-sm font-medium text-gray-600 md:grid-cols-2">
+            {[
+              "Any indirect, incidental, or consequential damages",
+              "Loss of profits, revenue, or data",
+              "Business interruption",
+              "Delays or failures beyond our control",
+              "Errors due to incorrect client information",
+            ].map((item) => (
+              <li key={item} className="flex items-center gap-2">
+                <span className="font-bold text-gray-400">•</span> {item}
+              </li>
+            ))}
           </ul>
         </div>
       ),
@@ -248,16 +273,19 @@ export default function DisclaimerPolicyPage() {
       title: "11. Indemnification",
       icon: "fa-shield-halved",
       content: (
-        <div className="space-y-2 rounded-xl border border-gray-100 bg-gray-50 p-4">
-          <p className="text-xs text-gray-600">
-            You agree to hold harmless Doorstep Filings against claims arising
-            from:
-          </p>
-          <ul className="space-y-1 text-xs font-bold italic text-gray-900">
-            <li>• Your misuse of the platform</li>
-            <li>• Violation of laws</li>
-            <li>• Breach of this policy</li>
+        <div className="space-y-4">
+          <p className="text-sm font-bold text-gray-900">You agree to:</p>
+          <ul className="text-sm text-gray-700 pl-4">
+            <li>• Indemnify and hold harmless Doorstep Filings, its directors, employees, partners, and affiliates</li>
           </ul>
+          <p className="text-sm font-bold text-gray-900">Against any claims, losses, damages, or legal expenses arising from:</p>
+          <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
+            <ul className="space-y-2 text-sm font-medium text-gray-800 pl-4">
+              <li>• Your misuse of the platform</li>
+              <li>• Violation of applicable laws</li>
+              <li>• Breach of this policy</li>
+            </ul>
+          </div>
         </div>
       ),
     },
@@ -265,11 +293,17 @@ export default function DisclaimerPolicyPage() {
       title: "12. Termination of Use",
       icon: "fa-user-slash",
       content: (
-        <div className="space-y-2">
-          <p className="text-sm text-gray-600">
-            We reserve the right to suspend access or refuse service at our
-            discretion if misuse is detected.
-          </p>
+        <div className="space-y-4">
+          <p className="text-sm font-bold text-gray-900">We reserve the right to:</p>
+          <ul className="space-y-2 text-sm text-gray-700 pl-4">
+            <li>• Suspend or terminate access to our platform</li>
+            <li>• Refuse service</li>
+          </ul>
+          <p className="text-sm font-bold text-gray-900">At our discretion, without prior notice, if:</p>
+          <ul className="space-y-2 text-sm text-gray-700 pl-4">
+            <li>• Terms are violated</li>
+            <li>• Misuse or fraudulent activity is detected</li>
+          </ul>
         </div>
       ),
     },
@@ -277,12 +311,13 @@ export default function DisclaimerPolicyPage() {
       title: "13. Governing Law & Jurisdiction",
       icon: "fa-gavel",
       content: (
-        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
-          <p className="mb-1 text-sm font-bold italic text-blue-900">
-            Governed by the laws of India.
-          </p>
-          <p className="text-xs font-black uppercase tracking-tight text-blue-700">
-            👉 Jurisdiction: Ahmedabad, Gujarat
+        <div className="space-y-3">
+          <ul className="space-y-2 text-sm font-medium text-gray-700 pl-4">
+            <li>• This policy is governed by the laws of India</li>
+            <li>• Any disputes shall be subject to the jurisdiction of courts in:</li>
+          </ul>
+          <p className="flex items-center gap-3 rounded-xl border border-blue-200 bg-blue-50 p-4 font-black uppercase tracking-tight text-blue-700">
+            <span className="text-lg">👉</span> Ahmedabad, Gujarat
           </p>
         </div>
       ),
@@ -292,13 +327,16 @@ export default function DisclaimerPolicyPage() {
       icon: "fa-hourglass-end",
       content: (
         <div className="group relative overflow-hidden rounded-2xl bg-rose-600 p-6 text-center text-white shadow-xl">
-          <h4 className="mb-1 relative z-10 text-3xl font-black uppercase italic tracking-tighter">
-            1 MONTH
-          </h4>
-          <p className="relative z-10 text-[10px] font-black uppercase italic tracking-widest opacity-80">
-            Time Limit for Any Claim
+          <p className="relative z-10 text-xs font-bold uppercase tracking-widest opacity-90 mb-2">
+            Any claim or dispute must be raised within:
           </p>
-          <p className="mt-4 relative z-10 text-[10px] font-medium opacity-60">
+          <h4 className="mb-2 relative z-10 text-3xl font-black uppercase italic tracking-tighter flex items-center justify-center gap-2">
+            <span>👉</span> 1 MONTH
+          </h4>
+          <p className="relative z-10 text-xs font-black uppercase opacity-90">
+            From the date of occurrence
+          </p>
+          <p className="mt-4 relative z-10 text-[10px] font-medium opacity-80">
             Failing which, the claim shall be considered waived.
           </p>
           <i className="fas fa-clock absolute -bottom-4 -right-4 rotate-12 text-8xl text-white/10 transition-transform duration-700 group-hover:rotate-0" />
@@ -309,27 +347,38 @@ export default function DisclaimerPolicyPage() {
       title: "15. Force Majeure",
       icon: "fa-cloud-bolt",
       content: (
-        <ul className="grid grid-cols-2 gap-2 text-[10px] font-black uppercase text-gray-500 sm:grid-cols-4">
-          {["Natural disasters", "Govt actions", "Tech failures", "War / Strikes"].map(
-            (f) => (
+        <div className="space-y-4">
+          <p className="text-sm font-bold text-gray-800">We are not responsible for delays or failure due to:</p>
+          <ul className="grid grid-cols-2 gap-2 text-[10px] font-black uppercase text-gray-500 sm:grid-cols-3">
+            {[
+              "Natural disasters", 
+              "Government actions", 
+              "Technical failures", 
+              "War, strikes, pandemics",
+              "Events beyond reasonable control"
+            ].map((f) => (
               <li
                 key={f}
-                className="rounded-lg border border-gray-100 bg-gray-50 p-2 text-center leading-tight transition-transform hover:-translate-y-1"
+                className="flex items-center gap-2 rounded-lg border border-gray-100 bg-gray-50 p-2 text-left leading-tight"
               >
-                {f}
+                <span className="text-gray-400">•</span> {f}
               </li>
-            )
-          )}
-        </ul>
+            ))}
+          </ul>
+        </div>
       ),
     },
     {
       title: "16. Updates to Disclaimer",
       icon: "fa-rotate",
       content: (
-        <p className="text-sm italic text-gray-600">
-          Effective immediately upon posting. Continued use implies acceptance.
-        </p>
+        <div className="space-y-3">
+          <p className="text-sm text-gray-700">We may update this Disclaimer Policy at any time.</p>
+          <p className="text-sm text-gray-700">Changes will be effective immediately upon posting.</p>
+          <p className="text-sm italic text-gray-600 font-medium">
+            Continued use of the platform constitutes acceptance of updated terms.
+          </p>
+        </div>
       ),
     },
   ];

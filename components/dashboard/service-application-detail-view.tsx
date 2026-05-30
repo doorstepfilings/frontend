@@ -14,7 +14,7 @@ import {
     type ImageLightboxSlide,
 } from "@/components/ui/image-lightbox";
 import { StatusIndicator } from "@/components/ui/status-indicator";
-import { format } from "date-fns";
+import { resolveStatusLabel } from "@/lib/utils/status-helpers";
 import {
     buildDashboardDocumentsUrl,
 } from "@/lib/utils/payment-navigation";
@@ -34,21 +34,11 @@ import {
     type RazorpayCheckoutOptions,
     type RazorpayPaymentResponse,
 } from "@/lib/utils/razorpay";
-
-type ServiceDocument = {
-    document_type?: string | null;
-    document_category?: string | null;
-    document_name?: string | null;
-    file_name?: string | null;
-    file_url?: string | null;
-    id: number | string;
-    status?: string | null;
-};
-
-type DocumentLightboxItem = {
-    docId: string;
-    slide: ImageLightboxSlide;
-};
+import { ChatBox } from "@/components/chat/ChatBox";
+import { MilestoneTimeline } from "@/components/ui/milestone-timeline";
+import { formatDateWithPattern } from "@/lib/utils/formatters";
+import { useDocumentGallery, type ServiceDocument } from "@/lib/hooks/use-document-gallery";
+import { DetailViewSkeleton } from "@/components/ui/skeletons/detail-view-skeleton";
 
 type CreateOrderResponse = {
     data: {
@@ -63,7 +53,10 @@ type CreateOrderResponse = {
 
 const PAYABLE_STATUSES = new Set(["applied", "in_cart", "payment_pending"]);
 
-function canPayForService(service: { status?: string | null } | null | undefined) {
+function canPayForService(service: { status?: string | null; payment_status?: string | null } | null | undefined) {
+    if (String(service?.payment_status || "").toLowerCase() === "paid") {
+        return false;
+    }
     return PAYABLE_STATUSES.has(String(service?.status || "").toLowerCase());
 }
 
@@ -73,15 +66,12 @@ export function ServiceApplicationDetailView() {
     const dispatch = useAppDispatch();
     const { myServices, loading } = useAppSelector((state) => state.services);
     const user = useStoredUser();
-    const [lightboxIndex, setLightboxIndex] = useState(-1);
     const [showOrderModal, setShowOrderModal] = useState(false);
     const [paymentLoading, setPaymentLoading] = useState(false);
 
     useEffect(() => {
-        if (myServices.length === 0) {
-            dispatch(fetchMyServices());
-        }
-    }, [dispatch, myServices.length]);
+        dispatch(fetchMyServices());
+    }, [dispatch, id]);
 
     const service = useMemo(() => {
         return myServices.find((s) => String(s.id) === String(id));
@@ -92,68 +82,13 @@ export function ServiceApplicationDetailView() {
         [service?.request_documents],
     );
 
-    const documentGallery = useMemo(
-        () =>
-            requestDocuments.reduce<DocumentLightboxItem[]>((gallery, doc) => {
-                const src = resolveStorageUrl(doc.file_url ?? null);
-                if (!src || !isImageDocument(doc)) {
-                    return gallery;
-                }
-
-                gallery.push({
-                    docId: String(doc.id),
-                    slide: {
-                        alt:
-                            doc.document_type ||
-                            doc.file_name ||
-                            "Document preview",
-                        download: doc.file_name
-                            ? {
-                                  filename: doc.file_name,
-                                  url: src,
-                              }
-                            : src,
-                        src,
-                    },
-                });
-
-                return gallery;
-            }, []),
-        [requestDocuments],
-    );
-
-    const handleOpenDocument = async (doc: ServiceDocument) => {
-        try {
-            await openDocumentInNewTab(
-                getDocumentSourceUrl(doc),
-                doc.file_name ?? doc.document_name ?? "document",
-            );
-        } catch (error: unknown) {
-            const message =
-                error instanceof Error
-                    ? error.message
-                    : "Unable to open this document.";
-            toast.error(message);
-        }
-    };
-
-    const handleOpenPreview = async (previewIndex: number) => {
-        const slide = documentGallery[previewIndex]?.slide;
-        if (!slide) {
-            return;
-        }
-
-        try {
-            await ensureDocumentAccessible(slide.src);
-            setLightboxIndex(previewIndex);
-        } catch (error: unknown) {
-            const message =
-                error instanceof Error
-                    ? error.message
-                    : "Unable to preview this image.";
-            toast.error(message);
-        }
-    };
+    const {
+        documentGallery,
+        lightboxIndex,
+        setLightboxIndex,
+        handleOpenDocument,
+        handleOpenPreview,
+    } = useDocumentGallery(requestDocuments);
 
     const handleConfirmPayment = async () => {
         if (!service?.id) {
@@ -260,12 +195,8 @@ export function ServiceApplicationDetailView() {
         }
     };
 
-    if (loading && !service) {
-        return (
-            <div className="flex items-center justify-center h-96">
-                <div className="h-10 w-10 animate-spin rounded-full border-2 border-blue-900 border-t-transparent"></div>
-            </div>
-        );
+    if (loading) {
+        return <DetailViewSkeleton />;
     }
 
     if (!service && !loading) {
@@ -284,7 +215,34 @@ export function ServiceApplicationDetailView() {
         );
     }
 
-    const progress = getProgressPercentage(service?.status);
+    const timelineStages = (service?.progress?.stages ?? service?.journey?.stages ?? []).map((stage: any, index: number) => ({
+        id: Number(stage.id ?? index),
+        stage_id: stage.stage_id ?? null,
+        name: stage.label ?? stage.name ?? "",
+        slug: stage.key ?? stage.slug ?? "",
+        color: stage.color ?? "#1d4ed8",
+        order_index: stage.order_index ?? (index + 1),
+        is_active: stage.is_active ?? true,
+        is_required: stage.is_required ?? true,
+        is_completed: stage.is_completed ?? false,
+        is_current: stage.is_current ?? false,
+        timeline_index: index + 1,
+        timeline_key: `${stage.id ?? index}-${index}`,
+    }));
+
+    const currentStage = timelineStages.find((stage: any) => stage.is_current) ?? null;
+
+    const currentOrder = currentStage?.timeline_index ?? null;
+
+    const trackFill = (() => {
+        if (timelineStages.length <= 1) return 0;
+        const currentIdx = timelineStages.findIndex((stage: any) => stage.is_current);
+        if (currentIdx >= 0) {
+            return currentIdx / (timelineStages.length - 1);
+        }
+        const completedCount = timelineStages.filter((stage: any) => stage.is_completed).length;
+        return completedCount === timelineStages.length ? 1 : 0;
+    })();
 
     return (
         <div className="space-y-10 animate-fadeIn">
@@ -311,31 +269,50 @@ export function ServiceApplicationDetailView() {
                     {/* Status Progress Card */}
                     <div className="bg-white rounded-[3rem] border border-slate-100 p-10 shadow-sm relative overflow-hidden">
                         <div className="absolute top-0 right-0 p-10">
-                            <StatusIndicator status={service?.status} />
+                            <StatusIndicator status={service?.status} paymentStatus={service?.payment_status} label={resolveStatusLabel(service)} />
                         </div>
                         <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-10">
                             Journey Status
                         </h3>
 
-                        <div className="relative">
-                            <div className="h-3 bg-slate-50 rounded-full overflow-hidden">
-                                <div
-                                    className="h-full bg-blue-900 transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(30,58,138,0.3)]"
-                                    style={{ width: `${progress}%` }}
-                                ></div>
-                            </div>
-                            <div className="flex justify-between mt-6">
-                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                    Submission
-                                </span>
-                                <span className="text-[10px] font-black text-blue-900 uppercase tracking-widest">
-                                    {progress}% Processed
-                                </span>
-                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                    Completion
-                                </span>
-                            </div>
+                        <div className="mt-8">
+                            <MilestoneTimeline
+                                timelineStages={timelineStages}
+                                currentWorkflowStage={currentStage}
+                                currentWorkflowOrder={currentOrder}
+                                workflowTrackFill={trackFill}
+                                hasCustomWorkflow={timelineStages.length > 0}
+                                status={service?.status}
+                                stepIndex={(() => {
+                                    const steps = ["applied", "under_review", "in_progress", "submitted_to_ca", "completed"];
+                                    const idx = steps.indexOf(service?.status || "");
+                                    return idx >= 0 ? idx : 0;
+                                })()}
+                                statusLabels={{
+                                    applied: "New Application",
+                                    under_review: "Verifying Documents",
+                                    in_progress: "Processing Task",
+                                    submitted_to_ca: "Pending CA Approval",
+                                    completed: "Completed"
+                                }}
+                            />
                         </div>
+
+                        {service?.client_message && (
+                            <div className="mt-8 p-6 bg-gradient-to-r from-blue-50 to-indigo-50/50 rounded-[2rem] border border-blue-100/60 flex gap-4 items-start animate-fadeIn">
+                                <div className="h-10 w-10 rounded-2xl bg-blue-900 text-white flex items-center justify-center shadow-md flex-shrink-0">
+                                    <i className="fas fa-comment-dots text-xs"></i>
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">
+                                        Update from Expert Advisor
+                                    </p>
+                                    <p className="text-sm font-semibold text-slate-800 leading-relaxed">
+                                        {service.client_message}
+                                    </p>
+                                </div>
+                            </div>
+                        )}
 
                         {service?.status === "update_required" && (
                             <div className="mt-10 p-6 bg-amber-50 rounded-2xl border border-amber-100">
@@ -359,10 +336,7 @@ export function ServiceApplicationDetailView() {
                             <div className="space-y-6">
                                 <DetailItem
                                     label="Submission Date"
-                                    value={format(
-                                        new Date(service?.created_at),
-                                        "MMMM d, yyyy",
-                                    )}
+                                    value={formatDateWithPattern(service?.created_at, "MMMM d, yyyy")}
                                 />
                                 <DetailItem
                                     label="Category"
@@ -540,27 +514,24 @@ export function ServiceApplicationDetailView() {
                         </div>
                     </div>
 
-                    {/* Support Quick Access */}
-                    <div className="bg-gradient-to-br from-indigo-600 to-blue-700 rounded-[3rem] p-10 text-white">
-                        <h3 className="text-lg font-black tracking-tight mb-4">
-                            Need Help?
-                        </h3>
-                        <p className="text-xs font-bold text-blue-100 opacity-80 leading-relaxed mb-8 uppercase tracking-widest">
-                            Directly communicate with your assigned accountant.
-                        </p>
-                        <a
-                            href="https://wa.me/919898196396"
-                            target="_blank"
-                            rel="noreferrer"
-                            className="flex items-center justify-center gap-3 h-14 bg-white text-blue-900 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-50 transition-all shadow-lg"
-                        >
-                            Contact Support
-                        </a>
-                    </div>
+                    {/* Live Expert Consultation Chat - hidden */}
+                    {/* <div className="space-y-4">
+                        <ChatBox
+                            title="Live Expert Consultation"
+                            userServiceId={Number(service?.id)}
+                            counterpart={service?.accountant ? {
+                                id: Number(service.accountant.id),
+                                name: service.accountant.name,
+                                email: service.accountant.email,
+                                role: service.accountant.role,
+                            } : null}
+                        />
+                    </div> */}
                 </div>
             </div>
 
             <ImageLightbox
+                key={lightboxIndex >= 0 ? `${lightboxIndex}-${documentGallery.length}` : "closed"}
                 open={lightboxIndex >= 0}
                 index={lightboxIndex >= 0 ? lightboxIndex : 0}
                 slides={documentGallery.map((item) => item.slide)}

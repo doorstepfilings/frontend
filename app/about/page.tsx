@@ -206,7 +206,7 @@ export default function AboutPage() {
                   business we help create is fully ready to operate.
                 </p>
                 <Image
-                  src="https://images.unsplash.com/photo-1553729459-efe14ef6055d?auto=format&fit=crop&q=80&w=800"
+                  src="/assets/images/about.png"
                   alt="Business Growth"
                   width={800}
                   height={500}

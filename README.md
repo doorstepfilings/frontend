@@ -18,12 +18,13 @@ Required environment:
 
 ```env
 AUTH_SECRET=replace-with-a-long-random-secret
+SOCIAL_AUTH_SHARED_SECRET=replace-with-a-shared-secret-used-by-the-backend
 BACKEND_URL=http://127.0.0.1:4000
 NEXT_PUBLIC_BACKEND_URL=http://127.0.0.1:4000
 NEXT_PUBLIC_SITE_URL=http://127.0.0.1:3000
 ```
 
-Optional social login environment once providers are added in `auth.ts`:
+Optional social login environment:
 
 ```env
 AUTH_GOOGLE_ID=

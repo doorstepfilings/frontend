@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { RoleShell } from "@/components/layout/role-shell";
-import { AssignedServices } from "@/components/expert/assigned-services";
 import { AccountantUserManagement } from "@/components/accountant/assigned-users";
+import { AccountantServiceRequestsView } from "@/components/accountant/service-requests-view";
 import { ProtectedPlaceholder } from "@/components/migration/protected-placeholder";
 
 function sourceFor(parts: string[]) {
@@ -46,9 +46,13 @@ export default async function AccountantCatchAllPage({
 
   if (joined === "service-requests") {
     return (
-        <RoleShell title="Assigned Services" subtitle="Manage and process client requests." theme="default">
-            <AssignedServices />
-        </RoleShell>
+      <RoleShell
+        title="Assigned Services"
+        subtitle="Manage and process client requests."
+        theme="default"
+      >
+        <AccountantServiceRequestsView />
+      </RoleShell>
     );
   }
 

@@ -13,8 +13,10 @@ export type AuthUser = {
   is_mobile_verified?: boolean;
   address?: string;
   city?: string;
+  district?: string;
   state?: string;
   pincode?: number | string;
+  landmark?: string;
   regional_manager?: {
     id?: number;
     name?: string;

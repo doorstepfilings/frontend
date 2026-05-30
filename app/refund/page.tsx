@@ -3,6 +3,7 @@
 import React, { useEffect } from "react";
 import { PolicyLayout } from "@/components/layout/policy-layout";
 import { PublicShell } from "@/components/layout/public-shell";
+import { CONTACT } from "@/lib/constants/site";
 
 const LAST_UPDATED = "04 April 2026";
 
@@ -18,7 +19,7 @@ export default function RefundPolicyPage() {
       content: (
         <div className="space-y-4">
           <p>
-            At Doorstep Filings (“Company”, “We”, “Our”), we strive to deliver
+            At <strong className="font-semibold text-gray-900">Doorstep Filings (“Company”, “We”, “Our”)</strong>, we strive to deliver
             high-quality, timely, and reliable services in business
             registration, compliance, and advisory.
           </p>
@@ -45,7 +46,7 @@ export default function RefundPolicyPage() {
               </div>
               <ul className="space-y-1 text-sm text-emerald-900">
                 <li>• Cancellation is allowed</li>
-                <li>• Eligible for full/partial refund</li>
+                <li>• Eligible for <strong className="font-semibold">full or partial refund</strong> (after applicable deductions)</li>
               </ul>
             </div>
             <div className="rounded-xl border border-rose-100 bg-rose-50 p-4">
@@ -54,30 +55,29 @@ export default function RefundPolicyPage() {
                 <h4>After Service Initiation</h4>
               </div>
               <p className="font-medium text-sm text-rose-900">
-                Cancellation is not allowed once the service has begun.
+                Cancellation is <strong className="font-semibold">not allowed</strong> once the service has begun.
               </p>
             </div>
           </div>
           <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
             <h4 className="mb-3 text-xs font-black uppercase italic tracking-widest text-gray-500 underline">
-              Service is considered “Initiated” when:
+              ⚠️ Service is considered “Initiated” when:
             </h4>
             <ul className="grid grid-cols-1 gap-2 text-sm text-gray-700 sm:grid-cols-2">
               <li className="flex items-center gap-2">
                 <i className="fas fa-file-invoice text-[10px] text-gray-400" />{" "}
-                Documents received & reviewed
+                Documents are received and reviewed
               </li>
               <li className="flex items-center gap-2">
                 <i className="fas fa-comments text-[10px] text-gray-400" />{" "}
-                Advisory has been provided
+                Consultation or advisory has been provided
               </li>
               <li className="flex items-center gap-2">
-                <i className="fas fa-gavel text-[10px] text-gray-400" /> Filed
-                with any authority
+                <i className="fas fa-gavel text-[10px] text-gray-400" /> Application/process is filed with any authority
               </li>
               <li className="flex items-center gap-2">
                 <i className="fas fa-microchip text-[10px] text-gray-400" />{" "}
-                Backend work has started
+                Backend processing or documentation work has started
               </li>
             </ul>
           </div>
@@ -91,22 +91,21 @@ export default function RefundPolicyPage() {
         <div className="space-y-3">
           <p>Refunds may be considered only under the following conditions:</p>
           <ul className="space-y-2">
-            {[
-              "Service has not been initiated",
-              "Proven major error or failure from our side",
-              "Duplicate or excess payment made",
-            ].map((item) => (
-              <li
-                key={item}
-                className="flex items-center gap-3 rounded-xl border border-gray-100 bg-white p-3 text-sm font-medium shadow-sm"
-              >
-                <i className="fas fa-check text-blue-500" />
-                {item}
-              </li>
-            ))}
+            <li className="flex items-center gap-3 rounded-xl border border-gray-100 bg-white p-3 text-sm font-medium shadow-sm">
+              <i className="fas fa-check text-blue-500" />
+              Service has <strong className="font-semibold text-gray-900 ml-1">not been initiated</strong>
+            </li>
+            <li className="flex items-center gap-3 rounded-xl border border-gray-100 bg-white p-3 text-sm font-medium shadow-sm">
+              <i className="fas fa-check text-blue-500" />
+              There is a <strong className="font-semibold text-gray-900 mx-1">proven major error, deficiency, or failure</strong> from our side
+            </li>
+            <li className="flex items-center gap-3 rounded-xl border border-gray-100 bg-white p-3 text-sm font-medium shadow-sm">
+              <i className="fas fa-check text-blue-500" />
+              Duplicate or excess payment has been made
+            </li>
           </ul>
           <p className="mt-2 text-sm italic text-gray-500">
-            👉 All refund requests are subject to internal review and approval.
+            👉 All refund requests are subject to <strong className="font-semibold text-gray-700">internal review and approval</strong>.
           </p>
         </div>
       ),
@@ -120,13 +119,13 @@ export default function RefundPolicyPage() {
             <div className="flex-1 rounded-xl border border-blue-200 bg-blue-50 p-4 text-center">
               <h4 className="text-lg font-black text-blue-900">7 DAYS</h4>
               <p className="mt-1 text-xs font-bold uppercase text-blue-700">
-                Standard Window
+                Refund requests must be raised within 7 days of payment
               </p>
             </div>
             <div className="flex-1 rounded-xl border border-indigo-200 bg-indigo-50 p-4 text-center">
-              <h4 className="text-lg font-black text-indigo-900">15 DAYS</h4>
+              <h4 className="text-lg font-black text-indigo-900">UP TO 15 DAYS</h4>
               <p className="mt-1 text-xs font-bold uppercase text-indigo-700">
-                Exceptional cases
+                In exceptional cases, may be considered at our discretion
               </p>
             </div>
           </div>
@@ -134,7 +133,7 @@ export default function RefundPolicyPage() {
             <i className="fas fa-triangle-exclamation mt-1 text-amber-600" />
             <p className="text-sm font-medium leading-relaxed text-amber-900">
               Once platform access, consultation, or document processing has
-              begun, service is considered consumed.
+              begun, service is considered <strong className="font-bold">consumed</strong>.
             </p>
           </div>
         </div>
@@ -151,22 +150,22 @@ export default function RefundPolicyPage() {
               {
                 label: "Admin Fee",
                 val: "Up to 20%",
-                desc: "Processing & office usage",
+                desc: "Processing & administrative fee",
               },
               {
                 label: "Work Charges",
                 val: "Actuals",
-                desc: "For tasks already completed",
+                desc: "Charges for work already completed",
               },
               {
                 label: "Professional Fee",
                 val: "Fixed",
-                desc: "If consultation was provided",
+                desc: "If consultation/advisory provided",
               },
               {
                 label: "Govt. Fees",
                 val: "Non-Refundable",
-                desc: "Stamp duty, filing, etc.",
+                desc: "Government fees, stamp duty, or filing charges",
               },
             ].map((item) => (
               <div
@@ -189,11 +188,11 @@ export default function RefundPolicyPage() {
           </div>
           <div className="rounded-xl bg-blue-900 p-4 text-center">
             <p className="mb-1 text-xs font-black uppercase italic tracking-widest text-blue-300">
-              Maximum refund possible
+              Maximum refund
             </p>
             <p className="text-2xl font-black text-white">UP TO 80%</p>
             <p className="mt-1 text-[10px] font-medium italic opacity-70 text-blue-200">
-              Of the service fee paid to our company
+              Of the service fee
             </p>
           </div>
         </div>
@@ -205,24 +204,24 @@ export default function RefundPolicyPage() {
       content: (
         <div className="space-y-3">
           <p className="text-sm font-bold italic underline text-gray-900">
-            No refund provided in the following situations:
+            No refund will be provided in the following situations:
           </p>
           <ul className="grid grid-cols-1 gap-2 md:grid-cols-2">
             {[
-              "Government rejections (MCA, GST)",
-              "Delays by authorities or portals",
-              "Incorrect info provided by client",
-              "Failure to provide documents",
-              "Change of mind after initiation",
-              "Service already delivered",
-              "Third-party delays (Banks, Gateways)",
+              "Government rejection of application (e.g., MCA, GST, Trademark, etc.)",
+              "Delays caused by government authorities or portals",
+              "Incorrect, incomplete, or misleading information provided by the client",
+              "Failure to provide required documents or response",
+              "Change of mind after service initiation",
+              "Service already substantially delivered",
+              "Third-party delays (banks, payment gateways, professionals)",
             ].map((item) => (
               <li
                 key={item}
-                className="flex items-center gap-3 rounded-lg border border-rose-100 bg-rose-50 p-2 px-3 text-xs font-semibold text-rose-900"
+                className="flex items-start gap-3 rounded-lg border border-rose-100 bg-rose-50 p-2 px-3 text-xs font-semibold text-rose-900"
               >
-                <i className="fas fa-circle-xmark opacity-50" />
-                {item}
+                <i className="fas fa-circle-xmark mt-0.5 opacity-50" />
+                <span>{item}</span>
               </li>
             ))}
           </ul>
@@ -235,9 +234,9 @@ export default function RefundPolicyPage() {
       content: (
         <div className="space-y-3 text-sm text-gray-700">
           <p>
-            • Service modification requests can be made within 7 days of payment
+            • Service modification requests can be made within <strong className="font-semibold text-gray-900">7 days of payment</strong>
           </p>
-          <p>• Adjustments will be made based on price difference</p>
+          <p>• Adjustments will be made based on <strong className="font-semibold text-gray-900">price difference</strong></p>
           <p>
             • Once service execution begins, change requests may not be accepted
           </p>
@@ -251,7 +250,7 @@ export default function RefundPolicyPage() {
         <div className="space-y-6">
           <div className="rounded-2xl border border-gray-100 bg-gray-50 p-6">
             <h4 className="mb-4 text-xs font-black uppercase italic tracking-tighter text-gray-400">
-              How to request:
+              To request a refund:
             </h4>
             <div className="mb-6 flex flex-col gap-4 sm:flex-row">
               <div className="flex flex-1 items-center gap-3">
@@ -276,17 +275,24 @@ export default function RefundPolicyPage() {
                   <p className="text-[10px] font-black uppercase text-gray-400">
                     Contact
                   </p>
-                  <p className="text-sm font-bold">+91 [Insert Number]</p>
+                  <p className="text-sm font-bold">{CONTACT.phoneAlt}</p>
                 </div>
               </div>
             </div>
+            <p className="mb-2 text-xs font-bold text-gray-500">Include:</p>
             <ul className="space-y-2 text-xs text-gray-600">
-              <li className="flex items-center gap-2 italic">
-                📌 Include Transaction details, Registered Email, and Reason
+              <li className="flex items-center gap-2">
+                <i className="fas fa-file-invoice text-[10px] text-gray-400" /> Transaction details
+              </li>
+              <li className="flex items-center gap-2">
+                <i className="fas fa-at text-[10px] text-gray-400" /> Registered email ID
+              </li>
+              <li className="flex items-center gap-2">
+                <i className="fas fa-question-circle text-[10px] text-gray-400" /> Reason for refund request
               </li>
             </ul>
           </div>
-          <div className="flex items-center gap-4 rounded-xl border border-blue-100 bg-blue-50 p-4">
+          <div className="flex flex-col gap-2 rounded-xl border border-blue-100 bg-blue-50 p-4 sm:flex-row sm:items-center sm:gap-4">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
               <i className="fas fa-hourglass-half animate-pulse text-lg text-blue-600" />
             </div>
@@ -295,7 +301,8 @@ export default function RefundPolicyPage() {
                 Processing Time:
               </h4>
               <p className="text-xs leading-normal text-blue-700">
-                7–21 working days (Varies by bank/payment gateway)
+                Refunds are processed within <strong className="font-bold">7–21 working days</strong><br/>
+                Time may vary depending on <strong className="font-bold">bank/payment gateway</strong>
               </p>
             </div>
           </div>
@@ -308,26 +315,30 @@ export default function RefundPolicyPage() {
       content: (
         <div className="space-y-4">
           <p className="text-sm text-gray-600">
-            Instead of refunds, we may offer Service Credit / Wallet Balance for
-            faster resolution and no deduction loss.
+            Instead of refunds, we may offer:
           </p>
-          <div className="flex flex-wrap gap-2">
-            {["Faster resolution", "No deduction loss", "Flexible for future usage"].map(
-              (benefit) => (
-                <span
-                  key={benefit}
-                  className="rounded-full border border-emerald-200 bg-emerald-100 px-3 py-1 text-[10px] font-black uppercase text-emerald-800"
-                >
-                  {benefit}
-                </span>
-              )
-            )}
+          <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4">
+             <p className="font-bold text-emerald-800 text-sm mb-2 flex items-center gap-2">
+               👉 Service Credit / Wallet Balance
+             </p>
+             <p className="text-xs font-bold text-emerald-900/60 uppercase mb-2">Benefits:</p>
+             <ul className="space-y-2">
+               <li className="flex items-center gap-2 text-sm text-emerald-900">
+                 <i className="fas fa-check text-emerald-500" /> Faster resolution
+               </li>
+               <li className="flex items-center gap-2 text-sm text-emerald-900">
+                 <i className="fas fa-check text-emerald-500" /> No deduction loss
+               </li>
+               <li className="flex items-center gap-2 text-sm text-emerald-900">
+                 <i className="fas fa-check text-emerald-500" /> Flexible usage for future services
+               </li>
+             </ul>
           </div>
         </div>
       ),
     },
     {
-      title: "LEGAL DISCLAIMER",
+      title: "LEGAL DISCLAIMER (STRONG PROTECTION)",
       icon: "fa-scale-balanced",
       content: (
         <div className="pt-2 space-y-6">
@@ -337,61 +348,91 @@ export default function RefundPolicyPage() {
                 <h4 className="mb-2 text-xs font-black uppercase text-blue-900">
                   10. Nature of Business
                 </h4>
-                <p className="text-sm font-semibold italic leading-relaxed text-gray-700">
-                  We are a private service provider. We are NOT a government
-                  authority, department, or agency.
-                </p>
+                <ul className="space-y-1 text-sm font-medium text-gray-700">
+                  <li>• We are a <strong className="font-bold">private service provider</strong></li>
+                  <li>• We are <strong className="font-bold">NOT a government authority, department, or agency</strong></li>
+                </ul>
               </section>
               <section>
                 <h4 className="mb-2 text-xs font-black uppercase text-blue-900">
                   11. No Guarantee Clause
                 </h4>
-                <p className="mb-3 text-xs italic text-gray-600">
-                  We do NOT guarantee: Approval of applications, Specific
-                  timelines, Government processing speed, or Final outcomes.
+                <p className="mb-2 text-xs font-bold text-gray-700">
+                  We do NOT guarantee:
                 </p>
-                <div className="space-y-1 rounded-xl bg-white/80 p-3 text-[10px] font-medium text-gray-500 shadow-sm">
-                  <p>• Subject to Government rules & policies</p>
-                  <p>• Subject to Legal compliance</p>
-                  <p>• Subject to Accuracy of client data</p>
-                </div>
+                <ul className="mb-3 grid grid-cols-1 gap-1 text-xs text-gray-600 sm:grid-cols-2">
+                  <li>• Approval of applications</li>
+                  <li>• Specific timelines</li>
+                  <li>• Government processing speed</li>
+                  <li>• Final outcomes</li>
+                </ul>
+                <p className="mb-2 text-xs font-bold text-gray-700">
+                  All services are subject to:
+                </p>
+                <ul className="grid grid-cols-1 gap-1 text-xs text-gray-600 sm:grid-cols-2">
+                  <li>• Government rules & policies</li>
+                  <li>• Legal compliance</li>
+                  <li>• Accuracy of client-provided data</li>
+                </ul>
               </section>
               <section>
                 <h4 className="mb-2 text-xs font-black uppercase text-blue-900">
                   12. Third-Party Dependency
                 </h4>
-                <p className="text-xs text-gray-600">
-                  Our services depend on Govt. portals, Banks, and External
-                  experts (CAs, CSs). We are not liable for their delays,
-                  failures, or rejections.
+                <p className="mb-2 text-xs font-bold text-gray-700">
+                  Our services depend on:
+                </p>
+                <ul className="mb-3 grid grid-cols-1 gap-1 text-xs text-gray-600">
+                  <li>• Government portals (MCA, GST, Income Tax, etc.)</li>
+                  <li>• Banks & payment gateways</li>
+                  <li>• External professionals (CA, CS, legal experts)</li>
+                </ul>
+                <p className="text-xs font-bold text-rose-700 bg-rose-100 p-2 rounded-lg">
+                  ⚠️ We are <strong className="font-black">not liable</strong> for delays, failures, or rejections caused by these entities.
                 </p>
               </section>
               <section>
                 <h4 className="mb-2 text-xs font-black uppercase text-blue-900">
                   13. Client Responsibility
                 </h4>
-                <p className="text-xs font-black uppercase leading-normal tracking-tight text-gray-600">
-                  Provide accurate info, submit docs on time, respond promptly,
-                  comply with laws.
+                <p className="mb-2 text-xs font-bold text-gray-700">
+                  Users agree to:
                 </p>
+                <ul className="grid grid-cols-1 gap-1 text-xs text-gray-600 sm:grid-cols-2">
+                  <li>• Provide accurate and complete information</li>
+                  <li>• Submit documents on time</li>
+                  <li>• Respond promptly to queries</li>
+                  <li>• Comply with applicable laws and regulations</li>
+                </ul>
               </section>
               <section>
                 <h4 className="mb-2 text-xs font-black uppercase text-blue-900">
                   14. Limitation of Liability
                 </h4>
-                <p className="text-xs italic text-gray-600">
-                  No liability for indirect damages, client errors, delays beyond
-                  control, or govt. penalties.
+                <p className="mb-2 text-xs font-bold text-gray-700">
+                  Doorstep Filings shall <strong className="font-black">not be liable</strong> for:
                 </p>
+                <ul className="grid grid-cols-1 gap-1 text-xs text-gray-600">
+                  <li>• Any indirect, incidental, or consequential damages</li>
+                  <li>• Losses due to incorrect or incomplete client information</li>
+                  <li>• Delays beyond our control</li>
+                  <li>• Government penalties, fines, or legal consequences</li>
+                </ul>
               </section>
               <section>
                 <h4 className="mb-2 text-xs font-black uppercase text-blue-900">
                   15. Force Majeure
                 </h4>
-                <p className="text-xs font-bold uppercase underline decoration-blue-500 text-gray-600">
-                  Not responsible for delays due to Natural disasters, Pandemics,
-                  Govt. actions, or technical failures.
+                <p className="mb-2 text-xs font-bold text-gray-700">
+                  We shall not be held responsible for delays or failure due to:
                 </p>
+                <ul className="grid grid-cols-2 gap-1 text-xs text-gray-600 sm:grid-cols-3">
+                  <li>• Natural disasters</li>
+                  <li>• Pandemics</li>
+                  <li>• Government actions</li>
+                  <li>• Technical failures</li>
+                  <li className="col-span-2 sm:col-span-1">• War, strikes, or unforeseen events</li>
+                </ul>
               </section>
             </div>
           </div>
@@ -402,10 +443,15 @@ export default function RefundPolicyPage() {
       title: "16. Policy Updates",
       icon: "fa-rotate",
       content: (
-        <div className="rounded-xl bg-gray-900 p-4 text-white shadow-xl">
-          <p className="text-xs font-medium italic leading-relaxed">
-            We reserve the right to update this policy at any time. Continued use
-            of our services implies acceptance of the revised policy.
+        <div className="rounded-xl bg-gray-900 p-4 text-white shadow-xl space-y-2">
+          <p className="text-sm font-medium">
+            We reserve the right to update this policy at any time.
+          </p>
+          <p className="text-sm text-gray-300">
+            Changes will be reflected with an updated date.
+          </p>
+          <p className="text-sm font-medium italic text-gray-400">
+            Continued use of our services implies acceptance of the revised policy.
           </p>
         </div>
       ),

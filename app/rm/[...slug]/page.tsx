@@ -36,8 +36,8 @@ export default async function RegionalManagerCatchAllPage({
 
   return (
     <ProtectedPlaceholder
-      title={`Regional Manager: ${humanize(slug)}`}
-      subtitle="Regional manager route scaffold in the Next.js workspace."
+      title={`Relationship Manager : ${humanize(slug)}`}
+      subtitle="Relationship Manager  route scaffold in the Next.js workspace."
       sourcePath={`resources/js/pages/RM (${key})`}
       nextSteps={[
         "Port assigned-user and service-request data fetching.",

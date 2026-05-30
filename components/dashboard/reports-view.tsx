@@ -4,8 +4,8 @@ import { useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
 import { fetchMyServices } from "@/lib/features/services/services-slice";
 import Link from "next/link";
-import { format } from "date-fns";
 import { buildCollectionKey } from "@/lib/utils/list-keys";
+import { formatDateWithPattern } from "@/lib/utils/formatters";
 
 export function ReportsView() {
     const dispatch = useAppDispatch();
@@ -70,7 +70,7 @@ export function ReportsView() {
                                     </div>
                                     <div className="text-right">
                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Date</p>
-                                        <p className="text-sm font-black text-slate-900">{format(new Date(r.date), 'MMM d, yyyy')}</p>
+                                        <p className="text-sm font-black text-slate-900">{formatDateWithPattern(r.date, "MMM d, yyyy")}</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center justify-between">

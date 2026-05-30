@@ -8,6 +8,7 @@ import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
 import { openBlobInNewTabOrDownload } from "@/lib/utils/document-helpers";
 import { formatDateWithPattern } from "@/lib/utils/formatters";
 import { buildCollectionKey } from "@/lib/utils/list-keys";
+import { TableViewSkeleton } from "@/components/ui/skeletons/table-view-skeleton";
 
 export function DashboardOrdersView() {
   const dispatch = useAppDispatch();
@@ -88,11 +89,7 @@ export function DashboardOrdersView() {
   };
 
   if (ordersLoading && myOrders.length === 0) {
-    return (
-      <div className="flex min-h-[400px] items-center justify-center">
-        <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-900 border-t-transparent" />
-      </div>
-    );
+    return <TableViewSkeleton />;
   }
 
   return (

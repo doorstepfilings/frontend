@@ -20,6 +20,8 @@ function sourceFor(parts: string[]) {
     "users/[id]/profile": "resources/js/pages/Admin/UserDetails.jsx",
     "regional-managers": "resources/js/pages/Admin/RegionalManagers.jsx",
     "regional-managers/[id]": "resources/js/pages/Admin/RegionalManagerDetails.jsx",
+    "relationship-managers": "resources/js/pages/Admin/RegionalManagers.jsx",
+    "relationship-managers/[id]": "resources/js/pages/Admin/RegionalManagerDetails.jsx",
     accountants: "resources/js/pages/Admin/Accountants.jsx",
     "accountants/[id]": "resources/js/pages/Admin/AccountantDetails.jsx",
     categories: "resources/js/pages/Admin/Categories.jsx",
@@ -68,7 +70,7 @@ export default async function AdminCatchAllPage({
     return <UserManagementView initialType="users" />;
   }
 
-  if (key === "regional-managers") {
+  if (key === "regional-managers" || key === "relationship-managers") {
     return <UserManagementView initialType="rms" />;
   }
 

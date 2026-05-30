@@ -25,19 +25,29 @@ export function MyServicesList() {
     const [loading, setLoading] = useState(true);
     const [deletingId, setDeletingId] = useState<number | null>(null);
 
-    const fetchMyServices = async () => {
-        try {
-            const response = await apiClient.get('/service/my-services');
-            setServices(response.data?.data || []);
-        } catch (error) {
-            console.error('Failed to fetch your services', error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
     useEffect(() => {
-        fetchMyServices();
+        let cancelled = false;
+
+        const loadMyServices = async () => {
+            try {
+                const response = await apiClient.get('/service/my-services');
+                if (!cancelled) {
+                    setServices(response.data?.data || []);
+                }
+            } catch (error) {
+                console.error('Failed to fetch your services', error);
+            } finally {
+                if (!cancelled) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        void loadMyServices();
+
+        return () => {
+            cancelled = true;
+        };
     }, []);
 
     const handleDelete = async (id: number) => {

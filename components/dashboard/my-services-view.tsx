@@ -4,8 +4,9 @@ import { useEffect, useState, useMemo } from "react";
 import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
 import { fetchMyServices } from "@/lib/features/services/services-slice";
 import { StatusIndicator } from "@/components/ui/status-indicator";
+import { resolveStatusLabel } from "@/lib/utils/status-helpers";
 import Link from "next/link";
-import { format } from "date-fns";
+import { formatDateWithPattern } from "@/lib/utils/formatters";
 
 export function MyServicesView() {
     const dispatch = useAppDispatch();
@@ -101,10 +102,10 @@ export function MyServicesView() {
                                         </div>
                                     </td>
                                     <td className="px-10 py-8 text-center">
-                                        <StatusIndicator status={s.status} />
+                                        <StatusIndicator status={s.status} paymentStatus={s.payment_status} label={resolveStatusLabel(s)} />
                                     </td>
                                     <td className="px-10 py-8">
-                                        <span className="text-[11px] font-bold text-slate-500">{format(new Date(s.created_at), 'MMMM d, yyyy')}</span>
+                                        <span className="text-[11px] font-bold text-slate-500">{formatDateWithPattern(s.created_at, "MMMM d, yyyy")}</span>
                                     </td>
                                     <td className="px-10 py-8 text-right">
                                         <Link 

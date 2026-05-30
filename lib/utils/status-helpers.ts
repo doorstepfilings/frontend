@@ -118,8 +118,16 @@ const DEFAULT_STATUS = {
   progress: 10,
 };
 
-function getStatusConfig(status: string) {
-  const normalizedStatus = String(status || "").toLowerCase();
+function getStatusConfig(status: string, paymentStatus?: string | null) {
+  let normalizedStatus = String(status || "").toLowerCase();
+
+  if (
+    (normalizedStatus === "applied" || normalizedStatus === "payment_pending" || normalizedStatus === "in_cart") &&
+    String(paymentStatus || "").toLowerCase() === "paid"
+  ) {
+    normalizedStatus = "paid";
+  }
+
   const config = STATUS_CONFIG[normalizedStatus];
 
   if (config) {
@@ -134,8 +142,18 @@ function getStatusConfig(status: string) {
   };
 }
 
-export const getStatusLabel = (status: string) => getStatusConfig(status).label;
-export const getStatusColorClass = (status: string) => getStatusConfig(status).color;
+export const getStatusLabel = (status: string, paymentStatus?: string | null) => getStatusConfig(status, paymentStatus).label;
+export const getStatusColorClass = (status: string, paymentStatus?: string | null) => getStatusConfig(status, paymentStatus).color;
 export const getStatusColor = getStatusColorClass;
-export const getStatusIcon = (status: string) => getStatusConfig(status).icon;
-export const getProgressPercentage = (status: string) => getStatusConfig(status).progress;
+export const getStatusIcon = (status: string, paymentStatus?: string | null) => getStatusConfig(status, paymentStatus).icon;
+export const getProgressPercentage = (status: string, paymentStatus?: string | null) => getStatusConfig(status, paymentStatus).progress;
+
+export function resolveStatusLabel(service: any) {
+  if (service?.current_workflow?.name) {
+    return service.current_workflow.name;
+  }
+  if (service?.progress?.current_stage?.name) {
+    return service.progress.current_stage.name;
+  }
+  return getStatusLabel(service?.status, service?.payment_status);
+}

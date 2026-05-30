@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { AuthGuard } from "@/components/auth/auth-guard";
+import { useConfirm } from "@/hooks/use-confirm";
 import { adminApi } from "@/lib/api/admin-api";
 import {
   asArray,
@@ -50,6 +51,7 @@ function getStatusBadgeClass(status: string | null | undefined) {
 export function AccountantDetailView() {
   const params = useParams();
   const router = useRouter();
+  const { confirm, ConfirmDialog } = useConfirm();
   const id = String(params?.id ?? "");
   const [accountant, setAccountant] = useState<AdminRecord | null>(null);
   const [loading, setLoading] = useState(true);
@@ -99,7 +101,12 @@ export function AccountantDetailView() {
       return;
     }
 
-    const confirmed = window.confirm("Delete this accountant permanently?");
+    const confirmed = await confirm({
+      title: "Delete accountant?",
+      message: "This permanently removes the accountant from the directory.",
+      confirmLabel: "Delete",
+      variant: "danger",
+    });
     if (!confirmed) {
       return;
     }
@@ -234,7 +241,7 @@ export function AccountantDetailView() {
                         Contact
                       </th>
                       <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">
-                        Regional Manager
+                        Relationship Manager
                       </th>
                       <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">
                         Location
@@ -387,6 +394,7 @@ export function AccountantDetailView() {
           </DetailSection>
         </div>
       </AdminLayout>
+      <ConfirmDialog />
     </AuthGuard>
   );
 }

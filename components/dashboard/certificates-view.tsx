@@ -4,8 +4,8 @@ import { useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
 import { fetchMyServices } from "@/lib/features/services/services-slice";
 import Link from "next/link";
-import { format } from "date-fns";
 import { buildCollectionKey } from "@/lib/utils/list-keys";
+import { formatDateWithPattern } from "@/lib/utils/formatters";
 
 export function CertificatesView() {
     const dispatch = useAppDispatch();
@@ -74,7 +74,7 @@ export function CertificatesView() {
                                 <div className="flex justify-between items-center mb-8">
                                     <div>
                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Issued On</p>
-                                        <p className="text-sm font-black text-slate-900">{format(new Date(c.date), 'MMM d, yyyy')}</p>
+                                        <p className="text-sm font-black text-slate-900">{formatDateWithPattern(c.date, "MMM d, yyyy")}</p>
                                     </div>
                                     <div className="text-right">
                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Status</p>

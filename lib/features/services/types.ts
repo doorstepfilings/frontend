@@ -26,6 +26,8 @@ export type ServiceCategory = {
 export type ServicesState = {
   items: ServiceCategory[];
   serviceDetails: ServiceItem | null;
+  serviceDetailsLoading: boolean;
+  serviceDetailsError: string | null;
   cart: any[];
   myServices: any[];
   myOrders: any[];

@@ -9,6 +9,7 @@ import { AuthGuard } from "@/components/auth/auth-guard";
 import { format } from "date-fns";
 import { toast } from "react-hot-toast";
 import { buildCollectionKey } from "@/lib/utils/list-keys";
+import { TableViewSkeleton } from "@/components/ui/skeletons/table-view-skeleton";
 
 const STATUS_CONFIG: any = {
     draft: { label: 'Draft', color: 'bg-slate-100 text-slate-600', icon: 'fa-file-edit' },
@@ -89,6 +90,16 @@ export function ApplicationManagementView() {
             setAssigningId(null);
         }
     };
+
+    if (loading && applications.length === 0) {
+        return (
+            <AuthGuard allowedRoles={["super_admin"]}>
+                <AdminLayout>
+                    <TableViewSkeleton />
+                </AdminLayout>
+            </AuthGuard>
+        );
+    }
 
     return (
         <AuthGuard allowedRoles={["super_admin"]}>

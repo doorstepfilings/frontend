@@ -8,6 +8,7 @@ import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
 import { formatDateWithPattern } from "@/lib/utils/formatters";
 import { buildCollectionKey } from "@/lib/utils/list-keys";
 import { getStatusLabel } from "@/lib/utils/status-helpers";
+import { DetailViewSkeleton } from "@/components/ui/skeletons/detail-view-skeleton";
 
 export function UserDashboardView() {
   const dispatch = useAppDispatch();
@@ -55,14 +56,7 @@ export function UserDashboardView() {
   };
 
   if (loading) {
-    return (
-      <div className="flex h-96 items-center justify-center">
-        <div className="text-center">
-          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-blue-900 border-t-transparent" />
-          <p className="text-gray-600">Loading dashboard...</p>
-        </div>
-      </div>
-    );
+    return <DetailViewSkeleton />;
   }
 
   const statCards = [
@@ -220,20 +214,20 @@ export function UserDashboardView() {
             </div>
           </div>
 
-          <div className="rounded-xl bg-blue-900 p-6 text-center text-white shadow-lg shadow-blue-900/10">
-            <h3 className="mb-2 text-lg font-bold">Need Assistance?</h3>
-            <p className="mb-4 text-xs text-blue-100">
-              Get professional support for your business needs.
-            </p>
-            <a
-              href="https://wa.me/919898196396"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-white px-6 py-2 text-sm font-bold text-blue-900 transition-colors hover:bg-blue-50"
-            >
-              <i className="fab fa-whatsapp" /> Chat with Expert
-            </a>
-          </div>
+            {/* <div className="rounded-xl bg-blue-900 p-6 text-center text-white shadow-lg shadow-blue-900/10">
+              <h3 className="mb-2 text-lg font-bold">Need Assistance?</h3>
+              <p className="mb-4 text-xs text-blue-100">
+                Get professional support for your business needs.
+              </p>
+              <a
+                href="https://wa.me/919898196396"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-white px-6 py-2 text-sm font-bold text-blue-900 transition-colors hover:bg-blue-50"
+              >
+                <i className="fab fa-whatsapp" /> Chat with Expert
+              </a>
+            </div> */}
         </div>
       </div>
     </div>

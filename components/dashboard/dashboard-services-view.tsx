@@ -27,16 +27,21 @@ import {
   getStatusColorClass,
   getStatusIcon,
   getStatusLabel,
+  resolveStatusLabel,
 } from "@/lib/utils/status-helpers";
 import {
   loadRazorpay,
   type RazorpayCheckoutOptions,
   type RazorpayPaymentResponse,
 } from "@/lib/utils/razorpay";
+import { DetailViewSkeleton } from "@/components/ui/skeletons/detail-view-skeleton";
 
 type DashboardService = {
   id: number;
   status: string;
+  payment_status?: string | null;
+  journey?: any;
+  progress?: any;
   amount?: number | string | null;
   application_unique_id?: string | null;
   certificate_url?: string | null;
@@ -108,6 +113,9 @@ const PAYABLE_STATUSES = new Set([
 ]);
 
 function canPayForService(service: DashboardService | null | undefined) {
+  if (String(service?.payment_status || "").toLowerCase() === "paid") {
+    return false;
+  }
   return PAYABLE_STATUSES.has(String(service?.status || "").toLowerCase());
 }
 
@@ -157,6 +165,18 @@ export function DashboardServicesView() {
       void dispatch(fetchMyOrders());
     }
   }, [dispatch]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      void dispatch(fetchMyServices());
+    }, 8000);
+    return () => clearInterval(interval);
+  }, [dispatch]);
+
+  const handleSelectService = (id: number) => {
+    setSelectedServiceId(id);
+    void dispatch(fetchMyServices());
+  };
 
   const selectedService = useMemo(
     () =>
@@ -354,14 +374,7 @@ export function DashboardServicesView() {
   };
 
   if (loading && (myServices as DashboardService[]).length === 0) {
-    return (
-      <div className="flex min-h-[420px] items-center justify-center">
-        <div className="text-center">
-          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-blue-900 border-t-transparent" />
-          <p className="text-gray-600">Loading your services...</p>
-        </div>
-      </div>
-    );
+    return <DetailViewSkeleton />;
   }
 
   if (error && (myServices as DashboardService[]).length === 0) {
@@ -476,7 +489,7 @@ export function DashboardServicesView() {
                     {filteredServices.map((service) => (
                       <div
                         key={service.id}
-                        onClick={() => setSelectedServiceId(service.id)}
+                        onClick={() => handleSelectService(service.id)}
                         className={`group flex cursor-pointer items-center justify-between p-6 transition-all hover:bg-gray-50 ${
                           selectedService?.id === service.id ? "bg-blue-50/50" : ""
                         }`}
@@ -485,9 +498,10 @@ export function DashboardServicesView() {
                           <div
                             className={`flex h-12 w-12 items-center justify-center rounded-xl border ${getStatusColorClass(
                               service.status,
+                              service.payment_status,
                             )}`}
                           >
-                            <i className={`fas ${getStatusIcon(service.status)} text-lg`} />
+                            <i className={`fas ${getStatusIcon(service.status, service.payment_status)} text-lg`} />
                           </div>
                           <div>
                             <h4 className="text-sm font-bold text-gray-900">
@@ -509,9 +523,10 @@ export function DashboardServicesView() {
                           <span
                             className={`rounded-lg border px-3 py-1 text-[9px] font-bold uppercase tracking-widest ${getStatusColorClass(
                               service.status,
+                              service.payment_status,
                             )}`}
                           >
-                            {getStatusLabel(service.status)}
+                            {resolveStatusLabel(service)}
                           </span>
                           {canPayForService(service) ? (
                             <button
@@ -557,22 +572,50 @@ export function DashboardServicesView() {
                   <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-gray-400">
                     Status
                   </p>
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className="text-sm font-bold text-gray-800">
-                      {getStatusLabel(selectedService.status)}
-                    </span>
-                    <span className="text-xs font-bold text-blue-900">
-                      {getProgressPercentage(selectedService.status)}%
-                    </span>
-                  </div>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-gray-200">
-                    <div
-                      className="h-full rounded-full bg-blue-900 transition-all duration-500"
-                      style={{
-                        width: `${getProgressPercentage(selectedService.status)}%`,
-                      }}
-                    />
-                  </div>
+                  {(() => {
+                    const progressPercent = (() => {
+                      const stages = selectedService?.progress?.stages;
+                      if (Array.isArray(stages) && stages.length > 0) {
+                        if (["approved", "completed"].includes(String(selectedService?.status || "").toLowerCase())) {
+                          return 100;
+                        }
+                        const currentIdx = stages.findIndex((s: any) => s.is_current);
+                        if (currentIdx >= 0) {
+                          if (stages.length <= 1) {
+                            return 100;
+                          }
+                          return Math.round((currentIdx / (stages.length - 1)) * 100);
+                        }
+                      }
+                      if (selectedService?.journey?.percent !== undefined && selectedService?.journey?.percent !== null) {
+                        return Number(selectedService.journey.percent);
+                      }
+                      if (selectedService?.progress?.percent !== undefined && selectedService?.progress?.percent !== null) {
+                        return Number(selectedService.progress.percent);
+                      }
+                      return getProgressPercentage(selectedService.status);
+                    })();
+                    return (
+                      <>
+                        <div className="mb-2 flex items-center justify-between">
+                          <span className="text-sm font-bold text-gray-800">
+                            {resolveStatusLabel(selectedService)}
+                          </span>
+                          <span className="text-xs font-bold text-blue-900">
+                            {progressPercent}%
+                          </span>
+                        </div>
+                        <div className="h-1.5 overflow-hidden rounded-full bg-gray-200">
+                          <div
+                            className="h-full rounded-full bg-blue-900 transition-all duration-500"
+                            style={{
+                              width: `${progressPercent}%`,
+                            }}
+                          />
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
 
                 {selectedService.accountant ? (

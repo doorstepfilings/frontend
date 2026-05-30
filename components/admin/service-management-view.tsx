@@ -10,6 +10,7 @@ import { AuthGuard } from "@/components/auth/auth-guard";
 import { toast } from "react-hot-toast";
 import { useConfirm } from "@/hooks/use-confirm";
 import { apiClient } from "@/lib/api/client";
+import { TableViewSkeleton } from "@/components/ui/skeletons/table-view-skeleton";
 
 function parseServicePrice(value: unknown): number | null {
     if (value === null || value === undefined) {
@@ -126,12 +127,7 @@ export function ServiceManagementView() {
     if (loading) {
         return (
             <AdminLayout>
-                <div className="flex items-center justify-center h-96">
-                    <div className="flex flex-col items-center gap-6">
-                        <div className="h-16 w-16 animate-spin rounded-full border-4 border-blue-600 border-t-transparent shadow-xl"></div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 animate-pulse">Synchronizing Catalog...</p>
-                    </div>
-                </div>
+                <TableViewSkeleton />
             </AdminLayout>
         );
     }

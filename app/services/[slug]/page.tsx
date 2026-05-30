@@ -13,7 +13,7 @@ import { Modal } from "@/components/ui/modal";
 import { DocumentUpload } from "@/components/ui/document-upload";
 import { LoginModal } from "@/components/auth/login-modal";
 import { PublicShell } from "@/components/layout/public-shell";
-import { usePincodeLookup } from "@/hooks/use-pincode-lookup";
+import { usePincodeLookup } from "@/lib/hooks/use-pincode-lookup";
 import { useStoredUser } from "@/lib/auth/hooks";
 import { getStoredToken, setStoredUser } from "@/lib/auth/storage";
 import type { AuthUser } from "@/lib/auth/types";
@@ -119,8 +119,8 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
 
   const {
     serviceDetails,
-    loading,
-    error,
+    serviceDetailsLoading,
+    serviceDetailsError,
     cartError,
     applyLoading,
     applyError,
@@ -428,7 +428,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
       ? serviceDetails.pricing_plans.find((plan: any) => plan.name === selectedPricingPlan) ?? null
       : null;
 
-  if (loading) {
+  if (serviceDetailsLoading) {
     return (
       <PublicShell>
         <div className="flex min-h-[60vh] items-center justify-center bg-gray-50">
@@ -441,7 +441,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
     );
   }
 
-  if (error && !serviceDetails) {
+  if (serviceDetailsError && !serviceDetails) {
     return (
       <PublicShell>
         <div className="flex min-h-[60vh] items-center justify-center bg-gray-50">
@@ -450,7 +450,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
               <i className="fas fa-exclamation-triangle text-3xl text-red-500"></i>
             </div>
             <h2 className="mb-2 text-2xl font-bold text-gray-800">Service Not Found</h2>
-            <p className="mb-6 text-gray-600">{error}</p>
+            <p className="mb-6 text-gray-600">{serviceDetailsError}</p>
             <Link href="/services">
               <Button className="bg-blue-900 hover:bg-blue-800">
                 <i className="fas fa-arrow-left mr-2"></i>
@@ -469,188 +469,188 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
     <>
       <PublicShell>
         <div className="min-h-screen bg-gray-50 pb-20">
-        {/* Hero Section */}
-        <div className="relative overflow-hidden bg-blue-900 py-20 text-white">
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute right-0 top-0 h-64 w-64 translate-x-1/2 -translate-y-1/2 transform rounded-full bg-amber-400 blur-3xl"></div>
-            <div className="absolute bottom-0 left-0 h-48 w-48 -translate-x-1/2 translate-y-1/2 transform rounded-full bg-blue-400 blur-3xl"></div>
+          {/* Hero Section */}
+          <div className="relative overflow-hidden bg-blue-900 py-20 text-white">
+            <div className="absolute inset-0 opacity-10">
+              <div className="absolute right-0 top-0 h-64 w-64 translate-x-1/2 -translate-y-1/2 transform rounded-full bg-amber-400 blur-3xl"></div>
+              <div className="absolute bottom-0 left-0 h-48 w-48 -translate-x-1/2 translate-y-1/2 transform rounded-full bg-blue-400 blur-3xl"></div>
+            </div>
+            <div className="container relative z-10 mx-auto px-4 text-center">
+              <h1 className="mb-4 text-4xl font-bold md:text-5xl">{service?.name}</h1>
+              <p className="mx-auto max-w-2xl text-xl text-blue-200">
+                Professional handling of your {service?.name?.toLowerCase()} needs with precision and care.
+              </p>
+            </div>
           </div>
-          <div className="container relative z-10 mx-auto px-4 text-center">
-            <h1 className="mb-4 text-4xl font-bold md:text-5xl">{service?.name}</h1>
-            <p className="mx-auto max-w-2xl text-xl text-blue-200">
-              Professional handling of your {service?.name?.toLowerCase()} needs with precision and care.
-            </p>
-          </div>
-        </div>
 
-        {/* Breadcrumb */}
-        <div className="border-b bg-white">
-          <div className="container mx-auto px-4 py-3">
-            <p className="text-sm text-gray-500">
-              <Link href="/" className="hover:text-amber-500">Home</Link> /
-              <Link href="/services" className="hover:text-amber-500"> Services</Link> /
-              <span className="text-gray-800"> {service?.name}</span>
-            </p>
+          {/* Breadcrumb */}
+          <div className="border-b bg-white">
+            <div className="container mx-auto px-4 py-3">
+              <p className="text-sm text-gray-500">
+                <Link href="/" className="hover:text-amber-500">Home</Link> /
+                <Link href="/services" className="hover:text-amber-500"> Services</Link> /
+                <span className="text-gray-800"> {service?.name}</span>
+              </p>
+            </div>
           </div>
-        </div>
 
-        <div className="container mx-auto px-4 py-12">
-          <div className="flex flex-col gap-8 lg:flex-row">
-            {/* Main Content */}
-            <div className="lg:w-2/3">
-              <div className="mb-8 rounded-2xl bg-white p-8 shadow-sm">
-                <h2 className="mb-6 flex items-center gap-3 text-2xl font-bold text-gray-800">
-                  <i className="fas fa-align-left text-blue-900"></i>
-                  Service Overview
-                </h2>
-                {service?.long_description ? (
-                  <div
-                    className="quill-content prose prose-blue max-w-none leading-relaxed text-gray-600"
-                    dangerouslySetInnerHTML={{ __html: service.long_description }}
-                  />
-                ) : (
-                  <p className="leading-relaxed text-gray-600">
-                    {service?.short_description || "Professional handling of your requirements with precision and care."}
-                  </p>
+          <div className="container mx-auto px-4 py-12">
+            <div className="flex flex-col gap-8 lg:flex-row">
+              {/* Main Content */}
+              <div className="lg:w-2/3">
+                <div className="mb-8 rounded-2xl bg-white p-8 shadow-sm">
+                  <h2 className="mb-6 flex items-center gap-3 text-2xl font-bold text-gray-800">
+                    <i className="fas fa-align-left text-blue-900"></i>
+                    Service Overview
+                  </h2>
+                  {service?.long_description ? (
+                    <div
+                      className="quill-content prose prose-blue max-w-none leading-relaxed text-gray-600"
+                      dangerouslySetInnerHTML={{ __html: service.long_description }}
+                    />
+                  ) : (
+                    <p className="leading-relaxed text-gray-600">
+                      {service?.short_description || "Professional handling of your requirements with precision and care."}
+                    </p>
+                  )}
+                </div>
+
+                {/* Pricing Plans */}
+                {service?.pricing_plans && service.pricing_plans.length > 0 && (
+                  <div className="mb-8">
+                    <h2 className="mb-6 flex items-center gap-3 text-2xl font-bold text-gray-800">
+                      <i className="fas fa-tags text-blue-900"></i>
+                      Pricing Plans
+                    </h2>
+                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                      {service.pricing_plans.map((plan: any, index: number) => (
+                        <div key={index} className="flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition-all hover:shadow-md">
+                          <div className="bg-blue-900 p-6 text-center text-white">
+                            <h4 className="mb-1 text-lg font-bold">{plan.name}</h4>
+                            <div className="text-2xl font-black text-amber-400">₹{formatPrice(plan.price)}</div>
+                          </div>
+                          <div className="flex flex-1 flex-col p-6">
+                            <ul className="mb-6 flex-1 space-y-3">
+                              {(plan.features || []).map((feature: string, fIndex: number) => (
+                                <li key={fIndex} className="flex items-start gap-2 text-sm text-gray-600">
+                                  <i className="fas fa-check mt-1 text-green-500"></i>
+                                  <span>{feature}</span>
+                                </li>
+                              ))}
+                            </ul>
+                            <Button
+                              onClick={() => handleApplyNow(plan.name)}
+                              variant="outline"
+                              className="w-full rounded-lg border-blue-100 bg-blue-50 font-bold text-blue-900 hover:bg-blue-900 hover:text-white"
+                            >
+                              Select Plan
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Documents */}
+                {(service?.required_documents_list?.length || 0) > 0 && (
+                  <div className="mb-8 rounded-2xl bg-white p-8 shadow-sm">
+                    <h2 className="mb-6 flex items-center gap-3 text-2xl font-bold text-gray-800">
+                      <i className="fas fa-file-alt text-amber-500"></i>
+                      Required Documents
+                    </h2>
+                    <p className="mb-6 text-gray-600">
+                      Please prepare the following documents. Items marked with <span className="text-red-500">*</span> are mandatory.
+                    </p>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {service?.required_documents_list?.map((doc: any, index: number) => (
+                        <div key={index} className={`rounded-xl border p-4 transition-all ${doc.is_required ? "border-amber-100 bg-amber-50/30" : "border-gray-100 bg-gray-50/50"}`}>
+                          <div className="flex items-start gap-3">
+                            <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${doc.is_required ? "bg-amber-100 text-amber-600" : "bg-gray-200 text-gray-600"}`}>
+                              <i className="fas fa-file"></i>
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="text-sm font-bold text-gray-800">
+                                {doc.name} {doc.is_required && <span className="text-red-500">*</span>}
+                              </h4>
+                              {doc.description && <p className="mt-1 text-xs text-gray-500">{doc.description}</p>}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
 
-              {/* Pricing Plans */}
-              {service?.pricing_plans && service.pricing_plans.length > 0 && (
-                <div className="mb-8">
-                  <h2 className="mb-6 flex items-center gap-3 text-2xl font-bold text-gray-800">
-                    <i className="fas fa-tags text-blue-900"></i>
-                    Pricing Plans
-                  </h2>
-                  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                    {service.pricing_plans.map((plan: any, index: number) => (
-                      <div key={index} className="flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition-all hover:shadow-md">
-                        <div className="bg-blue-900 p-6 text-center text-white">
-                          <h4 className="mb-1 text-lg font-bold">{plan.name}</h4>
-                          <div className="text-2xl font-black text-amber-400">₹{formatPrice(plan.price)}</div>
-                        </div>
-                        <div className="flex flex-1 flex-col p-6">
-                          <ul className="mb-6 flex-1 space-y-3">
-                            {(plan.features || []).map((feature: string, fIndex: number) => (
-                              <li key={fIndex} className="flex items-start gap-2 text-sm text-gray-600">
-                                <i className="fas fa-check mt-1 text-green-500"></i>
-                                <span>{feature}</span>
-                              </li>
-                            ))}
-                          </ul>
-                          <Button
-                            onClick={() => handleApplyNow(plan.name)}
-                            variant="outline"
-                            className="w-full rounded-lg border-blue-100 bg-blue-50 font-bold text-blue-900 hover:bg-blue-900 hover:text-white"
-                          >
-                            Select Plan
-                          </Button>
-                        </div>
+              {/* Sidebar */}
+              <div className="lg:w-1/3">
+                <div className="sticky top-24 space-y-6">
+                  <div className="rounded-2xl border-t-4 border-amber-500 bg-white p-6 shadow-lg">
+                    {service?.price && (
+                      <div className="mb-4 text-center">
+                        <p className="text-sm text-gray-500">Starting from</p>
+                        <p className="text-4xl font-bold text-blue-900">₹{formatPrice(service.price)}</p>
+                        <p className="text-[10px] text-gray-400 uppercase tracking-widest">+ GST | Govt. fee extra</p>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+                    )}
+                    <h3 className="mb-2 text-xl font-bold text-gray-900">Apply for Service</h3>
+                    <p className="mb-6 text-sm text-gray-600">
+                      Get started with your {service?.name?.toLowerCase()} application today.
+                    </p>
 
-              {/* Documents */}
-              {(service?.required_documents_list?.length || 0) > 0 && (
-                <div className="mb-8 rounded-2xl bg-white p-8 shadow-sm">
-                  <h2 className="mb-6 flex items-center gap-3 text-2xl font-bold text-gray-800">
-                    <i className="fas fa-file-alt text-amber-500"></i>
-                    Required Documents
-                  </h2>
-                  <p className="mb-6 text-gray-600">
-                    Please prepare the following documents. Items marked with <span className="text-red-500">*</span> are mandatory.
-                  </p>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    {service?.required_documents_list?.map((doc: any, index: number) => (
-                      <div key={index} className={`rounded-xl border p-4 transition-all ${doc.is_required ? "border-amber-100 bg-amber-50/30" : "border-gray-100 bg-gray-50/50"}`}>
-                        <div className="flex items-start gap-3">
-                          <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${doc.is_required ? "bg-amber-100 text-amber-600" : "bg-gray-200 text-gray-600"}`}>
-                            <i className="fas fa-file"></i>
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="text-sm font-bold text-gray-800">
-                              {doc.name} {doc.is_required && <span className="text-red-500">*</span>}
-                            </h4>
-                            {doc.description && <p className="mt-1 text-xs text-gray-500">{doc.description}</p>}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Sidebar */}
-            <div className="lg:w-1/3">
-              <div className="sticky top-24 space-y-6">
-                <div className="rounded-2xl border-t-4 border-amber-500 bg-white p-6 shadow-lg">
-                  {service?.price && (
-                    <div className="mb-4 text-center">
-                      <p className="text-sm text-gray-500">Starting from</p>
-                      <p className="text-4xl font-bold text-blue-900">₹{formatPrice(service.price)}</p>
-                      <p className="text-[10px] text-gray-400 uppercase tracking-widest">+ GST | Govt. fee extra</p>
-                    </div>
-                  )}
-                  <h3 className="mb-2 text-xl font-bold text-gray-900">Apply for Service</h3>
-                  <p className="mb-6 text-sm text-gray-600">
-                    Get started with your {service?.name?.toLowerCase()} application today.
-                  </p>
-
-                  <div className="space-y-3">
-                    <Button
-                      onClick={() => handleApplyNow()}
-                      className="w-full rounded-xl bg-amber-500 py-6 text-base font-bold text-white shadow-lg shadow-amber-500/20 hover:bg-amber-600"
-                    >
-                      <i className="fas fa-bolt mr-2"></i>
-                      Apply Now
-                    </Button>
-                    <Link href="/contact" className="block">
-                      <Button variant="outline" className="w-full rounded-xl border-2 border-blue-900 py-6 text-base font-bold text-blue-900 hover:bg-blue-900 hover:text-white">
-                        <i className="fas fa-phone mr-2"></i>
-                        Contact Us
+                    <div className="space-y-3">
+                      <Button
+                        onClick={() => handleApplyNow()}
+                        className="w-full rounded-xl bg-amber-500 py-6 text-base font-bold text-white shadow-lg shadow-amber-500/20 hover:bg-amber-600"
+                      >
+                        <i className="fas fa-bolt mr-2"></i>
+                        Apply Now
                       </Button>
-                    </Link>
+                      <Link href="/contact" className="block">
+                        <Button variant="outline" className="w-full rounded-xl border-2 border-blue-900 py-6 text-base font-bold text-blue-900 hover:bg-blue-900 hover:text-white">
+                          <i className="fas fa-phone mr-2"></i>
+                          Contact Us
+                        </Button>
+                      </Link>
+                    </div>
+
+                    <div className="mt-6 border-t border-gray-100 pt-6">
+                      <div className="mb-2 flex items-center gap-2 text-sm text-gray-600">
+                        <i className="fas fa-shield-alt text-green-500"></i>
+                        <span>Secure Application Process</span>
+                      </div>
+                      <div className="mb-2 flex items-center gap-2 text-sm text-gray-600">
+                        <i className="fas fa-clock text-blue-500"></i>
+                        <span>Fast Processing</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <i className="fas fa-headset text-amber-500"></i>
+                        <span>24/7 Support</span>
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="mt-6 border-t border-gray-100 pt-6">
-                    <div className="mb-2 flex items-center gap-2 text-sm text-gray-600">
-                      <i className="fas fa-shield-alt text-green-500"></i>
-                      <span>Secure Application Process</span>
-                    </div>
-                    <div className="mb-2 flex items-center gap-2 text-sm text-gray-600">
-                      <i className="fas fa-clock text-blue-500"></i>
-                      <span>Fast Processing</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <i className="fas fa-headset text-amber-500"></i>
-                      <span>24/7 Support</span>
-                    </div>
+                  <div className="rounded-2xl bg-gradient-to-br from-blue-900 to-indigo-800 p-6 text-white shadow-lg">
+                    <h3 className="mb-4 flex items-center gap-2 text-lg font-bold">
+                      <i className="fas fa-headset"></i>
+                      Need Help?
+                    </h3>
+                    <p className="mb-4 text-sm text-blue-100">
+                      Our experts are available to answer your questions about this service.
+                    </p>
+                    <a
+                      href="tel:919898196396"
+                      className="flex items-center gap-3 rounded-lg bg-white/10 p-3 transition-colors hover:bg-white/20"
+                    >
+                      <i className="fas fa-phone-alt text-amber-400"></i>
+                      <span className="font-semibold">91 9898 196 396</span>
+                    </a>
                   </div>
-                </div>
-
-                <div className="rounded-2xl bg-gradient-to-br from-blue-900 to-indigo-800 p-6 text-white shadow-lg">
-                  <h3 className="mb-4 flex items-center gap-2 text-lg font-bold">
-                    <i className="fas fa-headset"></i>
-                    Need Help?
-                  </h3>
-                  <p className="mb-4 text-sm text-blue-100">
-                    Our experts are available to answer your questions about this service.
-                  </p>
-                  <a
-                    href="tel:+918401626032"
-                    className="flex items-center gap-3 rounded-lg bg-white/10 p-3 transition-colors hover:bg-white/20"
-                  >
-                    <i className="fas fa-phone-alt text-amber-400"></i>
-                    <span className="font-semibold">+91 84016 26032</span>
-                  </a>
                 </div>
               </div>
             </div>
           </div>
-        </div>
         </div>
       </PublicShell>
 
@@ -679,11 +679,10 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
                       key={`${plan.name}-${index}`}
                       type="button"
                       onClick={() => setSelectedPricingPlan(plan.name)}
-                      className={`rounded-2xl border p-5 text-left transition-all ${
-                        isSelected
-                          ? "border-blue-900 bg-blue-50 shadow-sm"
-                          : "border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/40"
-                      }`}
+                      className={`rounded-2xl border p-5 text-left transition-all ${isSelected
+                        ? "border-blue-900 bg-blue-50 shadow-sm"
+                        : "border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/40"
+                        }`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div>
@@ -693,11 +692,10 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
                           </p>
                         </div>
                         <span
-                          className={`flex h-6 w-6 items-center justify-center rounded-full border text-xs ${
-                            isSelected
-                              ? "border-blue-900 bg-blue-900 text-white"
-                              : "border-gray-300 text-transparent"
-                          }`}
+                          className={`flex h-6 w-6 items-center justify-center rounded-full border text-xs ${isSelected
+                            ? "border-blue-900 bg-blue-900 text-white"
+                            : "border-gray-300 text-transparent"
+                            }`}
                         >
                           <i className="fas fa-check"></i>
                         </span>

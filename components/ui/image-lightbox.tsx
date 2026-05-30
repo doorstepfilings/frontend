@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Modal } from "@/components/ui/modal";
 
 export type ImageLightboxSlide = {
@@ -42,13 +42,7 @@ export function ImageLightbox({
     open: boolean;
     slides: ImageLightboxSlide[];
 }) {
-    const [activeIndex, setActiveIndex] = useState(index);
-
-    useEffect(() => {
-        if (open) {
-            setActiveIndex(clampIndex(index, slides.length));
-        }
-    }, [index, open, slides.length]);
+    const [activeIndex, setActiveIndex] = useState(() => clampIndex(index, slides.length));
 
     if (!open || slides.length === 0) {
         return null;

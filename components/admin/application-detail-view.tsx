@@ -10,12 +10,14 @@ import {
 } from "@/lib/features/admin/admin-slice";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { AuthGuard } from "@/components/auth/auth-guard";
+import { DetailViewSkeleton } from "@/components/ui/skeletons/detail-view-skeleton";
 import { toast } from "react-hot-toast";
 import { StatusManagement } from "./status-management";
 import { FormDataRenderer } from "@/components/ui/form-data-renderer";
 import { AccountantDocumentList } from "@/components/accountant/accountant-document-list";
 import { splitDocumentsByOwner } from "@/lib/utils/document-helpers";
-import { format } from "date-fns";
+import { ChatBox } from "@/components/chat/ChatBox";
+import { formatDateWithPattern } from "@/lib/utils/formatters";
 
 const STATUS_CONFIG: any = {
   draft: {
@@ -121,24 +123,16 @@ export function ApplicationDetailView() {
     }
   };
 
-  if (loading || !app) {
+  if (loading) {
     return (
       <AdminLayout>
-        <div className="flex h-96 items-center justify-center">
-          <div className="flex flex-col items-center gap-4">
-            <div className="h-10 w-10 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
-            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-              Loading details...
-            </p>
-          </div>
-        </div>
+        <DetailViewSkeleton />
       </AdminLayout>
     );
   }
 
   const { clientDocs, internalDocs } = splitDocumentsByOwner(
     app.request_documents || [],
-    app.user?.id,
   );
   const statusConfig = STATUS_CONFIG[app.status] || {
     label: app.status,
@@ -220,7 +214,7 @@ export function ApplicationDetailView() {
                       label="Date Received"
                       value={
                         receivedAt
-                          ? format(new Date(receivedAt), "dd MMM yyyy")
+                          ? formatDateWithPattern(receivedAt, "dd MMM yyyy")
                           : "-"
                       }
                     />
@@ -257,9 +251,24 @@ export function ApplicationDetailView() {
                 />
               </div>
 
+              {/* <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <ChatBox
+                  title="Conversation Monitor"
+                  userServiceId={Number(app?.id)}
+                  counterpart={app?.user ? {
+                    id: Number(app.user.id),
+                    name: app.user.name,
+                    email: app.user.email,
+                    role: app.user.role,
+                  } : null}
+                />
+              </div> */}
               <InfoSection title="Communication Log" icon="fa-history">
                 <div className="space-y-4">
-                  {!app.notes && !app.ca_notes && !app.rejection_reason && (
+                  {!app.notes &&
+                    !app.client_message &&
+                    !app.ca_notes &&
+                    !app.rejection_reason && (
                     <p className="text-sm italic text-slate-400">
                       No notes or remarks found for this order.
                     </p>
@@ -269,6 +278,13 @@ export function ApplicationDetailView() {
                       label="Client Instruction"
                       text={app.notes}
                       color="slate"
+                    />
+                  )}
+                  {app.client_message && (
+                    <NoteBox
+                      label="Client Message"
+                      text={app.client_message}
+                      color="emerald"
                     />
                   )}
                   {app.ca_notes && (
@@ -344,6 +360,7 @@ function NoteBox({
 }) {
   const themes: any = {
     slate: "bg-slate-50 border-slate-100 text-slate-700",
+    emerald: "bg-emerald-50 border-emerald-100 text-emerald-700",
     blue: "bg-blue-50 border-blue-100 text-blue-700",
     rose: "bg-rose-50 border-rose-100 text-rose-700",
   };
@@ -356,3 +373,4 @@ function NoteBox({
     </div>
   );
 }
+

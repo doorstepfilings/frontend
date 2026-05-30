@@ -5,6 +5,12 @@ export type AdminRecord = Record<string, unknown> & {
   created_at?: string | null;
   mobileNumber?: string | null;
   mobile_number?: string | null;
+  address?: string | null;
+  city?: string | null;
+  district?: string | null;
+  state?: string | null;
+  pincode?: string | null;
+  landmark?: string | null;
   rmUniqueId?: string | null;
   rm_unique_id?: string | null;
   accountantUniqueId?: string | null;

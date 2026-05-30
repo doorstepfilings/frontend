@@ -32,7 +32,7 @@ export function getRoleDisplayLabel(role: string | null | undefined) {
   }
 
   if (role === "regional_manager") {
-    return "Regional Manager";
+    return "Relationship Manager";
   }
 
   if (role === "accountant") {
@@ -47,20 +47,22 @@ export function getRoleDisplayLabel(role: string | null | undefined) {
 }
 
 export function getLocationDisplay(record: AdminRecord | null | undefined) {
+  const district = typeof record?.district === "string" ? record.district : "";
   const city = typeof record?.city === "string" ? record.city : "";
   const state = typeof record?.state === "string" ? record.state : "";
   const pincode = typeof record?.pincode === "string" ? record.pincode : "";
+  const primaryArea = district || city;
 
-  if (city && state && pincode) {
-    return `${city}, ${state} ${pincode}`;
+  if (primaryArea && state && pincode) {
+    return `${primaryArea}, ${state} ${pincode}`;
   }
 
-  if (city && state) {
-    return `${city}, ${state}`;
+  if (primaryArea && state) {
+    return `${primaryArea}, ${state}`;
   }
 
-  if (city || state || pincode) {
-    return city || state || pincode;
+  if (primaryArea || state || pincode) {
+    return primaryArea || state || pincode;
   }
 
   return "Not set";

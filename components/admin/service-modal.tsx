@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,53 +9,43 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { adminApi } from '@/lib/api/admin-api';
 
+type ServiceFormData = {
+    description: string;
+    metaDescription: string;
+    metaTitle: string;
+    name: string;
+    price: string | number;
+    serviceCategoryId: string;
+    slug: string;
+};
+
 interface ServiceModalProps {
     service?: any;
     categories: any[];
     isOpen: boolean;
     onClose: () => void;
-    onSave: () => void;
+    onSave: () => void | Promise<void>;
+}
+
+function createInitialFormData(service?: any): ServiceFormData {
+    return {
+        name: service?.name || '',
+        slug: service?.slug || '',
+        price: service?.price || '',
+        serviceCategoryId: String(service?.serviceCategoryId || ''),
+        description: service?.description || '',
+        metaTitle: service?.metaTitle || '',
+        metaDescription: service?.metaDescription || '',
+    };
 }
 
 export function ServiceModal({ service, categories, isOpen, onClose, onSave }: ServiceModalProps) {
-    const [formData, setFormData] = useState<any>({
-        name: '',
-        slug: '',
-        price: '',
-        serviceCategoryId: '',
-        description: '',
-        metaTitle: '',
-        metaDescription: '',
-    });
+    const [formData, setFormData] = useState<ServiceFormData>(() => createInitialFormData(service));
     const [loading, setLoading] = useState(false);
-
-    useEffect(() => {
-        if (service) {
-            setFormData({
-                name: service.name || '',
-                slug: service.slug || '',
-                price: service.price || '',
-                serviceCategoryId: String(service.serviceCategoryId || ''),
-                description: service.description || '',
-                metaTitle: service.metaTitle || '',
-                metaDescription: service.metaDescription || '',
-            });
-        } else {
-            setFormData({
-                name: '',
-                slug: '',
-                price: '',
-                serviceCategoryId: '',
-                description: '',
-                metaTitle: '',
-                metaDescription: '',
-            });
-        }
-    }, [service, isOpen]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
-        setFormData((prev: any) => {
+        setFormData((prev) => {
             const newData = { ...prev, [name]: value };
             if (name === 'name' && !service) {
                 newData.slug = value.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '');
@@ -72,7 +62,7 @@ export function ServiceModal({ service, categories, isOpen, onClose, onSave }: S
             } else {
                 await adminApi.storeService(formData);
             }
-            onSave();
+            await onSave();
             onClose();
         } catch (error) {
             alert('Failed to save service');
@@ -82,7 +72,7 @@ export function ServiceModal({ service, categories, isOpen, onClose, onSave }: S
     };
 
     return (
-        <Dialog open={isOpen} onOpenChange={onClose}>
+        <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
             <DialogContent className="sm:max-w-[600px]">
                 <DialogHeader>
                     <DialogTitle>{service ? 'Edit Service' : 'Create New Service'}</DialogTitle>
@@ -105,7 +95,7 @@ export function ServiceModal({ service, categories, isOpen, onClose, onSave }: S
                         <div className="col-span-3">
                             <Select 
                                 value={formData.serviceCategoryId} 
-                                onValueChange={(val) => setFormData((p: any) => ({ ...p, serviceCategoryId: val }))}
+                                onValueChange={(val) => setFormData((prev) => ({ ...prev, serviceCategoryId: val ?? '' }))}
                             >
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select a category" />

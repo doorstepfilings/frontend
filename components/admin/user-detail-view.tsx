@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { AuthGuard } from "@/components/auth/auth-guard";
+import { useConfirm } from "@/hooks/use-confirm";
 import { adminApi } from "@/lib/api/admin-api";
 import { normalizeRole } from "@/lib/auth/redirects";
 import {
@@ -64,6 +65,7 @@ function getStatusBadgeClass(status: string | null | undefined) {
 export function UserDetailView() {
   const params = useParams();
   const router = useRouter();
+  const { confirm, ConfirmDialog } = useConfirm();
   const id = String(params?.id ?? "");
   const [userRecord, setUserRecord] = useState<AdminRecord | null>(null);
   const [applications, setApplications] = useState<ApplicationRecord[]>([]);
@@ -140,7 +142,12 @@ export function UserDetailView() {
       return;
     }
 
-    const confirmed = window.confirm("Delete this user permanently?");
+    const confirmed = await confirm({
+      title: "Delete user?",
+      message: "This permanently removes the user from the directory.",
+      confirmLabel: "Delete",
+      variant: "danger",
+    });
     if (!confirmed) {
       return;
     }
@@ -239,7 +246,7 @@ export function UserDetailView() {
             <SummaryStat label="Joined" value={formatAdminDate(getCreatedAt(userRecord))} />
             <SummaryStat label="Location" value={getLocationDisplay(userRecord)} />
             <SummaryStat
-              label="Regional Manager"
+              label="Relationship Manager"
               value={String(regionalManager?.name ?? "Not assigned")}
               tone="blue"
             />
@@ -336,7 +343,7 @@ export function UserDetailView() {
           {normalizedRole === "regional_manager" && (
             <DetailSection
               title="Managed Users"
-              subtitle="Users currently assigned to this regional manager profile."
+              subtitle="Users currently assigned to this relationship manager profile."
             >
               {managedUsers.length === 0 ? (
                 <EmptySection label="No managed users found." icon="fa-users" />
@@ -409,7 +416,7 @@ export function UserDetailView() {
                           Email
                         </th>
                         <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">
-                          Regional Manager
+                          Relationship Manager
                         </th>
                         <th className="px-6 py-4 text-right text-[10px] font-black uppercase tracking-widest text-gray-400">
                           Open
@@ -448,6 +455,7 @@ export function UserDetailView() {
           )}
         </div>
       </AdminLayout>
+      <ConfirmDialog />
     </AuthGuard>
   );
 }

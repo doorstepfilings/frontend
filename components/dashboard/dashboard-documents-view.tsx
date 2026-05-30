@@ -90,10 +90,13 @@ export function DashboardDocumentsView({
   const { myServices, loading } = useAppSelector((state) => state.services);
   const user = useStoredUser();
   const successMessageHandled = useRef(false);
+  const initialFeedbackServiceId = paymentFeedback?.serviceIds?.[0] || "";
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [uploadServiceId, setUploadServiceId] = useState("");
-  const [archiveServiceId, setArchiveServiceId] = useState("all");
+  const [uploadServiceId, setUploadServiceId] = useState(initialFeedbackServiceId);
+  const [archiveServiceId, setArchiveServiceId] = useState(
+    initialFeedbackServiceId || "all",
+  );
   const [rows, setRows] = useState<DashboardUploadRow[]>([createEmptyRow()]);
   const [fileErrors, setFileErrors] = useState<Record<number, string>>({});
   const [isUploading, setIsUploading] = useState(false);
@@ -119,24 +122,6 @@ export function DashboardDocumentsView({
       paymentFeedback?.message || "Payment successfully done.",
     );
   }, [paymentFeedback?.message, paymentFeedback?.status]);
-
-  useEffect(() => {
-    if (
-      uploadServiceId ||
-      (paymentFeedback?.serviceIds?.length ?? 0) === 0
-    ) {
-      return;
-    }
-
-    const nextServiceId = paymentFeedback?.serviceIds?.[0] || "";
-
-    if (nextServiceId) {
-      setUploadServiceId((current) => current || nextServiceId);
-      setArchiveServiceId((current) =>
-        current === "all" ? nextServiceId || "all" : current,
-      );
-    }
-  }, [paymentFeedback?.serviceIds, uploadServiceId]);
 
   const uploadableServices = useMemo(
     () =>
@@ -529,6 +514,7 @@ export function DashboardDocumentsView({
       </div>
 
       <ImageLightbox
+        key={lightboxIndex >= 0 ? `${lightboxIndex}-${imageGallery.length}` : "closed"}
         open={lightboxIndex >= 0}
         index={lightboxIndex >= 0 ? lightboxIndex : 0}
         slides={imageGallery.map((item) => item.slide)}

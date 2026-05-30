@@ -165,7 +165,7 @@ export function AccountView() {
         },
       });
       setRmResult(response.data?.data ?? null);
-      showMessage("success", response.data?.message ?? "Regional Manager found.");
+      showMessage("success", response.data?.message ?? "Relationship Manager  found.");
     } catch (requestError) {
       setRmResult(null);
       showMessage("error", parseApiError(requestError));
@@ -195,7 +195,7 @@ export function AccountView() {
 
       setRmSearchId("");
       setRmResult(null);
-      showMessage("success", response.data?.message ?? "Connected to Regional Manager successfully.");
+      showMessage("success", response.data?.message ?? "Connected to Relationship Manager  successfully.");
     } catch (requestError) {
       showMessage("error", parseApiError(requestError));
     } finally {
@@ -225,17 +225,16 @@ export function AccountView() {
           <div className="mb-8">
             <h1 className="text-2xl font-black text-slate-900 tracking-tight">Account Settings</h1>
             <p className="mt-1 text-sm font-medium text-slate-500">
-              Manage your profile, security preferences, and Regional Manager connection.
+              Manage your profile, security preferences, and Relationship Manager  connection.
             </p>
           </div>
 
           {message ? (
             <div
-              className={`rounded-2xl border px-6 py-4 text-[11px] font-bold uppercase tracking-wider animate-fadeIn ${
-                message.type === "success"
-                  ? "border-emerald-100 bg-emerald-50 text-emerald-700"
-                  : "border-rose-100 bg-rose-50 text-rose-700"
-              }`}
+              className={`rounded-2xl border px-6 py-4 text-[11px] font-bold uppercase tracking-wider animate-fadeIn ${message.type === "success"
+                ? "border-emerald-100 bg-emerald-50 text-emerald-700"
+                : "border-rose-100 bg-rose-50 text-rose-700"
+                }`}
             >
               <i className={`fas ${message.type === "success" ? "fa-check-circle" : "fa-exclamation-circle"} mr-2`} />
               {message.text}
@@ -252,11 +251,10 @@ export function AccountView() {
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`inline-flex items-center gap-2 rounded-xl px-6 py-3 text-[10px] font-black uppercase tracking-widest transition-all ${
-                  activeTab === tab.id
-                    ? "bg-blue-900 text-white shadow-lg shadow-blue-900/20"
-                    : "text-slate-400 hover:bg-slate-50 hover:text-slate-900"
-                }`}
+                className={`inline-flex items-center gap-2 rounded-xl px-6 py-3 text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab.id
+                  ? "bg-blue-900 text-white shadow-lg shadow-blue-900/20"
+                  : "text-slate-400 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
               >
                 <i className={`fas ${tab.icon}`} />
                 {tab.label}
@@ -302,8 +300,8 @@ export function AccountView() {
                       placeholder="+91 00000 00000"
                     />
                   </FormField>
-                  <FormField 
-                    label="Pincode" 
+                  <FormField
+                    label="Pincode"
                     error={pincodeLoading ? "Locating..." : undefined}
                   >
                     <FieldInput
@@ -427,7 +425,7 @@ export function AccountView() {
                     <i className="fas fa-user-tie" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-black text-slate-900 tracking-tight">Regional Manager</h2>
+                    <h2 className="text-xl font-black text-slate-900 tracking-tight">Relationship Manager </h2>
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                       Your direct relationship interface
                     </p>
@@ -466,9 +464,9 @@ export function AccountView() {
                       <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-white shadow-sm text-3xl text-slate-300">
                         <i className="fas fa-user-slash" />
                       </div>
-                      <h3 className="text-lg font-black text-slate-900 tracking-tight mb-2">No Regional Manager Linked</h3>
+                      <h3 className="text-lg font-black text-slate-900 tracking-tight mb-2">No Relationship Manager  Linked</h3>
                       <p className="text-sm font-medium text-slate-500 max-w-sm mx-auto">
-                        Link with a Regional Manager using their officer ID to receive personalized assistance.
+                        Link with a Relationship Manager  using their officer ID to receive personalized assistance.
                       </p>
                     </div>
 
@@ -503,7 +501,7 @@ export function AccountView() {
                               </div>
                               <div>
                                 <p className="font-black text-slate-900 tracking-tight">
-                                  {rmResult.name ?? "Regional Manager"}
+                                  {rmResult.name ?? "Relationship Manager "}
                                 </p>
                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
                                   ID: {rmResult.rm_unique_id ?? "N/A"}

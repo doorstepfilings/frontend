@@ -62,7 +62,7 @@ export function AccountantDocumentsView() {
         });
     }, [allDocs, search, statusFilter, serviceFilter]);
 
-    const { clientDocs, internalDocs } = splitDocumentsByOwner(filteredDocs, null);
+    const { clientDocs, internalDocs } = splitDocumentsByOwner(filteredDocs);
 
     const stats = useMemo(() => ({
         total: allDocs.length,

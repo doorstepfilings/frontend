@@ -29,11 +29,13 @@ export function getDashboardNavItems(roleInput?: string | null) {
   return [
     { path: "/admin/dashboard", label: "Dashboard", icon: "fa-th-large" },
     { path: "/admin/users", label: "Users", icon: "fa-users" },
-    { path: "/admin/regional-managers", label: "Regional Managers", icon: "fa-user-tie" },
+    { path: "/admin/relationship-managers", label: "Relationship Managers", icon: "fa-user-tie" },
     { path: "/admin/accountants", label: "Accountants", icon: "fa-calculator" },
     { path: "/admin/categories", label: "Categories", icon: "fa-folder" },
     { path: "/admin/services", label: "Services", icon: "fa-briefcase" },
-    { path: "/admin/enquiries", label: "Enquiries", icon: "fa-envelope-open" },
+    { path: "/admin/stages", label: "Milestones", icon: "fa-diagram-project" },
+    { path: "/admin/crm/inquiries", label: "CRM Inquiries", icon: "fa-address-card" },
+    { path: "/admin/enquiries", label: "Contact Enquiries", icon: "fa-envelope-open" },
     { path: "/admin/service-applications", label: "Applications", icon: "fa-clipboard-check" },
   ] satisfies DashboardNavItem[];
 }
@@ -58,11 +60,11 @@ export function getRolePortalMeta(roleInput?: string | null) {
 
   if (role === "regional_manager") {
     return {
-      sectionLabel: "Regional Manager Dashboard",
+      sectionLabel: "Relationship Manager Dashboard",
       headerLabel: "Operations Hub",
       actionHref: null,
       actionLabel: null,
-      roleTag: "regional manager",
+      roleTag: "relationship manager",
     };
   }
 

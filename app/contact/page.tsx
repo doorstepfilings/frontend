@@ -167,18 +167,20 @@ export default function ContactPage() {
 
                   <div className="flex items-start gap-4 rounded-xl bg-white p-6 shadow-sm">
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-purple-100">
-                      <i className="fab fa-whatsapp text-xl text-purple-700"></i>
+                      <i className="fas fa-headset text-xl text-purple-700"></i>
                     </div>
+
                     <div>
-                      <h3 className="mb-1 font-bold text-gray-900">WhatsApp</h3>
+                      <h3 className="mb-1 font-bold text-gray-900">
+                        Support & Help Desk
+                      </h3>
+
                       <p className="text-gray-600">
                         <a
-                          href="https://wa.me/919898196396"
+                          href="mailto:info@doorstepfilings.com"
                           className="hover:text-blue-900"
-                          target="_blank"
-                          rel="noopener noreferrer"
                         >
-                          +91 9898 196 396
+                          info@doorstepfilings.com
                         </a>
                       </p>
                     </div>
@@ -312,9 +314,8 @@ export default function ContactPage() {
                     <button
                       type="submit"
                       disabled={loading}
-                      className={`flex w-full items-center justify-center gap-2 rounded-lg bg-amber-500 py-4 text-lg font-bold text-white transition-colors hover:bg-amber-600 ${
-                        loading ? "cursor-not-allowed opacity-70" : ""
-                      }`}
+                      className={`flex w-full items-center justify-center gap-2 rounded-lg bg-amber-500 py-4 text-lg font-bold text-white transition-colors hover:bg-amber-600 ${loading ? "cursor-not-allowed opacity-70" : ""
+                        }`}
                     >
                       {loading ? (
                         <div className="h-6 w-6 animate-spin rounded-full border-4 border-white border-t-transparent"></div>

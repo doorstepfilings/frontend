@@ -20,6 +20,16 @@ const nextConfig: NextConfig = {
   },
   async rewrites() {
     return {
+      beforeFiles: [
+        {
+          source: "/admin/relationship-managers",
+          destination: "/admin/regional-managers",
+        },
+        {
+          source: "/admin/relationship-managers/:id",
+          destination: "/admin/regional-managers/:id",
+        },
+      ],
       // Let local Next.js route handlers like /api/auth/* resolve first.
       fallback: [
         {

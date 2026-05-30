@@ -113,7 +113,7 @@ export const searchRM = createAsyncThunk<
     });
     return response.data.data;
   } catch (error: any) {
-    return rejectWithValue(error.response?.data?.message || "Regional Manager not found.");
+    return rejectWithValue(error.response?.data?.message || "Relationship Manager not found.");
   }
 });
 
@@ -128,7 +128,7 @@ export const connectRM = createAsyncThunk<
     setStoredUser(updatedUser);
     return updatedUser;
   } catch (error: any) {
-    return rejectWithValue(error.response?.data?.message || "Failed to connect to Regional Manager.");
+    return rejectWithValue(error.response?.data?.message || "Failed to connect to Relationship Manager.");
   }
 });
 

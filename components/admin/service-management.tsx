@@ -9,6 +9,18 @@ import { api } from '@/lib/api';
 
 import { ServiceModal } from '@/components/admin/service-modal';
 
+async function fetchServiceManagementData() {
+    const [servicesRes, categoriesRes] = await Promise.all([
+        api.get('/admin/services'),
+        api.get('/admin/categories')
+    ]);
+
+    return {
+        categories: categoriesRes.data,
+        services: servicesRes.data,
+    };
+}
+
 export function ServiceManagement() {
     const [services, setServices] = useState<any[]>([]);
     const [categories, setCategories] = useState<any[]>([]);
@@ -16,14 +28,12 @@ export function ServiceManagement() {
     const [selectedService, setSelectedService] = useState<any>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    const fetchData = async () => {
+    const refreshData = async () => {
+        setLoading(true);
         try {
-            const [servicesRes, categoriesRes] = await Promise.all([
-                api.get('/admin/services'),
-                api.get('/admin/categories')
-            ]);
-            setServices(servicesRes.data);
-            setCategories(categoriesRes.data);
+            const data = await fetchServiceManagementData();
+            setServices(data.services);
+            setCategories(data.categories);
         } catch (error) {
             console.error('Failed to fetch services data', error);
         } finally {
@@ -32,7 +42,30 @@ export function ServiceManagement() {
     };
 
     useEffect(() => {
-        fetchData();
+        let cancelled = false;
+
+        const loadInitialData = async () => {
+            try {
+                const data = await fetchServiceManagementData();
+                if (cancelled) {
+                    return;
+                }
+                setServices(data.services);
+                setCategories(data.categories);
+            } catch (error) {
+                console.error('Failed to fetch services data', error);
+            } finally {
+                if (!cancelled) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        void loadInitialData();
+
+        return () => {
+            cancelled = true;
+        };
     }, []);
 
     const handleEdit = (service: any) => {
@@ -49,7 +82,7 @@ export function ServiceManagement() {
         if (confirm('Are you sure you want to delete this service?')) {
             try {
                 await api.delete(`/admin/services/${id}`);
-                fetchData();
+                await refreshData();
             } catch (error) {
                 alert('Failed to delete service');
             }
@@ -100,11 +133,12 @@ export function ServiceManagement() {
             </CardContent>
 
             <ServiceModal 
+                key={`${selectedService?.id ?? 'new'}-${isModalOpen ? 'open' : 'closed'}`}
                 service={selectedService}
                 categories={categories}
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
-                onSave={() => fetchData()}
+                onSave={refreshData}
             />
         </Card>
     );

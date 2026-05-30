@@ -1,5 +1,7 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import Google from "next-auth/providers/google";
+import GitHub from "next-auth/providers/github";
 import { appConfig } from "@/lib/config";
 import type { AuthUser, BackendAuthResponse } from "@/lib/auth/types";
 
@@ -7,6 +9,12 @@ const authSecret =
   process.env.AUTH_SECRET?.trim() ||
   (process.env.NODE_ENV !== "production"
     ? "doorstepfilings-local-dev-auth-secret-change-me"
+    : undefined);
+
+const socialAuthSharedSecret =
+  process.env.SOCIAL_AUTH_SHARED_SECRET?.trim() ||
+  (process.env.NODE_ENV !== "production"
+    ? "doorstepfilings-local-dev-social-secret-change-me"
     : undefined);
 
 function formatMessage(message: BackendAuthResponse["message"]) {
@@ -24,6 +32,29 @@ async function authenticateWithBackend(pathname: string, body: Record<string, un
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+
+    return readBackendResponse(response);
+  } catch {
+    return {
+      error: "Unable to reach the authentication service right now.",
+      data: null,
+    };
+  }
+}
+
+async function authenticateSocialWithBackend(body: Record<string, unknown>) {
+  try {
+    const response = await fetch(`${appConfig.backendUrl}/api/user/oauth-login`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        ...(socialAuthSharedSecret
+          ? { "X-Social-Auth-Secret": socialAuthSharedSecret }
+          : {}),
       },
       body: JSON.stringify(body),
     });
@@ -59,6 +90,17 @@ type BackendAuthResult =
       };
     };
 
+function buildAuthorizedUser(authPayload: {
+  token: string;
+  user: AuthUser;
+}): AuthorizedUser {
+  return {
+    ...buildSessionUser(authPayload.user),
+    id: String(authPayload.user.id ?? authPayload.user.user_id ?? ""),
+    accessToken: authPayload.token,
+  };
+}
+
 async function readBackendResponse(response: Response): Promise<BackendAuthResult> {
   const payload = (await response.json().catch(() => null)) as BackendAuthResponse | null;
 
@@ -86,10 +128,28 @@ async function readBackendResponse(response: Response): Promise<BackendAuthResul
   };
 }
 
-function getFutureSocialProviders() {
-  // Add Google/GitHub here once the backend can exchange OAuth identities
-  // for a Doorstep API token. The login UI already reads providers dynamically.
-  return [];
+function getSocialProviders() {
+  const providers = [];
+
+  if (process.env.AUTH_GOOGLE_ID?.trim() && process.env.AUTH_GOOGLE_SECRET?.trim()) {
+    providers.push(
+      Google({
+        clientId: process.env.AUTH_GOOGLE_ID,
+        clientSecret: process.env.AUTH_GOOGLE_SECRET,
+      }),
+    );
+  }
+
+  if (process.env.AUTH_GITHUB_ID?.trim() && process.env.AUTH_GITHUB_SECRET?.trim()) {
+    providers.push(
+      GitHub({
+        clientId: process.env.AUTH_GITHUB_ID,
+        clientSecret: process.env.AUTH_GITHUB_SECRET,
+      }),
+    );
+  }
+
+  return providers;
 }
 
 export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
@@ -126,11 +186,7 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
           return null;
         }
 
-        return {
-          ...buildSessionUser(authPayload.user),
-          id: String(authPayload.user.id ?? authPayload.user.user_id ?? ""),
-          accessToken: authPayload.token,
-        };
+        return buildAuthorizedUser(authPayload);
       },
     }),
     Credentials({
@@ -158,21 +214,63 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
           return null;
         }
 
-        return {
-          ...buildSessionUser(authPayload.user),
-          id: String(authPayload.user.id ?? authPayload.user.user_id ?? ""),
-          accessToken: authPayload.token,
-        };
+        return buildAuthorizedUser(authPayload);
       },
     }),
-    ...getFutureSocialProviders(),
+    ...getSocialProviders(),
   ],
   callbacks: {
+    async signIn({ user, account }) {
+      if (account?.type !== "oauth" && account?.type !== "oidc") {
+        return true;
+      }
+
+      const email = user.email?.trim().toLowerCase();
+      if (!email) {
+        return "/login?error=social_email_missing";
+      }
+
+      const result = await authenticateSocialWithBackend({
+        provider: account.provider,
+        provider_account_id: account.providerAccountId,
+        email,
+        name: user.name,
+        image: user.image,
+      });
+
+      if (!result.data) {
+        return `/login?error=${encodeURIComponent(
+          result.error ?? "Unable to sign in with social login.",
+        )}`;
+      }
+
+      Object.assign(user, buildAuthorizedUser(result.data));
+
+      return true;
+    },
     authorized({ auth }) {
       return Boolean(auth?.accessToken && auth.user);
     },
-    async jwt({ token, user, trigger, session }) {
-      if (user) {
+    async jwt({ token, user, trigger, session, account }) {
+      if (account && (account.type === "oauth" || account.type === "oidc") && user) {
+        // For social logins, fetch the backend token here because mutations in signIn aren't retained.
+        const email = user.email?.trim().toLowerCase();
+        if (email) {
+          const result = await authenticateSocialWithBackend({
+            provider: account.provider,
+            provider_account_id: account.providerAccountId,
+            email,
+            name: user.name,
+            image: user.image,
+          });
+
+          if (result.data) {
+            token.accessToken = result.data.token;
+            token.user = buildSessionUser(result.data.user);
+          }
+        }
+      } else if (user) {
+        // Credentials flow
         const { accessToken, ...sessionUser } = user as AuthUser & { accessToken?: string };
         token.accessToken = accessToken;
         token.user = buildSessionUser(sessionUser);

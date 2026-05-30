@@ -20,14 +20,22 @@ const STATUS_CONFIG: any = {
     submitted_to_ca: { bg: 'bg-teal-50', text: 'text-teal-700', border: 'border-teal-200', label: 'Forwarded to CA' },
 };
 
-export function StatusIndicator({ status, size = 'sm', className = '' }: { status: string, size?: 'sm' | 'lg', className?: string }) {
-    const config = STATUS_CONFIG[status?.toLowerCase()] || { bg: 'bg-slate-100', text: 'text-slate-700', border: 'border-slate-200', label: status };
+export function StatusIndicator({ status, paymentStatus, size = 'sm', className = '', label }: { status: string, paymentStatus?: string | null, size?: 'sm' | 'lg', className?: string, label?: string }) {
+    let resolvedStatus = status?.toLowerCase() || '';
+    if (
+        (resolvedStatus === "applied" || resolvedStatus === "payment_pending" || resolvedStatus === "in_cart") &&
+        String(paymentStatus || "").toLowerCase() === "paid"
+    ) {
+        resolvedStatus = "paid";
+    }
+    const config = STATUS_CONFIG[resolvedStatus] || { bg: 'bg-slate-100', text: 'text-slate-700', border: 'border-slate-200', label: status };
     const sizeClasses = size === 'lg' ? 'px-4 py-2 text-xs' : 'px-2.5 py-1 text-[9px]';
+    const displayLabel = label || config.label;
 
     return (
         <span className={`inline-flex items-center gap-2 rounded-full font-black uppercase tracking-widest border ${config.bg} ${config.text} ${config.border} ${sizeClasses} ${className}`}>
-            <span className={`w-1.5 h-1.5 rounded-full bg-current ${['pending', 'under_review', 'in_progress', 'payment_pending'].includes(status?.toLowerCase()) ? 'animate-pulse' : ''}`} />
-            {config.label}
+            <span className={`w-1.5 h-1.5 rounded-full bg-current ${['pending', 'under_review', 'in_progress', 'payment_pending'].includes(resolvedStatus) ? 'animate-pulse' : ''}`} />
+            {displayLabel}
         </span>
     );
 }

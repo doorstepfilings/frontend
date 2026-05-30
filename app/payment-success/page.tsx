@@ -5,19 +5,9 @@ import {
   normalizePaymentServiceIds,
 } from "@/lib/utils/payment-navigation";
 
-function readFirst(
-  value: string | string[] | undefined,
-  fallback = "",
-) {
-  if (Array.isArray(value)) {
-    return value[0] ?? fallback;
-  }
-
-  return value ?? fallback;
-}
-
+import { readFirst } from "@/lib/utils/core";
 export default async function PaymentSuccessPage(
-  props: PageProps<"/payment-success">,
+  props: { searchParams: Promise<any> },
 ) {
   const searchParams = await props.searchParams;
 

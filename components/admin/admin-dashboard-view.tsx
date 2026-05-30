@@ -7,6 +7,7 @@ import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
 import { fetchAdminStats, fetchRecentActivity } from "@/lib/features/admin/admin-slice";
 import { AuthGuard } from "@/components/auth/auth-guard";
 import { AdminLayout } from "@/components/layout/AdminLayout";
+import { DetailViewSkeleton } from "@/components/ui/skeletons/detail-view-skeleton";
 
 type ActivityItem = {
   id?: number | string;
@@ -338,17 +339,7 @@ export function AdminDashboardView() {
     return (
       <AuthGuard allowedRoles={["super_admin"]}>
         <AdminLayout>
-          <div className="flex h-96 items-center justify-center">
-            <div className="flex flex-col items-center">
-              <div className="relative h-20 w-20">
-                <div className="absolute left-0 top-0 h-full w-full rounded-full border-4 border-blue-100" />
-                <div className="absolute left-0 top-0 h-full w-full animate-spin rounded-full border-4 border-blue-900 border-t-transparent" />
-              </div>
-              <p className="mt-6 animate-pulse text-[10px] font-bold uppercase tracking-widest text-gray-400">
-                Initializing Dashboard...
-              </p>
-            </div>
-          </div>
+          <DetailViewSkeleton />
         </AdminLayout>
       </AuthGuard>
     );

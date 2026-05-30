@@ -10,16 +10,21 @@ import { getStatusColor, getStatusLabel } from '@/lib/status-helpers';
 
 import { RequestDetailModal } from '@/components/accountant/request-detail-modal';
 
+async function fetchAssignedServices() {
+    const response = await api.get('/accountant/service-requests');
+    return response.data;
+}
+
 export function AssignedServices() {
     const [services, setServices] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedRequest, setSelectedRequest] = useState<any>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    const fetchServices = async () => {
+    const reloadServices = async () => {
         try {
-            const response = await api.get('/accountant/service-requests');
-            setServices(response.data);
+            const nextServices = await fetchAssignedServices();
+            setServices(nextServices);
         } catch (error) {
             console.error('Failed to fetch assigned services', error);
         } finally {
@@ -28,7 +33,28 @@ export function AssignedServices() {
     };
 
     useEffect(() => {
-        fetchServices();
+        let cancelled = false;
+
+        const loadServices = async () => {
+            try {
+                const nextServices = await fetchAssignedServices();
+                if (!cancelled) {
+                    setServices(nextServices);
+                }
+            } catch (error) {
+                console.error('Failed to fetch assigned services', error);
+            } finally {
+                if (!cancelled) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        void loadServices();
+
+        return () => {
+            cancelled = true;
+        };
     }, []);
 
     const openDetails = (service: any) => {
@@ -84,7 +110,7 @@ export function AssignedServices() {
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 onUpdate={() => {
-                    fetchServices();
+                    void reloadServices();
                     setIsModalOpen(false);
                 }}
             />

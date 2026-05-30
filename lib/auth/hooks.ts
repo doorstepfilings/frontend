@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useSyncExternalStore, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import type { AuthUser } from "@/lib/auth/types";
 import {
@@ -12,7 +12,7 @@ import {
 export function useStoredSession() {
   const { data, status } = useSession();
   const overrideUser = useSyncExternalStore(subscribeToAuth, getStoredUserOverride, () => null);
-  const user = mergeAuthUsers(data?.user ?? null, overrideUser);
+  const user = useMemo(() => mergeAuthUsers(data?.user ?? null, overrideUser), [data?.user, overrideUser]);
 
   return {
     status,

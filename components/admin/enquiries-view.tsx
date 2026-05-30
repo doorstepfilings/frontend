@@ -5,8 +5,8 @@ import { AdminLayout } from "@/components/layout/AdminLayout";
 import { AuthGuard } from "@/components/auth/auth-guard";
 import { apiClient } from "@/lib/api/client";
 import { toast } from "react-hot-toast";
-import { format } from "date-fns";
 import { buildCollectionKey } from "@/lib/utils/list-keys";
+import { formatDateWithPattern } from "@/lib/utils/formatters";
 
 export function EnquiriesView() {
     const [enquiries, setEnquiries] = useState<any[]>([]);
@@ -155,7 +155,7 @@ export function EnquiriesView() {
                                                     <div>
                                                         <h4 className="text-sm font-black text-slate-900 leading-none mb-1">{e.name}</h4>
                                                         <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">{e.email}</p>
-                                                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">{format(new Date(e.created_at), 'MMM d, yyyy')}</p>
+                                                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">{formatDateWithPattern(e.created_at, "MMM d, yyyy")}</p>
                                                     </div>
                                                 </div>
                                             </td>

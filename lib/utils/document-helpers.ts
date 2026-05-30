@@ -106,7 +106,7 @@ export const isInternalDocument = (doc: any) => {
   return isInternalRole && !isClientDocument(doc);
 };
 
-export const splitDocumentsByOwner = (docs: any[], clientUserId: number | string | null) => {
+export const splitDocumentsByOwner = (docs: any[]) => {
   if (!Array.isArray(docs)) return { clientDocs: [], internalDocs: [] };
 
   return {

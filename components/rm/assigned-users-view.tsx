@@ -6,20 +6,30 @@ import { AuthGuard } from "@/components/auth/auth-guard";
 import { toast } from "react-hot-toast";
 import { rmApi } from "@/lib/api/rm-api";
 
+async function fetchAssignedUsersData() {
+    const [usersRes, accountantsRes] = await Promise.all([
+        rmApi.getAssignedUsers(),
+        rmApi.getAccountants(),
+    ]);
+
+    return {
+        accountants: accountantsRes.data?.data || [],
+        users: usersRes.data?.data || [],
+    };
+}
+
 export function RMAssignedUsersView() {
     const [users, setUsers] = useState<any[]>([]);
     const [accountants, setAccountants] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [assigningUserId, setAssigningUserId] = useState<number | null>(null);
 
-    const fetchData = async () => {
+    const refreshData = async () => {
+        setLoading(true);
         try {
-            const [usersRes, accountantsRes] = await Promise.all([
-                rmApi.getAssignedUsers(),
-                rmApi.getAccountants(),
-            ]);
-            setUsers(usersRes.data?.data || []);
-            setAccountants(accountantsRes.data?.data || []);
+            const data = await fetchAssignedUsersData();
+            setUsers(data.users);
+            setAccountants(data.accountants);
         } catch (error) {
             toast.error("Failed to fetch assigned users");
         } finally {
@@ -28,7 +38,30 @@ export function RMAssignedUsersView() {
     };
 
     useEffect(() => {
-        void fetchData();
+        let cancelled = false;
+
+        const loadAssignedUsers = async () => {
+            try {
+                const data = await fetchAssignedUsersData();
+                if (cancelled) {
+                    return;
+                }
+                setUsers(data.users);
+                setAccountants(data.accountants);
+            } catch (error) {
+                toast.error("Failed to fetch assigned users");
+            } finally {
+                if (!cancelled) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        void loadAssignedUsers();
+
+        return () => {
+            cancelled = true;
+        };
     }, []);
 
     const handleAssignAccountant = async (
@@ -42,7 +75,7 @@ export function RMAssignedUsersView() {
                 accountant_id: accountantId ? Number(accountantId) : null,
             });
             toast.success("Accountant mapping updated");
-            await fetchData();
+            await refreshData();
         } catch (error: any) {
             toast.error(
                 error.response?.data?.message ||

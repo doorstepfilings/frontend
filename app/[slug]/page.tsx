@@ -71,7 +71,7 @@ const routeMap: Record<
       "Reconnect payment redirect flow back into dashboard documents.",
     ],
   },
-  "confidentiality-policy": {
+  confidentiality: {
     badge: "Policy Route",
     title: "Confidentiality Policy",
     description:
@@ -83,7 +83,7 @@ const routeMap: Record<
       "Consolidate policy pages into reusable static content components.",
     ],
   },
-  "refund-policy": {
+  refund: {
     badge: "Policy Route",
     title: "Refund Policy",
     description:
@@ -95,7 +95,7 @@ const routeMap: Record<
       "Preserve route names used in the current footer and payment flows.",
     ],
   },
-  "disclaimer-policy": {
+  disclaimer: {
     badge: "Policy Route",
     title: "Disclaimer Policy",
     description:

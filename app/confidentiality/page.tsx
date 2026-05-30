@@ -23,15 +23,15 @@ export default function ConfidentialityPolicyPage() {
           </p>
           <ul className="space-y-2">
             <li className="flex items-center gap-3">
-              <i className="fas fa-shield-halved text-blue-600" />
+              <span className="text-blue-600 font-bold">•</span>
               <span>Client data protection</span>
             </li>
             <li className="flex items-center gap-3">
-              <i className="fas fa-user-secret text-blue-600" />
+              <span className="text-blue-600 font-bold">•</span>
               <span>Information confidentiality</span>
             </li>
             <li className="flex items-center gap-3">
-              <i className="fas fa-lock text-blue-600" />
+              <span className="text-blue-600 font-bold">•</span>
               <span>
                 Secure handling of sensitive business and personal information
               </span>
@@ -55,21 +55,19 @@ export default function ConfidentialityPolicyPage() {
             <li className="flex items-start gap-3 rounded-xl border border-rose-100 bg-rose-50 p-4">
               <i className="fas fa-circle-xmark mt-1 text-rose-600" />
               <span className="font-medium text-rose-900">
-                We do NOT sell, rent, or trade client data.
+                We do NOT sell, rent, or trade client data
               </span>
             </li>
             <li className="flex items-start gap-3 rounded-xl border border-rose-100 bg-rose-50 p-4">
               <i className="fas fa-circle-xmark mt-1 text-rose-600" />
               <span className="font-medium text-rose-900">
-                We do NOT disclose client information to third parties without
-                consent.
+                We do NOT disclose client information to third parties without consent
               </span>
             </li>
             <li className="flex items-start gap-3 rounded-xl border border-emerald-100 bg-emerald-50 p-4">
               <i className="fas fa-circle-check mt-1 text-emerald-600" />
               <span className="font-medium text-emerald-900">
-                Your data is used strictly for service delivery and compliance
-                purposes.
+                Your data is used strictly for service delivery and compliance purposes.
               </span>
             </li>
           </ul>
@@ -90,22 +88,22 @@ export default function ConfidentialityPolicyPage() {
               "Trade secrets, research, and technical data",
               "Financial records, projections, and pricing",
               "Client lists, vendor details, and marketing plans",
-              "Information disclosed verbally, digitally, or in writing",
+              "Any information disclosed verbally, digitally, or in writing",
             ].map((item) => (
               <li
                 key={item}
                 className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 p-3"
               >
-                <i className="fas fa-check text-sm text-blue-600" />
+                <span className="text-sm text-blue-600 font-bold">•</span>
                 <span className="text-sm">{item}</span>
               </li>
             ))}
           </ul>
           <div className="mt-2 rounded-xl border border-blue-100 bg-blue-50 p-4">
-            <p className="flex items-center gap-2 font-semibold text-blue-900">
-              <i className="fas fa-circle-info" />
-              Whether or not marked as “confidential”, such information will be
-              treated as confidential.
+            <p className="flex items-start gap-2 font-semibold text-blue-900">
+              <span className="text-lg">👉</span>
+              <span>Whether or not marked as “confidential”, such information will be
+                treated as confidential.</span>
             </p>
           </div>
         </div>
@@ -145,32 +143,33 @@ export default function ConfidentialityPolicyPage() {
             <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {[
                 { label: "Authorized employees", icon: "fa-user-tie" },
-                { label: "Directors & partners", icon: "fa-users-gear" },
+                { label: "Directors, partners, and officers", icon: "fa-users-gear" },
                 {
                   label: "Verified professionals (CA, CS)",
                   icon: "fa-user-check",
                 },
-                { label: "Trusted contractors", icon: "fa-handshake" },
+                { label: "Trusted contractors (under confidentiality obligations)", icon: "fa-handshake" },
               ].map((item) => (
                 <li
                   key={item.label}
                   className="flex items-center gap-3 text-gray-700"
                 >
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white shadow-sm">
-                    <i className={`fas ${item.icon} text-sm text-blue-500`} />
-                  </div>
+                  <span className="text-blue-500 font-bold">•</span>
                   <span className="text-sm font-medium">{item.label}</span>
                 </li>
               ))}
             </ul>
-            <p className="mt-4 border-t border-gray-200 pt-4 text-sm font-semibold text-blue-700">
-              👉 Access is granted strictly on a “need-to-know” basis.
+            <p className="mt-4 border-t border-gray-200 pt-4 text-sm font-semibold text-blue-700 flex items-center gap-2">
+              <span>👉</span> Access is granted strictly on a “need-to-know” basis.
             </p>
           </div>
           <p className="text-gray-600">
-            All personnel are bound by confidentiality obligations and data
-            protection policies.
+            All personnel are bound by:
           </p>
+          <ul className="list-disc pl-5 text-gray-600">
+            <li>Confidentiality obligations</li>
+            <li>Data protection policies</li>
+          </ul>
         </div>
       ),
     },
@@ -193,13 +192,13 @@ export default function ConfidentialityPolicyPage() {
                 key={item}
                 className="flex items-center gap-3 rounded-xl border border-gray-100 bg-white p-3 shadow-sm"
               >
-                <i className="fas fa-check-circle text-emerald-500" />
+                <i className="fas fa-check text-emerald-500" />
                 <span className="font-medium text-gray-800">{item}</span>
               </div>
             ))}
           </div>
           <div className="flex items-start gap-3 rounded-xl border border-amber-100 bg-amber-50 p-4">
-            <i className="fas fa-triangle-exclamation mt-1 text-amber-600" />
+            <span className="text-amber-600">⚠️</span>
             <p className="text-sm font-medium text-amber-900">
               All such disclosures are made under strict confidentiality
               safeguards.
@@ -225,7 +224,7 @@ export default function ConfidentialityPolicyPage() {
               "Is disclosed with client’s written consent",
             ].map((item) => (
               <li key={item} className="flex items-start gap-2 text-gray-600">
-                <span className="mt-1 text-blue-500">•</span>
+                <span className="text-blue-500 font-bold">•</span>
                 <span>{item}</span>
               </li>
             ))}
@@ -237,42 +236,26 @@ export default function ConfidentialityPolicyPage() {
       title: "8. Data Security Measures",
       icon: "fa-lock",
       content: (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {[
-            {
-              title: "Encryption",
-              desc: "Storage & transmission",
-              icon: "fa-key",
-            },
-            {
-              title: "Infrastructure",
-              desc: "Secure servers & cloud",
-              icon: "fa-server",
-            },
-            {
-              title: "Access Control",
-              desc: "Role-based access",
-              icon: "fa-user-shield",
-            },
-            {
-              title: "Monitoring",
-              desc: "Continuous audits",
-              icon: "fa-magnifying-glass",
-            },
-          ].map((item) => (
-            <div
-              key={item.title}
-              className="flex items-start gap-4 rounded-2xl border border-blue-100 bg-blue-50 p-4"
-            >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
-                <i className={`fas ${item.icon} text-blue-600`} />
-              </div>
-              <div>
-                <h4 className="text-sm font-bold text-gray-900">{item.title}</h4>
-                <p className="text-xs text-gray-600">{item.desc}</p>
-              </div>
+        <div className="space-y-4">
+          <p>We implement industry-standard security practices:</p>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 p-3">
+              <span className="text-xl">🔐</span>
+              <span className="text-sm font-medium">Data encryption (storage & transmission)</span>
             </div>
-          ))}
+            <div className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 p-3">
+              <span className="text-xl">🖥</span>
+              <span className="text-sm font-medium">Secure servers & cloud infrastructure</span>
+            </div>
+            <div className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 p-3">
+              <span className="text-xl">🔑</span>
+              <span className="text-sm font-medium">Role-based access control</span>
+            </div>
+            <div className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 p-3">
+              <span className="text-xl">🔍</span>
+              <span className="text-sm font-medium">Continuous monitoring & audits</span>
+            </div>
+          </div>
         </div>
       ),
     },
@@ -288,8 +271,8 @@ export default function ConfidentialityPolicyPage() {
             <li>• Maintain confidentiality of their own login credentials</li>
           </ul>
           <div className="flex items-start gap-3 rounded-xl border border-amber-100 bg-amber-50 p-4">
-            <i className="fas fa-triangle-exclamation mt-1 text-amber-600" />
-            <p className="text-sm font-bold uppercase tracking-wide text-amber-900">
+            <span className="text-amber-600 font-bold">⚠️</span>
+            <p className="text-sm font-medium text-amber-900">
               We are not responsible for breaches caused due to user negligence.
             </p>
           </div>
@@ -327,10 +310,10 @@ export default function ConfidentialityPolicyPage() {
             <p className="mb-2 font-medium text-gray-900">
               Any losses, damages, or claims arising from:
             </p>
-            <ul className="space-y-2 border-l-2 border-blue-200 pl-4">
-              <li>• Unauthorized use of the platform</li>
-              <li>• Breach of confidentiality by your actions</li>
-              <li>• Submission of unlawful or misleading data</li>
+            <ul className="space-y-2 border-l-2 border-blue-200 pl-4 text-sm font-medium">
+              <li>o Unauthorized use of the platform</li>
+              <li>o Breach of confidentiality by your actions</li>
+              <li>o Submission of unlawful or misleading data</li>
             </ul>
           </div>
         </div>
@@ -346,14 +329,14 @@ export default function ConfidentialityPolicyPage() {
             {[
               "Indirect or consequential damages",
               "Loss of business, profits, or data",
-              "Breaches caused by third-party systems",
+              "Breaches caused by third-party systems or government portals",
               "Events beyond reasonable control",
             ].map((item) => (
               <li
                 key={item}
                 className="flex items-center gap-2 rounded-lg bg-gray-50 p-2 px-3 text-sm text-gray-600"
               >
-                <i className="fas fa-minus text-gray-400" />
+                <span className="font-bold text-gray-400">•</span>
                 {item}
               </li>
             ))}
@@ -365,12 +348,15 @@ export default function ConfidentialityPolicyPage() {
       title: "13. Duration of Confidentiality",
       icon: "fa-clock-rotate-left",
       content: (
-        <div className="flex flex-col gap-4 sm:flex-row">
-          <div className="flex-1 rounded-xl border border-blue-100 bg-blue-50 p-4 text-center">
-            <p className="font-bold text-blue-900">During service engagement</p>
-          </div>
-          <div className="flex-1 rounded-xl border border-emerald-100 bg-emerald-50 p-4 text-center">
-            <p className="font-bold text-emerald-900">Even after termination</p>
+        <div className="space-y-3">
+          <p>Confidentiality obligations continue:</p>
+          <div className="flex flex-col gap-4 sm:flex-row">
+            <div className="flex-1 rounded-xl border border-blue-100 bg-blue-50 p-4 text-center">
+              <p className="font-bold text-blue-900">o During service engagement</p>
+            </div>
+            <div className="flex-1 rounded-xl border border-emerald-100 bg-emerald-50 p-4 text-center">
+              <p className="font-bold text-emerald-900">o Even after termination of services</p>
+            </div>
           </div>
         </div>
       ),
@@ -399,13 +385,13 @@ export default function ConfidentialityPolicyPage() {
           <p>If any provision of this agreement is found unenforceable:</p>
           <ul className="space-y-2">
             <li className="flex items-center gap-3">
-              <i className="fas fa-circle-check text-emerald-500" />
+              <span className="text-emerald-500 font-bold">•</span>
               <span>
                 The remaining provisions shall continue in full force
               </span>
             </li>
             <li className="flex items-center gap-3">
-              <i className="fas fa-pen-to-square text-blue-500" />
+              <span className="text-blue-500 font-bold">•</span>
               <span>
                 The invalid clause shall be modified to the minimum extent
                 required

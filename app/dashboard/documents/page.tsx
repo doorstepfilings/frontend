@@ -1,19 +1,10 @@
 import { DashboardDocumentsView } from "@/components/dashboard/dashboard-documents-view";
 import { normalizePaymentServiceIds } from "@/lib/utils/payment-navigation";
 
-function readFirst(
-  value: string | string[] | undefined,
-  fallback = "",
-) {
-  if (Array.isArray(value)) {
-    return value[0] ?? fallback;
-  }
-
-  return value ?? fallback;
-}
+import { readFirst } from "@/lib/utils/core";
 
 export default async function DashboardDocumentsPage(
-  props: PageProps<"/dashboard/documents">,
+  props: { searchParams: Promise<any> },
 ) {
   const searchParams = await props.searchParams;
 
