@@ -6,10 +6,12 @@ import { format, isValid } from "date-fns";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { AuthGuard } from "@/components/auth/auth-guard";
 import { Button } from "@/components/ui/button";
+import { SearchSelect } from "@/components/ui/core/search-select";
 import { adminApi, type AdminStage } from "@/lib/api/admin-api";
 import { parseApiError } from "@/lib/utils/error-parser";
 import { useConfirm } from "@/hooks/use-confirm";
 import { toast } from "react-hot-toast";
+import { PanelLogoLoader } from "@/components/ui/logo-loader";
 
 type StageFilter = "all" | "active" | "inactive" | "default" | "custom";
 
@@ -263,14 +265,12 @@ export function StageManagementView() {
           </section>
 
           {loading ? (
-            <div className="flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-6 py-20 shadow-sm">
-              <div className="flex flex-col items-center gap-4">
-                <div className="h-10 w-10 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
-                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
-                  Loading milestones...
-                </p>
-              </div>
-            </div>
+            <PanelLogoLoader
+              className="min-h-[18rem] rounded-2xl border border-slate-200 bg-white px-0 py-0 shadow-sm"
+              label="Loading milestones..."
+              size={54}
+              surfaceClassName="max-w-md"
+            />
           ) : error ? (
             <div className="flex flex-col items-center rounded-2xl border border-rose-100 bg-rose-50/50 p-8 text-center shadow-sm">
               <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-100 text-rose-600">
@@ -307,24 +307,24 @@ export function StageManagementView() {
                   </div>
 
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                    <div className="relative min-w-[220px]">
-                      <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400">
-                        <i className="fas fa-filter text-xs" />
-                      </span>
-                      <select
+                    <div className="min-w-[220px]">
+                      <SearchSelect
+                        options={[
+                          { value: "all", label: "All Milestones" },
+                          { value: "active", label: "Active Only" },
+                          { value: "inactive", label: "Inactive Only" },
+                          { value: "default", label: "Default Only" },
+                          { value: "custom", label: "Custom Only" },
+                        ]}
                         value={filter}
-                        onChange={(event) => setFilter(event.target.value as StageFilter)}
-                        className="h-12 w-full appearance-none rounded-xl border border-slate-200 bg-white pl-10 pr-10 text-sm font-semibold text-slate-700 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
-                      >
-                        <option value="all">All Milestones</option>
-                        <option value="active">Active Only</option>
-                        <option value="inactive">Inactive Only</option>
-                        <option value="default">Default Only</option>
-                        <option value="custom">Custom Only</option>
-                      </select>
-                      <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400">
-                        <i className="fas fa-chevron-down text-xs" />
-                      </span>
+                        onChange={(nextValue) => setFilter(nextValue as StageFilter)}
+                        triggerClassName="h-12 rounded-xl px-4 py-3"
+                        valueLabelClassName="text-sm font-semibold text-slate-700"
+                        handleClassName="h-8 w-8 rounded-lg border-0 bg-transparent text-slate-400"
+                        renderValueStart={() => (
+                          <i className="fas fa-filter text-xs text-slate-400" />
+                        )}
+                      />
                     </div>
 
                     {hasActiveFilters ? (

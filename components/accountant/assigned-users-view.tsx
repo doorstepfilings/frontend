@@ -6,6 +6,7 @@ import { AuthGuard } from "@/components/auth/auth-guard";
 import { apiClient } from "@/lib/api/client";
 import { toast } from "react-hot-toast";
 import Link from "next/link";
+import { PanelLogoLoader } from "@/components/ui/logo-loader";
 
 export function AccountantAssignedUsersView() {
     const [users, setUsers] = useState<any[]>([]);
@@ -46,8 +47,12 @@ export function AccountantAssignedUsersView() {
                                     {loading ? (
                                         <tr>
                                             <td colSpan={4} className="px-8 py-40 text-center">
-                                                <div className="h-10 w-10 animate-spin rounded-full border-2 border-slate-200 border-t-slate-900 mx-auto"></div>
-                                                <p className="mt-4 text-[11px] font-bold text-slate-300 uppercase tracking-widest">Accessing Records...</p>
+                                                <PanelLogoLoader
+                                                    className="min-h-0 px-0 py-0"
+                                                    label="Accessing records..."
+                                                    size={54}
+                                                    surfaceClassName="max-w-md"
+                                                />
                                             </td>
                                         </tr>
                                     ) : users.length === 0 ? (

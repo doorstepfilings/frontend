@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { normalizeRole } from "@/lib/auth/redirects";
 import { getDefaultRedirectPath } from "@/lib/auth/storage";
 import { useAuthStatus, useStoredToken, useStoredUser } from "@/lib/auth/hooks";
+import { GlobalLogoLoader } from "@/components/ui/logo-loader";
 
 type AuthGuardProps = {
   children: React.ReactNode;
@@ -49,18 +50,7 @@ export function AuthGuard({
   }, [authStatus, hasAuth, hasRole, pathname, roleKey, router, user]);
 
   if (authStatus === "loading" || !hasAuth || !hasRole) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-        <div className="rounded-3xl border border-slate-200 bg-white px-6 py-5 text-center shadow-sm">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-blue-700">
-            <i className="fas fa-shield-halved" />
-          </div>
-          <p className="mt-4 text-sm font-bold text-slate-900">
-            Preparing your secure workspace...
-          </p>
-        </div>
-      </div>
-    );
+    return <GlobalLogoLoader label="Preparing your secure workspace..." />;
   }
 
   return <>{children}</>;

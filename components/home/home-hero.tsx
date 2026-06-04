@@ -64,10 +64,10 @@ export function HomeHero() {
             </p>
 
             {/* CTA buttons */}
-            <div className="animate-fade-in-up delay-300 mb-10 flex flex-wrap gap-4">
+            <div className="animate-fade-in-up delay-300 mb-10 flex flex-col sm:flex-row gap-4">
               <Link
                 href="/contact"
-                className="group relative overflow-hidden rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 px-8 py-4 text-lg font-semibold text-white shadow-lg shadow-amber-500/25 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-amber-500/40"
+                className="group relative overflow-hidden rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 px-8 py-4 text-lg font-semibold text-white shadow-lg shadow-amber-500/25 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-amber-500/40 w-full sm:w-auto text-center flex justify-center items-center"
               >
                 <span className="relative z-10 flex items-center gap-2">
                   Get Free Consultation
@@ -90,7 +90,7 @@ export function HomeHero() {
 
               <Link
                 href="/about"
-                className="group flex items-center gap-3 rounded-xl border border-slate-700 bg-white/5 px-8 py-4 text-lg font-semibold text-white backdrop-blur-sm transition-all duration-300 hover:border-slate-600 hover:bg-white/10"
+                className="group flex items-center justify-center gap-3 rounded-xl border border-slate-700 bg-white/5 px-8 py-4 text-lg font-semibold text-white backdrop-blur-sm transition-all duration-300 hover:border-slate-600 hover:bg-white/10 w-full sm:w-auto"
               >
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/20 transition-colors group-hover:bg-amber-500/30">
                   <svg

@@ -9,6 +9,7 @@ import { apiClient } from "@/lib/api/client";
 import { useStoredUser } from "@/lib/auth/hooks";
 import { formatPrice } from "@/lib/utils/pricing";
 import { ApplyServiceModal } from "./apply-service-modal";
+import { PageLogoLoader } from "@/components/ui/logo-loader";
 
 type ServiceDetailResponse = {
   data?: ServiceDetail;
@@ -93,12 +94,11 @@ export function ServiceDetailView({ slug }: { slug: string }) {
   if (status === "loading") {
     return (
       <PublicShell>
-        <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-          <div className="text-center">
-            <div className="w-12 h-12 border-4 border-blue-900 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-slate-600 font-bold uppercase tracking-widest text-xs">Loading service intelligence...</p>
-          </div>
-        </div>
+        <PageLogoLoader
+          className="min-h-screen bg-slate-50"
+          label="Loading service intelligence..."
+          size={64}
+        />
       </PublicShell>
     );
   }

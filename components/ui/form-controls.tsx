@@ -1,4 +1,5 @@
 import React from "react";
+import { SearchSelect } from "@/components/ui/core/search-select";
 
 interface FormSelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   label?: string;
@@ -21,63 +22,95 @@ export const FormSelect = ({
   className = "",
   options = [],
   helpText = null,
-  ...props
 }: FormSelectProps) => {
-  const selectClasses = `
-        w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 appearance-none bg-white
-        ${error ? "border-red-500 ring-1 ring-red-200" : ""}
-        ${
-          disabled
-            ? "bg-gray-50 text-gray-500 cursor-not-allowed"
-            : "bg-white hover:border-gray-300"
-        }
-        ${className}
-    `;
+  const selectOptions = [
+    { value: "", label: placeholder },
+    ...options.map((option) => ({
+      value: String(option.value),
+      label: option.label,
+    })),
+  ];
+
+  const emitChangeEvent = (nextValue: string) => {
+    if (!onChange) {
+      return;
+    }
+
+    const target = {
+      name,
+      value: nextValue,
+    } as HTMLSelectElement;
+
+    onChange({
+      target,
+      currentTarget: target,
+    } as React.ChangeEvent<HTMLSelectElement>);
+  };
+
+  const emitBlurEvent = () => {
+    if (!onBlur) {
+      return;
+    }
+
+    const target = {
+      name,
+      value: String(value ?? ""),
+    } as HTMLSelectElement;
+
+    onBlur({
+      target,
+      currentTarget: target,
+    } as React.FocusEvent<HTMLSelectElement>);
+  };
 
   return (
     <div className="space-y-2">
       {label && (
         <label
           htmlFor={name}
-          className="block text-sm font-semibold text-gray-700"
+          className="block text-sm font-semibold text-slate-700"
         >
           {label}
-          {required && <span className="ml-1 text-red-500">*</span>}
+          {required && <span className="ml-1 text-rose-500">*</span>}
         </label>
       )}
 
       <div className="relative">
-        <select
-          id={name}
-          name={name}
-          value={value}
-          onChange={onChange}
-          onBlur={onBlur}
+        <SearchSelect
+          options={selectOptions}
+          value={String(value ?? "")}
+          onChange={emitChangeEvent}
+          onBlur={emitBlurEvent}
+          placeholder={placeholder}
           disabled={disabled}
-          className={selectClasses}
-          {...props}
-        >
-          <option value="">{placeholder}</option>
-          {options.map((option, index) => (
-            <option key={index} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-
-        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-          <i className="fas fa-chevron-down text-sm text-gray-400"></i>
-        </div>
+          name={name}
+          required={required}
+          searchable={options.length > 7}
+          treatEmptyValueAsPlaceholder
+          selectStyle={{
+            borderColor: error ? "#f43f5e" : "#e2e8f0",
+            boxShadow: error
+              ? "0 0 0 1px rgba(244, 63, 94, 0.16)"
+              : "0 1px 2px rgba(15, 23, 42, 0.05)",
+            background: disabled ? "#f8fafc" : "#ffffff",
+          }}
+          triggerClassName={`min-h-[3.5rem] rounded-2xl px-4 py-3 panel-select ${
+            disabled ? "cursor-not-allowed opacity-70" : ""
+          } ${className}`}
+          valueLabelClassName="text-sm font-semibold text-slate-700"
+          handleClassName="h-8 w-8 rounded-lg border-0 bg-transparent text-slate-400"
+          searchInputClassName="rounded-xl"
+        />
       </div>
 
       {error && (
-        <p className="flex items-center gap-1 text-sm text-red-600">
+        <p className="flex items-center gap-1 text-sm text-rose-600">
           <i className="fas fa-exclamation-circle text-xs"></i>
           {error}
         </p>
       )}
 
-      {helpText && !error && <p className="text-sm text-gray-500">{helpText}</p>}
+      {helpText && !error && <p className="text-sm text-slate-500">{helpText}</p>}
     </div>
   );
 };
@@ -106,12 +139,12 @@ export const FormTextarea = ({
   ...props
 }: FormTextareaProps) => {
   const textareaClasses = `
-        w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-vertical
-        ${error ? "border-red-500 ring-1 ring-red-200" : ""}
+        w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 shadow-sm panel-textarea resize-y
+        ${error ? "border-rose-500 ring-1 ring-rose-200" : ""}
         ${
           disabled
-            ? "bg-gray-50 text-gray-500 cursor-not-allowed"
-            : "bg-white hover:border-gray-300"
+            ? "bg-slate-50 text-slate-400 cursor-not-allowed"
+            : "hover:border-slate-300"
         }
         ${className}
     `;
@@ -121,10 +154,10 @@ export const FormTextarea = ({
       {label && (
         <label
           htmlFor={name}
-          className="block text-sm font-semibold text-gray-700"
+          className="block text-sm font-semibold text-slate-700"
         >
           {label}
-          {required && <span className="ml-1 text-red-500">*</span>}
+          {required && <span className="ml-1 text-rose-500">*</span>}
         </label>
       )}
 
@@ -144,20 +177,20 @@ export const FormTextarea = ({
         />
 
         {maxLength && (
-          <div className="absolute bottom-2 right-3 text-xs text-gray-400">
+          <div className="absolute bottom-2 right-3 text-xs text-slate-400">
             {typeof value === "string" ? value.length : 0}/{maxLength}
           </div>
         )}
       </div>
 
       {error && (
-        <p className="flex items-center gap-1 text-sm text-red-600">
+        <p className="flex items-center gap-1 text-sm text-rose-600">
           <i className="fas fa-exclamation-circle text-xs"></i>
           {error}
         </p>
       )}
 
-      {helpText && !error && <p className="text-sm text-gray-500">{helpText}</p>}
+      {helpText && !error && <p className="text-sm text-slate-500">{helpText}</p>}
     </div>
   );
 };

@@ -44,6 +44,7 @@ type DashboardDocumentArchiveItem = {
   serviceName?: string | null;
   serviceStatus?: string | null;
   status?: string | null;
+  notes?: string | null;
 };
 
 const createEmptyRow = (): DashboardUploadRow => ({
@@ -131,6 +132,12 @@ export function DashboardDocumentsView({
       ),
     [myServices],
   );
+
+  useEffect(() => {
+    if (!uploadServiceId && uploadableServices.length > 0) {
+      setUploadServiceId(String(uploadableServices[0].id));
+    }
+  }, [uploadableServices, uploadServiceId]);
 
   const flatDocuments = useMemo(
     () =>
@@ -362,7 +369,7 @@ export function DashboardDocumentsView({
           <select
             value={uploadServiceId}
             onChange={(event) => setUploadServiceId(event.target.value)}
-            className="h-12 rounded-xl border border-gray-200 bg-white px-4 text-sm font-bold text-gray-700 outline-none focus:border-blue-500"
+            className="h-12 w-full md:w-auto rounded-xl border border-gray-200 bg-white px-4 text-sm font-bold text-gray-700 outline-none focus:border-blue-500"
           >
             <option value="">Select Target Service</option>
             {uploadableServices.map((service) => (
@@ -373,7 +380,11 @@ export function DashboardDocumentsView({
           </select>
         </div>
 
-        {uploadServiceId ? (
+        {uploadableServices.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50/50 py-10 text-center text-xs font-bold uppercase tracking-widest text-gray-400">
+            No active service applications available for document uploads.
+          </div>
+        ) : uploadServiceId ? (
           <DocumentUpload
             rows={rows}
             fileErrors={fileErrors}
@@ -403,24 +414,28 @@ export function DashboardDocumentsView({
             onSubmit={handleUpload}
             isUploading={isUploading}
           />
-        ) : null}
+        ) : (
+          <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50/50 py-10 text-center text-xs font-bold uppercase tracking-widest text-gray-400">
+            Please select a service above to upload documents.
+          </div>
+        )}
       </div>
 
       <div className="space-y-6">
         <div className="flex flex-col justify-between gap-6 md:flex-row md:items-center">
           <h2 className="text-2xl font-bold text-gray-900">Document Archive</h2>
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
             <input
               type="text"
               placeholder="Search documents..."
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
-              className="h-12 rounded-xl border border-gray-200 bg-white px-4 text-sm font-bold outline-none focus:border-blue-500"
+              className="h-12 w-full sm:w-64 rounded-xl border border-gray-200 bg-white px-4 text-sm font-bold outline-none focus:border-blue-500"
             />
             <select
               value={archiveServiceId}
               onChange={(event) => setArchiveServiceId(event.target.value)}
-              className="h-12 rounded-xl border border-gray-200 bg-white px-4 text-xs font-bold uppercase tracking-widest outline-none focus:border-blue-500"
+              className="h-12 w-full sm:w-auto rounded-xl border border-gray-200 bg-white px-4 text-xs font-bold uppercase tracking-widest outline-none focus:border-blue-500"
             >
               <option value="all">All Services</option>
               {myServices.map((service) => (
@@ -470,6 +485,11 @@ export function DashboardDocumentsView({
                       <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
                         {doc.status}
                       </p>
+                      {doc.notes && (
+                        <p className="mt-2 text-xs font-semibold leading-relaxed text-slate-500 bg-slate-50 border border-slate-100 p-2.5 rounded-xl">
+                          {doc.notes}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="flex gap-2">

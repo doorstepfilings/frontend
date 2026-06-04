@@ -89,26 +89,26 @@ export function RequestDetailModal({ request, isOpen, onClose, onUpdate }: Reque
                                         </div>
                                     </div>
                                     <div className="flex items-center space-x-1">
-                                        <a 
-                                            href={`http://localhost:4000/storage/${doc.filePath}`} 
-                                            target="_blank" 
+                                        <a
+                                            href={`http://localhost:4000/storage/${doc.filePath}`}
+                                            target="_blank"
                                             rel="noreferrer"
                                             className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "h-8 w-8 text-blue-500")}
                                         >
                                             <ExternalLink size={16} />
                                         </a>
-                                        <Button 
-                                            size="icon" 
-                                            variant="ghost" 
+                                        <Button
+                                            size="icon"
+                                            variant="ghost"
                                             className="h-8 w-8 text-emerald-600"
                                             disabled={submitting || doc.status === 'verified'}
                                             onClick={() => handleVerifyDoc(doc.id, 'verified')}
                                         >
                                             <CheckCircle size={16} />
                                         </Button>
-                                        <Button 
-                                            size="icon" 
-                                            variant="ghost" 
+                                        <Button
+                                            size="icon"
+                                            variant="ghost"
                                             className="h-8 w-8 text-rose-500"
                                             disabled={submitting || doc.status === 'rejected'}
                                             onClick={() => {

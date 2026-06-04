@@ -18,6 +18,7 @@ import { useStoredUser } from "@/lib/auth/hooks";
 import { getStoredToken, setStoredUser } from "@/lib/auth/storage";
 import type { AuthUser } from "@/lib/auth/types";
 import { apiClient } from "@/lib/api/client";
+import { PageLogoLoader } from "@/components/ui/logo-loader";
 import { parseApiError } from "@/lib/utils/error-parser";
 import { getDocumentIcon } from "@/lib/utils/document-helpers";
 import { formatPrice } from "@/lib/utils/pricing";
@@ -431,12 +432,11 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
   if (serviceDetailsLoading) {
     return (
       <PublicShell>
-        <div className="flex min-h-[60vh] items-center justify-center bg-gray-50">
-          <div className="text-center">
-            <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-blue-900 border-t-transparent"></div>
-            <p className="text-gray-600">Loading service details...</p>
-          </div>
-        </div>
+        <PageLogoLoader
+          className="min-h-[60vh] bg-gray-50"
+          label="Loading service details..."
+          size={64}
+        />
       </PublicShell>
     );
   }

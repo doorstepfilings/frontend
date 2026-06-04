@@ -52,7 +52,9 @@ export const fetchServices = createAsyncThunk<
       const response = await apiClient.get("/services");
       return response.data?.data ?? [];
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || "Failed to fetch services");
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch services",
+      );
     }
   },
   {
@@ -80,7 +82,9 @@ export const fetchServiceDetails = createAsyncThunk<
     if (error.response?.status === 404) {
       return rejectWithValue("Service not found.");
     }
-    return rejectWithValue(error.response?.data?.message || "Failed to fetch service details");
+    return rejectWithValue(
+      error.response?.data?.message || "Failed to fetch service details",
+    );
   }
 });
 
@@ -101,7 +105,9 @@ export const addToCart = createAsyncThunk<
     ) {
       return { success: true, message: "Service already in cart", data: null };
     }
-    return rejectWithValue(error.response?.data?.message || "Failed to add to cart");
+    return rejectWithValue(
+      error.response?.data?.message || "Failed to add to cart",
+    );
   }
 });
 
@@ -119,7 +125,7 @@ export const applyForService = createAsyncThunk<
     return rejectWithValue(
       error.response?.data?.errors ||
         error.response?.data?.message ||
-        "Failed to submit application"
+        "Failed to submit application",
     );
   }
 });
@@ -127,15 +133,23 @@ export const applyForService = createAsyncThunk<
 export const fetchMyServices = createAsyncThunk<
   any[],
   void,
-  { rejectValue: string }
->("services/fetchMyServices", async (_, { rejectWithValue }) => {
-  try {
-    const response = await apiClient.get("/service/my-services");
-    return response.data?.data ?? [];
-  } catch (error: any) {
-    return rejectWithValue(error.response?.data?.message || "Failed to fetch your services");
-  }
-});
+  { rejectValue: string; state: RootState }
+>(
+  "services/fetchMyServices",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await apiClient.get("/service/my-services");
+      return response.data?.data ?? [];
+    } catch (error: any) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch your services",
+      );
+    }
+  },
+  {
+    condition: (_, { getState }) => !getState().services.loading,
+  },
+);
 
 export const fetchMyOrders = createAsyncThunk<
   any[],
@@ -146,7 +160,9 @@ export const fetchMyOrders = createAsyncThunk<
     const response = await apiClient.get("/user/orders");
     return response.data?.data ?? [];
   } catch (error: any) {
-    return rejectWithValue(error.response?.data?.message || "Failed to fetch your orders");
+    return rejectWithValue(
+      error.response?.data?.message || "Failed to fetch your orders",
+    );
   }
 });
 
@@ -159,7 +175,9 @@ export const deleteMyService = createAsyncThunk<
     await apiClient.delete(`/service/my-services/${id}`);
     return id;
   } catch (error: any) {
-    return rejectWithValue(error.response?.data?.message || "Failed to remove your service");
+    return rejectWithValue(
+      error.response?.data?.message || "Failed to remove your service",
+    );
   }
 });
 
@@ -167,29 +185,45 @@ export const uploadMyDocuments = createAsyncThunk<
   any,
   { id: number | string; formData: FormData },
   { rejectValue: string }
->("services/uploadMyDocuments", async ({ id, formData }, { rejectWithValue }) => {
-  try {
-    const response = await apiClient.post(`/service/my-services/${id}/documents`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-    return response.data;
-  } catch (error: any) {
-    return rejectWithValue(error.response?.data?.message || "Failed to upload documents");
-  }
-});
+>(
+  "services/uploadMyDocuments",
+  async ({ id, formData }, { rejectWithValue }) => {
+    try {
+      const response = await apiClient.post(
+        `/service/my-services/${id}/documents`,
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        },
+      );
+      return response.data;
+    } catch (error: any) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to upload documents",
+      );
+    }
+  },
+);
 
 export const deleteMyDocument = createAsyncThunk<
   { serviceId: number | string; docId: number | string },
   { serviceId: number | string; docId: number | string },
   { rejectValue: string }
->("services/deleteMyDocument", async ({ serviceId, docId }, { rejectWithValue }) => {
-  try {
-    await apiClient.delete(`/service/my-services/${serviceId}/documents/${docId}`);
-    return { serviceId, docId };
-  } catch (error: any) {
-    return rejectWithValue(error.response?.data?.message || "Failed to delete document");
-  }
-});
+>(
+  "services/deleteMyDocument",
+  async ({ serviceId, docId }, { rejectWithValue }) => {
+    try {
+      await apiClient.delete(
+        `/service/my-services/${serviceId}/documents/${docId}`,
+      );
+      return { serviceId, docId };
+    } catch (error: any) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to delete document",
+      );
+    }
+  },
+);
 
 export const downloadInvoice = createAsyncThunk<
   Blob,
@@ -197,12 +231,15 @@ export const downloadInvoice = createAsyncThunk<
   { rejectValue: string }
 >("services/downloadInvoice", async (orderId, { rejectWithValue }) => {
   try {
-    const response = await apiClient.get(`/payments/my-orders/${orderId}/invoice`, {
-      responseType: "blob",
-      headers: {
-        Accept: "application/pdf",
+    const response = await apiClient.get(
+      `/payments/my-orders/${orderId}/invoice`,
+      {
+        responseType: "blob",
+        headers: {
+          Accept: "application/pdf",
+        },
       },
-    });
+    );
 
     const contentType = String(response.headers?.["content-type"] || "");
     if (!contentType.includes("application/pdf")) {
@@ -232,18 +269,19 @@ export const downloadInvoice = createAsyncThunk<
   }
 });
 
-export const fetchCart = createAsyncThunk<
-  any[],
-  void,
-  { rejectValue: string }
->("services/fetchCart", async (_, { rejectWithValue }) => {
-  try {
-    const response = await apiClient.get("/service/cart");
-    return response.data?.data ?? [];
-  } catch (error: any) {
-    return rejectWithValue(error.response?.data?.message || "Failed to fetch cart");
-  }
-});
+export const fetchCart = createAsyncThunk<any[], void, { rejectValue: string }>(
+  "services/fetchCart",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await apiClient.get("/service/cart");
+      return response.data?.data ?? [];
+    } catch (error: any) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch cart",
+      );
+    }
+  },
+);
 
 export const removeFromCart = createAsyncThunk<
   number | string,
@@ -254,7 +292,9 @@ export const removeFromCart = createAsyncThunk<
     await apiClient.delete(`/service/cart/${id}`);
     return id;
   } catch (error: any) {
-    return rejectWithValue(error.response?.data?.message || "Failed to remove from cart");
+    return rejectWithValue(
+      error.response?.data?.message || "Failed to remove from cart",
+    );
   }
 });
 
@@ -264,10 +304,14 @@ export const createRazorpayOrder = createAsyncThunk<
   { rejectValue: string }
 >("services/createRazorpayOrder", async (serviceIds, { rejectWithValue }) => {
   try {
-    const response = await apiClient.post("/payments/razorpay/order", { service_ids: serviceIds });
+    const response = await apiClient.post("/payments/razorpay/order", {
+      service_ids: serviceIds,
+    });
     return response.data;
   } catch (error: any) {
-    return rejectWithValue(error.response?.data?.message || "Failed to create payment order");
+    return rejectWithValue(
+      error.response?.data?.message || "Failed to create payment order",
+    );
   }
 });
 
@@ -275,14 +319,21 @@ export const createRazorpaySingleOrder = createAsyncThunk<
   any,
   number | string,
   { rejectValue: string }
->("services/createRazorpaySingleOrder", async (userServiceId, { rejectWithValue }) => {
-  try {
-    const response = await apiClient.post("/payments/razorpay/order-single", { user_service_id: userServiceId });
-    return response.data;
-  } catch (error: any) {
-    return rejectWithValue(error.response?.data?.message || "Failed to create payment order");
-  }
-});
+>(
+  "services/createRazorpaySingleOrder",
+  async (userServiceId, { rejectWithValue }) => {
+    try {
+      const response = await apiClient.post("/payments/razorpay/order-single", {
+        user_service_id: userServiceId,
+      });
+      return response.data;
+    } catch (error: any) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to create payment order",
+      );
+    }
+  },
+);
 
 export const verifyRazorpayPayment = createAsyncThunk<
   any,
@@ -293,7 +344,9 @@ export const verifyRazorpayPayment = createAsyncThunk<
     const response = await apiClient.post("/payments/razorpay/verify", payload);
     return response.data;
   } catch (error: any) {
-    return rejectWithValue(error.response?.data?.message || "Payment verification failed");
+    return rejectWithValue(
+      error.response?.data?.message || "Payment verification failed",
+    );
   }
 });
 
@@ -425,9 +478,13 @@ const servicesSlice = createSlice({
       })
       .addCase(deleteMyDocument.fulfilled, (state, action) => {
         state.applyLoading = false;
-        const service = state.myServices.find(s => String(s.id) === String(action.payload.serviceId));
+        const service = state.myServices.find(
+          (s) => String(s.id) === String(action.payload.serviceId),
+        );
         if (service && service.request_documents) {
-          service.request_documents = service.request_documents.filter((d: any) => String(d.id) !== String(action.payload.docId));
+          service.request_documents = service.request_documents.filter(
+            (d: any) => String(d.id) !== String(action.payload.docId),
+          );
         }
       })
       .addCase(deleteMyDocument.rejected, (state, action) => {
@@ -447,7 +504,9 @@ const servicesSlice = createSlice({
         state.cartError = action.payload as string;
       })
       .addCase(removeFromCart.fulfilled, (state, action) => {
-        state.cart = state.cart.filter(item => String(item.id) !== String(action.payload));
+        state.cart = state.cart.filter(
+          (item) => String(item.id) !== String(action.payload),
+        );
       })
       .addCase(verifyRazorpayPayment.pending, (state) => {
         state.paymentLoading = true;

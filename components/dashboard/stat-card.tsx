@@ -16,56 +16,43 @@ interface StatCardProps {
 
 export function StatCard({ label, value, icon, color, trend, className }: StatCardProps) {
   const colorMap = {
-    blue: "from-blue-500 to-blue-600 shadow-blue-500/20",
-    amber: "from-amber-500 to-amber-600 shadow-amber-500/20",
-    emerald: "from-emerald-500 to-emerald-600 shadow-emerald-500/20",
-    indigo: "from-indigo-500 to-indigo-600 shadow-indigo-500/20",
-    rose: "from-rose-500 to-rose-600 shadow-rose-500/20",
-    slate: "from-slate-700 to-slate-800 shadow-slate-700/20",
+    blue: "bg-blue-50 text-blue-700 border-blue-100",
+    amber: "bg-amber-50 text-amber-700 border-amber-100",
+    emerald: "bg-emerald-50 text-emerald-700 border-emerald-100",
+    indigo: "bg-indigo-50 text-indigo-700 border-indigo-100",
+    rose: "bg-rose-50 text-rose-700 border-rose-100",
+    slate: "bg-slate-100 text-slate-700 border-slate-200",
   };
 
-  const bgIconMap = {
-    blue: "bg-blue-400/20",
-    amber: "bg-amber-400/20",
-    emerald: "bg-emerald-400/20",
-    indigo: "bg-indigo-400/20",
-    rose: "bg-rose-400/20",
-    slate: "bg-slate-400/20",
+  const progressMap = {
+    blue: "bg-blue-900",
+    amber: "bg-amber-500",
+    emerald: "bg-emerald-500",
+    indigo: "bg-indigo-500",
+    rose: "bg-rose-500",
+    slate: "bg-slate-700",
   };
 
   return (
     <div className={cn(
-      "relative overflow-hidden bg-white rounded-[2rem] border border-slate-100 shadow-sm p-8 group hover:shadow-xl transition-all duration-500",
+      "panel-card group relative overflow-hidden p-5 sm:p-6",
       className
     )}>
-      {/* Background Accent */}
-      <div className={cn(
-        "absolute -right-4 -top-4 w-24 h-24 blur-3xl opacity-10 rounded-full bg-gradient-to-br",
-        colorMap[color]
-      )} />
-
-      <div className="flex items-start justify-between relative z-10">
-        <div className="space-y-4">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0 space-y-4">
           <div className="flex items-center gap-3">
-             <div className={cn("p-2.5 rounded-xl flex items-center justify-center", bgIconMap[color])}>
-               <i className={cn("fas", icon, "text-sm", {
-                 "text-blue-600": color === "blue",
-                 "text-amber-600": color === "amber",
-                 "text-emerald-600": color === "emerald",
-                 "text-indigo-600": color === "indigo",
-                 "text-rose-600": color === "rose",
-                 "text-slate-600": color === "slate",
-               })}></i>
+             <div className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border", colorMap[color])}>
+               <i className={cn("fas", icon, "text-sm")}></i>
              </div>
-             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</span>
+             <span className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">{label}</span>
           </div>
           
-          <div className="flex items-baseline gap-3">
-            <h4 className="text-3xl font-black text-slate-900 tracking-tight">{value}</h4>
+          <div className="flex flex-wrap items-baseline gap-3">
+            <h4 className="text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">{value}</h4>
             {trend && (
               <span className={cn(
-                "text-[10px] font-black px-2 py-0.5 rounded-md flex items-center gap-1",
-                trend.isPositive ? "text-emerald-600 bg-emerald-50" : "text-rose-600 bg-rose-50"
+                "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em]",
+                trend.isPositive ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
               )}>
                 <i className={cn("fas", trend.isPositive ? "fa-arrow-up" : "fa-arrow-down", "text-[8px]")}></i>
                 {trend.value}%
@@ -75,10 +62,10 @@ export function StatCard({ label, value, icon, color, trend, className }: StatCa
         </div>
       </div>
       
-      <div className="mt-6 h-1 w-full bg-slate-50 rounded-full overflow-hidden">
+      <div className="mt-5 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
         <div className={cn(
-          "h-full rounded-full bg-gradient-to-r",
-          colorMap[color]
+          "h-full rounded-full",
+          progressMap[color]
         )} style={{ width: '40%' }} />
       </div>
     </div>

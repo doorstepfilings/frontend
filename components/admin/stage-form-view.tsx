@@ -8,10 +8,11 @@ import { AdminLayout } from "@/components/layout/AdminLayout";
 import { AuthGuard } from "@/components/auth/auth-guard";
 import { adminApi } from "@/lib/api/admin-api";
 import { parseApiError } from "@/lib/utils/error-parser";
+import { PageLogoLoader } from "@/components/ui/logo-loader";
 
 const PANEL_CLASS = "rounded-3xl border border-slate-200 bg-white shadow-sm";
 const INPUT_CLASS =
-  "w-full rounded-2xl border border-slate-200 bg-white px-5 py-3.5 text-sm font-medium text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10";
+  "w-full rounded-2xl border border-slate-200 bg-white px-5 py-3.5 text-sm font-medium text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500";
 const KICKER_CLASS =
   "text-[11px] font-bold uppercase tracking-[0.22em] text-slate-400";
 const TITLE_CLASS = "text-2xl font-bold tracking-tight text-slate-900";
@@ -75,6 +76,11 @@ export function StageFormView() {
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
 
+    if (isEditMode && isDefaultStage) {
+      toast.error("Default milestones are read-only");
+      return;
+    }
+
     if (!form.name.trim()) {
       toast.error("Milestone name is required");
       return;
@@ -109,14 +115,12 @@ export function StageFormView() {
   if (loading) {
     return (
       <AdminLayout>
-        <div className="flex h-96 items-center justify-center">
-          <div className="flex flex-col items-center gap-4">
-            <div className="h-10 w-10 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
-            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
-              Loading milestone...
-            </p>
-          </div>
-        </div>
+        <PageLogoLoader
+          className="min-h-[24rem]"
+          label="Loading milestone..."
+          size={58}
+          surfaceClassName="max-w-lg"
+        />
       </AdminLayout>
     );
   }
@@ -138,7 +142,9 @@ export function StageFormView() {
             <div className="px-6 py-8">
               <p className={KICKER_CLASS}>Milestone Library</p>
               <h1 className="mt-2 text-4xl font-black tracking-tight text-slate-900">
-                {isEditMode ? "Edit Global Milestone" : "Create Global Milestone"}
+                {isEditMode
+                  ? "Edit Global Milestone"
+                  : "Create Global Milestone"}
               </h1>
               <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600">
                 Configure the reusable milestone name, color, and activation
@@ -156,8 +162,9 @@ export function StageFormView() {
 
             {isEditMode && isDefaultStage ? (
               <div className="mb-8 rounded-3xl border border-blue-200 bg-blue-50 p-5 text-sm leading-7 text-blue-900">
-                This is a default milestone. You can edit its name, color, and
-                active state, but it cannot be deleted from the library.
+                This is a default milestone. It is protected and read-only, so
+                admins can use it in workflows but cannot rename, deactivate, or
+                delete it.
               </div>
             ) : null}
 
@@ -169,6 +176,7 @@ export function StageFormView() {
                 <input
                   type="text"
                   value={form.name}
+                  disabled={isEditMode && isDefaultStage}
                   onChange={(event) =>
                     setForm((current) => ({
                       ...current,
@@ -188,6 +196,7 @@ export function StageFormView() {
                   <input
                     type="color"
                     value={form.color}
+                    disabled={isEditMode && isDefaultStage}
                     onChange={(event) =>
                       setForm((current) => ({
                         ...current,
@@ -199,6 +208,7 @@ export function StageFormView() {
                   <input
                     type="text"
                     value={form.color}
+                    disabled={isEditMode && isDefaultStage}
                     onChange={(event) =>
                       setForm((current) => ({
                         ...current,
@@ -227,6 +237,7 @@ export function StageFormView() {
                   <input
                     type="checkbox"
                     checked={form.isActive}
+                    disabled={isEditMode && isDefaultStage}
                     onChange={(event) =>
                       setForm((current) => ({
                         ...current,
@@ -243,7 +254,7 @@ export function StageFormView() {
             <div className="mt-8 flex items-center justify-end gap-4">
               <button
                 type="submit"
-                disabled={saving}
+                disabled={saving || (isEditMode && isDefaultStage)}
                 className="flex h-14 flex-1 items-center justify-center gap-3 rounded-2xl bg-slate-900 text-[10px] font-black uppercase tracking-[0.2em] text-white shadow-xl transition hover:bg-blue-600 disabled:opacity-50 md:h-16 md:text-[11px]"
               >
                 {saving ? (
@@ -251,7 +262,11 @@ export function StageFormView() {
                 ) : (
                   <i className="fas fa-save text-lg" />
                 )}
-                {isEditMode ? "Update Milestone" : "Create Milestone"}
+                {isEditMode && isDefaultStage
+                  ? "Read-only Milestone"
+                  : isEditMode
+                    ? "Update Milestone"
+                    : "Create Milestone"}
               </button>
 
               <Link

@@ -124,13 +124,9 @@ function normalizeApplicationRecord(application: any) {
     accountant: normalizePersonRecord(application.accountant ?? null),
     request_documents: requestDocuments.map(normalizeApplicationDocumentRecord),
     order_unique_id:
-      application.order_unique_id ??
-      application.orderUniqueId ??
-      null,
+      application.order_unique_id ?? application.orderUniqueId ?? null,
     invoice_unique_id:
-      application.invoice_unique_id ??
-      application.invoiceUniqueId ??
-      null,
+      application.invoice_unique_id ?? application.invoiceUniqueId ?? null,
     payment_id: application.payment_id ?? application.paymentId ?? null,
     order_created_at:
       application.order_created_at ?? application.orderCreatedAt ?? null,
@@ -138,9 +134,11 @@ function normalizeApplicationRecord(application: any) {
       application.application_unique_id ??
       application.applicationUniqueId ??
       null,
-    payment_status: application.payment_status ?? application.paymentStatus ?? null,
+    payment_status:
+      application.payment_status ?? application.paymentStatus ?? null,
     form_data: application.form_data ?? application.formData ?? null,
-    revision_notes: application.revision_notes ?? application.revisionNotes ?? null,
+    revision_notes:
+      application.revision_notes ?? application.revisionNotes ?? null,
     ca_notes: application.ca_notes ?? application.caNotes ?? null,
     update_note: application.update_note ?? application.updateNote ?? null,
     rejection_reason:
@@ -228,7 +226,8 @@ export const fetchAdminStats = createAsyncThunk(
         services: services.length,
         enquiries: {
           total: enquiries.length,
-          pending: enquiries.filter((item: any) => item?.status === "pending").length,
+          pending: enquiries.filter((item: any) => item?.status === "pending")
+            .length,
         },
         applications: {
           total: applications.length,
@@ -239,10 +238,10 @@ export const fetchAdminStats = createAsyncThunk(
       };
     } catch (error: any) {
       return rejectWithValue(
-        error.response?.data?.message || "Failed to fetch admin stats"
+        error.response?.data?.message || "Failed to fetch admin stats",
       );
     }
-  }
+  },
 );
 
 // Async thunk to fetch recent activity
@@ -257,11 +256,15 @@ export const fetchRecentActivity = createAsyncThunk(
 
       const enquiries =
         results[0].status === "fulfilled"
-          ? normalizeAdminList(results[0].value.data?.data ?? results[0].value.data)
+          ? normalizeAdminList(
+              results[0].value.data?.data ?? results[0].value.data,
+            )
           : [];
       const applications =
         results[1].status === "fulfilled"
-          ? normalizeAdminList(results[1].value.data?.data ?? results[1].value.data)
+          ? normalizeAdminList(
+              results[1].value.data?.data ?? results[1].value.data,
+            )
           : [];
 
       return [
@@ -282,10 +285,10 @@ export const fetchRecentActivity = createAsyncThunk(
         .slice(0, 8);
     } catch (error: any) {
       return rejectWithValue(
-        error.response?.data?.message || "Failed to fetch activity"
+        error.response?.data?.message || "Failed to fetch activity",
       );
     }
-  }
+  },
 );
 
 // Async thunk to fetch all clients
@@ -297,10 +300,10 @@ export const fetchUsers = createAsyncThunk(
       return response.data?.data ?? response.data;
     } catch (error: any) {
       return rejectWithValue(
-        error.response?.data?.message || "Failed to fetch users"
+        error.response?.data?.message || "Failed to fetch users",
       );
     }
-  }
+  },
 );
 
 // Async thunk to fetch all relationship managers
@@ -312,10 +315,11 @@ export const fetchRMS = createAsyncThunk(
       return response.data?.data ?? response.data;
     } catch (error: any) {
       return rejectWithValue(
-        error.response?.data?.message || "Failed to fetch relationship managers"
+        error.response?.data?.message ||
+          "Failed to fetch relationship managers",
       );
     }
-  }
+  },
 );
 
 // Async thunk to fetch all accountants
@@ -327,10 +331,10 @@ export const fetchAccountants = createAsyncThunk(
       return response.data?.data ?? response.data;
     } catch (error: any) {
       return rejectWithValue(
-        error.response?.data?.message || "Failed to fetch accountants"
+        error.response?.data?.message || "Failed to fetch accountants",
       );
     }
-  }
+  },
 );
 
 // Async thunk to fetch all categories
@@ -342,10 +346,10 @@ export const fetchAdminCategories = createAsyncThunk(
       return response.data?.data ?? response.data;
     } catch (error: any) {
       return rejectWithValue(
-        error.response?.data?.message || "Failed to fetch categories"
+        error.response?.data?.message || "Failed to fetch categories",
       );
     }
-  }
+  },
 );
 
 // Async thunk to fetch all services
@@ -357,10 +361,10 @@ export const fetchAdminServices = createAsyncThunk(
       return response.data?.data ?? response.data;
     } catch (error: any) {
       return rejectWithValue(
-        error.response?.data?.message || "Failed to fetch services"
+        error.response?.data?.message || "Failed to fetch services",
       );
     }
-  }
+  },
 );
 
 // Async thunk to fetch all service applications
@@ -372,10 +376,10 @@ export const fetchAdminApplications = createAsyncThunk(
       return response.data?.data ?? response.data;
     } catch (error: any) {
       return rejectWithValue(
-        error.response?.data?.message || "Failed to fetch applications"
+        error.response?.data?.message || "Failed to fetch applications",
       );
     }
-  }
+  },
 );
 
 // Async thunk to fetch a single application detail
@@ -387,29 +391,37 @@ export const fetchAdminApplicationDetail = createAsyncThunk(
       return response.data?.data ?? response.data;
     } catch (error: any) {
       return rejectWithValue(
-        error.response?.data?.message || "Failed to fetch application details"
+        error.response?.data?.message || "Failed to fetch application details",
       );
     }
-  }
+  },
 );
 
 // Async thunk to assign an accountant to an application
 export const assignAccountantToApplication = createAsyncThunk(
   "admin/assignAccountant",
-  async ({ applicationId, accountantId }: { applicationId: string, accountantId: string }, { rejectWithValue }) => {
+  async (
+    {
+      applicationId,
+      accountantId,
+    }: { applicationId: string; accountantId: string },
+    { rejectWithValue },
+  ) => {
     try {
-      const response = await apiClient.post(`/admin/service-applications/${applicationId}/assign`, { 
-        accountant_id: accountantId 
-      });
+      const response = await apiClient.post(
+        `/admin/service-applications/${applicationId}/assign`,
+        {
+          accountant_id: accountantId,
+        },
+      );
       return response.data;
     } catch (error: any) {
       return rejectWithValue(
-        error.response?.data?.message || "Failed to assign accountant"
+        error.response?.data?.message || "Failed to assign accountant",
       );
     }
-  }
+  },
 );
-
 
 // Async thunk to fetch service application details
 export const fetchServiceApplication = createAsyncThunk(
@@ -420,10 +432,10 @@ export const fetchServiceApplication = createAsyncThunk(
       return response.data?.data ?? response.data;
     } catch (error: any) {
       return rejectWithValue(
-        error.response?.data?.message || "Failed to fetch service application"
+        error.response?.data?.message || "Failed to fetch service application",
       );
     }
-  }
+  },
 );
 
 // Async thunk to update service application status
@@ -443,7 +455,7 @@ export const updateApplicationStatus = createAsyncThunk(
       update_note?: string;
       rejection_reason?: string;
     },
-    { rejectWithValue }
+    { rejectWithValue },
   ) => {
     try {
       const response = await apiClient.post(
@@ -453,15 +465,15 @@ export const updateApplicationStatus = createAsyncThunk(
           ca_notes,
           update_note,
           rejection_reason,
-        }
+        },
       );
       return response.data?.data ?? response.data;
     } catch (error: any) {
       return rejectWithValue(
-        error.response?.data?.message || "Failed to update application status"
+        error.response?.data?.message || "Failed to update application status",
       );
     }
-  }
+  },
 );
 
 // Async thunk to override service application status
@@ -473,7 +485,7 @@ export const overrideApplicationStatus = createAsyncThunk(
       status,
       override_reason,
     }: { id: string | number; status: string; override_reason?: string },
-    { rejectWithValue }
+    { rejectWithValue },
   ) => {
     try {
       const response = await apiClient.patch(
@@ -481,15 +493,16 @@ export const overrideApplicationStatus = createAsyncThunk(
         {
           status,
           override_reason,
-        }
+        },
       );
       return response.data?.data ?? response.data;
     } catch (error: any) {
       return rejectWithValue(
-        error.response?.data?.message || "Failed to override application status"
+        error.response?.data?.message ||
+          "Failed to override application status",
       );
     }
-  }
+  },
 );
 
 // Async thunk to update document status
@@ -507,7 +520,7 @@ export const updateDocumentStatus = createAsyncThunk(
       status: string;
       remark?: string;
     },
-    { rejectWithValue }
+    { rejectWithValue },
   ) => {
     try {
       const response = await apiClient.patch(
@@ -515,15 +528,15 @@ export const updateDocumentStatus = createAsyncThunk(
         {
           status,
           remark,
-        }
+        },
       );
       return response.data?.data ?? response.data;
     } catch (error: any) {
       return rejectWithValue(
-        error.response?.data?.message || "Failed to update document status"
+        error.response?.data?.message || "Failed to update document status",
       );
     }
-  }
+  },
 );
 
 // Async thunk to upload document
@@ -541,7 +554,7 @@ export const uploadDocument = createAsyncThunk(
       document_type: string;
       notes?: string;
     },
-    { rejectWithValue }
+    { rejectWithValue },
   ) => {
     try {
       const formData = new FormData();
@@ -556,17 +569,17 @@ export const uploadDocument = createAsyncThunk(
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" },
-        }
+        },
       );
       return response.data?.data ?? response.data;
     } catch (error: any) {
       return rejectWithValue(
         error.response?.data?.errors ||
           error.response?.data?.message ||
-          "Failed to upload document"
+          "Failed to upload document",
       );
     }
-  }
+  },
 );
 
 // Async thunk to delete document
@@ -577,19 +590,19 @@ export const deleteDocument = createAsyncThunk(
       applicationId,
       docId,
     }: { applicationId: string | number; docId: string | number },
-    { rejectWithValue }
+    { rejectWithValue },
   ) => {
     try {
       await apiClient.delete(
-        `/admin/service-applications/${applicationId}/documents/${docId}`
+        `/admin/service-applications/${applicationId}/documents/${docId}`,
       );
       return { applicationId, docId };
     } catch (error: any) {
       return rejectWithValue(
-        error.response?.data?.message || "Failed to delete document"
+        error.response?.data?.message || "Failed to delete document",
       );
     }
-  }
+  },
 );
 
 const adminSlice = createSlice({
@@ -624,9 +637,14 @@ const adminSlice = createSlice({
       })
       .addCase(updateApplicationStatus.fulfilled, (state, action) => {
         state.actionLoading = false;
-        const normalizedApplication = normalizeApplicationRecord(action.payload);
+        const normalizedApplication = normalizeApplicationRecord(
+          action.payload,
+        );
         state.serviceApplication = normalizedApplication;
-        if (state.selectedApplication && state.selectedApplication.id === normalizedApplication.id) {
+        if (
+          state.selectedApplication &&
+          state.selectedApplication.id === normalizedApplication.id
+        ) {
           state.selectedApplication = normalizedApplication;
         }
       })
@@ -640,9 +658,14 @@ const adminSlice = createSlice({
       })
       .addCase(overrideApplicationStatus.fulfilled, (state, action) => {
         state.actionLoading = false;
-        const normalizedApplication = normalizeApplicationRecord(action.payload);
+        const normalizedApplication = normalizeApplicationRecord(
+          action.payload,
+        );
         state.serviceApplication = normalizedApplication;
-        if (state.selectedApplication && state.selectedApplication.id === normalizedApplication.id) {
+        if (
+          state.selectedApplication &&
+          state.selectedApplication.id === normalizedApplication.id
+        ) {
           state.selectedApplication = normalizedApplication;
         }
       })
@@ -656,11 +679,14 @@ const adminSlice = createSlice({
       })
       .addCase(updateDocumentStatus.fulfilled, (state, action) => {
         state.actionLoading = false;
-        const normalizedDocument = normalizeApplicationDocumentRecord(action.payload);
+        const normalizedDocument = normalizeApplicationDocumentRecord(
+          action.payload,
+        );
         const updateDocs = (item: any) => {
           if (!item) return;
-          item.request_documents = (item.request_documents || []).map((doc: any) =>
-            doc.id === normalizedDocument.id ? normalizedDocument : doc
+          item.request_documents = (item.request_documents || []).map(
+            (doc: any) =>
+              doc.id === normalizedDocument.id ? normalizedDocument : doc,
           );
         };
         updateDocs(state.serviceApplication);
@@ -676,11 +702,16 @@ const adminSlice = createSlice({
       })
       .addCase(uploadDocument.fulfilled, (state, action) => {
         state.actionLoading = false;
-        const normalizedDocument = normalizeApplicationDocumentRecord(action.payload);
+        const uploadedDocuments = Array.isArray(action.payload)
+          ? action.payload
+          : [action.payload].filter(Boolean);
+        const normalizedDocuments = uploadedDocuments.map(
+          normalizeApplicationDocumentRecord,
+        );
         const addDoc = (item: any) => {
           if (!item) return;
           if (!item.request_documents) item.request_documents = [];
-          item.request_documents.push(normalizedDocument);
+          item.request_documents.push(...normalizedDocuments);
         };
         addDoc(state.serviceApplication);
         addDoc(state.selectedApplication);
@@ -698,7 +729,7 @@ const adminSlice = createSlice({
         const removeDoc = (item: any) => {
           if (!item) return;
           item.request_documents = (item.request_documents || []).filter(
-            (doc: any) => doc.id !== action.payload.docId
+            (doc: any) => doc.id !== action.payload.docId,
           );
         };
         removeDoc(state.serviceApplication);

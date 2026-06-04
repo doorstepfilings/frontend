@@ -5,6 +5,7 @@ import { apiClient } from "@/lib/api/client";
 import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
 import { fetchServices } from "@/lib/features/services/services-slice";
 import { PublicShell } from "@/components/layout/public-shell";
+import { SearchSelect } from "@/components/ui/core/search-select";
 
 export default function ContactPage() {
   const dispatch = useAppDispatch();
@@ -281,19 +282,25 @@ export default function ContactPage() {
                       <label className="mb-2 block text-sm font-semibold text-gray-700">
                         Service Required
                       </label>
-                      <select
-                        name="service"
+                      <SearchSelect
+                        options={[
+                          { value: "", label: "Select a service" },
+                          ...dynamicServices.map((service) => ({
+                            value: String(service),
+                            label: String(service),
+                          })),
+                        ]}
                         value={formData.service}
-                        onChange={handleChange}
-                        className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none transition-all focus:border-transparent focus:ring-2 focus:ring-blue-900"
-                      >
-                        <option value="">Select a service</option>
-                        {dynamicServices.map((service, idx) => (
-                          <option key={idx} value={service}>
-                            {service}
-                          </option>
-                        ))}
-                      </select>
+                        onChange={(nextValue) =>
+                          setFormData((current) => ({ ...current, service: nextValue }))
+                        }
+                        searchable={dynamicServices.length > 6}
+                        treatEmptyValueAsPlaceholder
+                        triggerClassName="min-h-[3rem] rounded-lg px-4 py-3"
+                        valueLabelClassName="text-sm text-gray-700"
+                        handleClassName="h-6 w-6 rounded-md border-0 bg-transparent text-slate-400"
+                        selectStyle={{ borderColor: "#d1d5db", boxShadow: "none" }}
+                      />
                     </div>
 
                     <div>

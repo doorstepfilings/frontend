@@ -14,6 +14,8 @@ import { adminApi } from "@/lib/api/admin-api";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { AuthGuard } from "@/components/auth/auth-guard";
 import { useConfirm } from "@/hooks/use-confirm";
+import { PanelLogoLoader } from "@/components/ui/logo-loader";
+import { SearchSelect } from "@/components/ui/core/search-select";
 import { usePincodeLookup } from "@/lib/hooks/use-pincode-lookup";
 import { normalizeRole } from "@/lib/auth/redirects";
 import {
@@ -356,33 +358,23 @@ function getRmOptionLabel(option: RmOption) {
   return `${option.name} (${option.code})`;
 }
 
-function renderRmSelectOptions(
+function buildRmSelectOptions(
   groups: ReturnType<typeof groupRmOptionsByLocation>,
   emptyLabel: string,
 ) {
-  return (
-    <>
-      <option value="">{emptyLabel}</option>
-      {groups.matching.length > 0 && (
-        <optgroup label="Matching Location">
-          {groups.matching.map((option) => (
-            <option key={option.id} value={option.id}>
-              {getRmOptionLabel(option)}
-            </option>
-          ))}
-        </optgroup>
-      )}
-      {groups.others.length > 0 && (
-        <optgroup label={groups.matching.length > 0 ? "Other Locations" : "All Locations"}>
-          {groups.others.map((option) => (
-            <option key={option.id} value={option.id}>
-              {getRmOptionLabel(option)}
-            </option>
-          ))}
-        </optgroup>
-      )}
-    </>
-  );
+  return [
+    { value: "", label: emptyLabel },
+    ...groups.matching.map((option) => ({
+      value: String(option.id),
+      label: getRmOptionLabel(option),
+      group: "Matching Location",
+    })),
+    ...groups.others.map((option) => ({
+      value: String(option.id),
+      label: getRmOptionLabel(option),
+      group: groups.matching.length > 0 ? "Other Locations" : "All Locations",
+    })),
+  ];
 }
 
 export function UserManagementView({
@@ -1089,28 +1081,36 @@ export function UserManagementView({
                     />
                   </div>
                   <div className="lg:col-span-3">
-                    <select
+                    <SearchSelect
+                      options={[
+                        { value: "all", label: "All roles" },
+                        { value: "user", label: "User" },
+                        { value: "admin", label: "Admin" },
+                        { value: "super_admin", label: "Super admin" },
+                      ]}
                       value={roleFilter}
-                      onChange={(event) => setRoleFilter(event.target.value)}
-                      className="w-full rounded-xl border border-gray-100 bg-white px-4 py-3 text-sm font-semibold text-gray-700 focus:outline-none focus:ring-4 focus:ring-blue-500/10"
-                    >
-                      <option value="all">All roles</option>
-                      <option value="user">User</option>
-                      <option value="admin">Admin</option>
-                      <option value="super_admin">Super admin</option>
-                    </select>
+                      onChange={setRoleFilter}
+                      triggerClassName="min-h-[3rem] rounded-xl px-4 py-3"
+                      valueLabelClassName="text-sm font-semibold text-gray-700"
+                      handleClassName="h-8 w-8 rounded-lg border-0 bg-transparent text-slate-400"
+                      selectStyle={{ borderColor: "#f3f4f6", boxShadow: "none" }}
+                    />
                   </div>
                   <div className="lg:col-span-3">
-                    <select
+                    <SearchSelect
+                      options={[
+                        { value: "created", label: "Sort: Created date" },
+                        { value: "name", label: "Sort: Name" },
+                        { value: "email", label: "Sort: Email" },
+                        { value: "role", label: "Sort: Role" },
+                      ]}
                       value={sortBy}
-                      onChange={(event) => setSortBy(event.target.value)}
-                      className="w-full rounded-xl border border-gray-100 bg-white px-4 py-3 text-sm font-semibold text-gray-700 focus:outline-none focus:ring-4 focus:ring-blue-500/10"
-                    >
-                      <option value="created">Sort: Created date</option>
-                      <option value="name">Sort: Name</option>
-                      <option value="email">Sort: Email</option>
-                      <option value="role">Sort: Role</option>
-                    </select>
+                      onChange={setSortBy}
+                      triggerClassName="min-h-[3rem] rounded-xl px-4 py-3"
+                      valueLabelClassName="text-sm font-semibold text-gray-700"
+                      handleClassName="h-8 w-8 rounded-lg border-0 bg-transparent text-slate-400"
+                      selectStyle={{ borderColor: "#f3f4f6", boxShadow: "none" }}
+                    />
                   </div>
                   <div className="lg:col-span-1">
                     <button
@@ -1136,15 +1136,19 @@ export function UserManagementView({
                     />
                   </div>
                   <div className="lg:col-span-4">
-                    <select
+                    <SearchSelect
+                      options={[
+                        { value: "created", label: "Sort: Created date" },
+                        { value: "name", label: "Sort: Name" },
+                        { value: "clients", label: "Sort: Client count" },
+                      ]}
                       value={sortBy}
-                      onChange={(event) => setSortBy(event.target.value)}
-                      className="w-full rounded-xl border border-gray-100 bg-white px-4 py-3 text-sm font-semibold text-gray-700 focus:outline-none focus:ring-4 focus:ring-blue-500/10"
-                    >
-                      <option value="created">Sort: Created date</option>
-                      <option value="name">Sort: Name</option>
-                      <option value="clients">Sort: Client count</option>
-                    </select>
+                      onChange={setSortBy}
+                      triggerClassName="min-h-[3rem] rounded-xl px-4 py-3"
+                      valueLabelClassName="text-sm font-semibold text-gray-700"
+                      handleClassName="h-8 w-8 rounded-lg border-0 bg-transparent text-slate-400"
+                      selectStyle={{ borderColor: "#f3f4f6", boxShadow: "none" }}
+                    />
                   </div>
                   <div className="lg:col-span-1">
                     <button
@@ -1170,29 +1174,37 @@ export function UserManagementView({
                     />
                   </div>
                   <div className="lg:col-span-3">
-                    <select
+                    <SearchSelect
+                      options={[
+                        { value: "all", label: "All workloads" },
+                        { value: "active", label: "Only active" },
+                        { value: "idle", label: "Only unassigned" },
+                        { value: "heavy", label: "Heavy load (6+)" },
+                      ]}
                       value={workloadFilter}
-                      onChange={(event) =>
-                        setWorkloadFilter(event.target.value as WorkloadFilter)
+                      onChange={(nextValue) =>
+                        setWorkloadFilter(nextValue as WorkloadFilter)
                       }
-                      className="w-full rounded-xl border border-gray-100 bg-white px-4 py-3 text-sm font-semibold text-gray-700 focus:outline-none focus:ring-4 focus:ring-blue-500/10"
-                    >
-                      <option value="all">All workloads</option>
-                      <option value="active">Only active</option>
-                      <option value="idle">Only unassigned</option>
-                      <option value="heavy">Heavy load (6+)</option>
-                    </select>
+                      triggerClassName="min-h-[3rem] rounded-xl px-4 py-3"
+                      valueLabelClassName="text-sm font-semibold text-gray-700"
+                      handleClassName="h-8 w-8 rounded-lg border-0 bg-transparent text-slate-400"
+                      selectStyle={{ borderColor: "#f3f4f6", boxShadow: "none" }}
+                    />
                   </div>
                   <div className="lg:col-span-3">
-                    <select
+                    <SearchSelect
+                      options={[
+                        { value: "created", label: "Sort: Created date" },
+                        { value: "name", label: "Sort: Name" },
+                        { value: "clients", label: "Sort: Client count" },
+                      ]}
                       value={sortBy}
-                      onChange={(event) => setSortBy(event.target.value)}
-                      className="w-full rounded-xl border border-gray-100 bg-white px-4 py-3 text-sm font-semibold text-gray-700 focus:outline-none focus:ring-4 focus:ring-blue-500/10"
-                    >
-                      <option value="created">Sort: Created date</option>
-                      <option value="name">Sort: Name</option>
-                      <option value="clients">Sort: Client count</option>
-                    </select>
+                      onChange={setSortBy}
+                      triggerClassName="min-h-[3rem] rounded-xl px-4 py-3"
+                      valueLabelClassName="text-sm font-semibold text-gray-700"
+                      handleClassName="h-8 w-8 rounded-lg border-0 bg-transparent text-slate-400"
+                      selectStyle={{ borderColor: "#f3f4f6", boxShadow: "none" }}
+                    />
                   </div>
                   <div className="lg:col-span-1">
                     <button
@@ -1288,38 +1300,53 @@ export function UserManagementView({
                                 <span className="inline-flex rounded-full bg-blue-900 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-white">
                                   {getIdentityLabel(currentType, item)}
                                 </span>
-                                <select
+                                <SearchSelect
+                                  options={[
+                                    { value: "user", label: "User" },
+                                    { value: "admin", label: "Admin" },
+                                    { value: "regional_manager", label: "RM" },
+                                    { value: "accountant", label: "Accountant" },
+                                    ...(role === "super_admin"
+                                      ? [{ value: "super_admin", label: "Super Admin" }]
+                                      : []),
+                                  ]}
                                   value={role}
-                                  onChange={(event) => {
-                                    void handleRoleUpdate(item, event.target.value);
+                                  onChange={(nextValue) => {
+                                    void handleRoleUpdate(item, nextValue);
                                   }}
                                   disabled={isProtectedRole || isRowBusy}
-                                  className={`w-full min-w-0 rounded-lg px-3 py-2 text-[10px] font-black uppercase tracking-widest ${
-                                    isProtectedRole
-                                      ? "cursor-not-allowed border-0 bg-indigo-50 text-indigo-700"
-                                      : "border-0 bg-blue-50 text-blue-700 hover:bg-blue-100"
-                                  }`}
-                                >
-                                  <option value="user">User</option>
-                                  <option value="admin">Admin</option>
-                                  <option value="regional_manager">RM</option>
-                                  <option value="accountant">Accountant</option>
-                                  {role === "super_admin" && (
-                                    <option value="super_admin">Super Admin</option>
-                                  )}
-                                </select>
+                                  triggerClassName="min-h-[2.5rem] rounded-lg px-3 py-2"
+                                  valueLabelClassName="text-[10px] font-black uppercase tracking-widest"
+                                  handleClassName="h-6 w-6 rounded-md border-0 bg-transparent text-current"
+                                  selectStyle={{
+                                    borderColor: "transparent",
+                                    boxShadow: "none",
+                                    background: isProtectedRole ? "#eef2ff" : "#eff6ff",
+                                  }}
+                                />
                               </div>
                             </td>
                             <td className="px-6 py-4 align-top">
                               {canManageAssignments && typeof item.id === "number" ? (
-                                  <select
+                                  <SearchSelect
+                                    options={buildRmSelectOptions(rowRmOptionGroups, "No RM")}
                                     value={String(regionalManager?.id ?? "")}
-                                    onChange={(event) => openAssignRmModal(item, event.target.value)}
+                                    onChange={(nextValue) => openAssignRmModal(item, nextValue)}
                                     disabled={isRowBusy}
-                                    className="w-full min-w-0 rounded-lg bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-700 focus:outline-none focus:ring-4 focus:ring-blue-500/10"
-                                  >
-                                    {renderRmSelectOptions(rowRmOptionGroups, "No RM")}
-                                  </select>
+                                    searchable={
+                                      rowRmOptionGroups.matching.length +
+                                        rowRmOptionGroups.others.length >
+                                      6
+                                    }
+                                    triggerClassName="min-h-[2.5rem] rounded-lg px-3 py-2"
+                                    valueLabelClassName="text-xs font-semibold text-gray-700"
+                                    handleClassName="h-6 w-6 rounded-md border-0 bg-transparent text-slate-400"
+                                    selectStyle={{
+                                      borderColor: "#f3f4f6",
+                                      boxShadow: "none",
+                                      background: "#f9fafb",
+                                    }}
+                                  />
                                 ) : (
                                   <span className="text-xs font-semibold italic text-gray-400">
                                     Locked
@@ -1328,24 +1355,32 @@ export function UserManagementView({
                             </td>
                             <td className="px-6 py-4 align-top">
                               {canManageAssignments && typeof item.id === "number" ? (
-                                <select
+                                <SearchSelect
+                                  options={[
+                                    { value: "", label: "No Accountant" },
+                                    ...assignedAccountantOptions.map((option) => ({
+                                      value: String(option.id),
+                                      label: `${option.name} (${option.code})`,
+                                    })),
+                                  ]}
                                   value={String(accountant?.id ?? "")}
-                                  onChange={(event) =>
+                                  onChange={(nextValue) =>
                                     void handleAssignAccountant(
                                       item.id as number,
-                                      event.target.value,
+                                      nextValue,
                                     )
                                   }
                                   disabled={isRowBusy}
-                                  className="w-full min-w-0 rounded-lg bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-700 focus:outline-none focus:ring-4 focus:ring-blue-500/10"
-                                >
-                                  <option value="">No Accountant</option>
-                                  {assignedAccountantOptions.map((option) => (
-                                    <option key={option.id} value={option.id}>
-                                      {option.name} ({option.code})
-                                    </option>
-                                  ))}
-                                </select>
+                                  searchable={assignedAccountantOptions.length > 6}
+                                  triggerClassName="min-h-[2.5rem] rounded-lg px-3 py-2"
+                                  valueLabelClassName="text-xs font-semibold text-gray-700"
+                                  handleClassName="h-6 w-6 rounded-md border-0 bg-transparent text-slate-400"
+                                  selectStyle={{
+                                    borderColor: "#f3f4f6",
+                                    boxShadow: "none",
+                                    background: "#f9fafb",
+                                  }}
+                                />
                               ) : (
                                 <span className="text-xs font-semibold italic text-gray-400">
                                   Locked
@@ -1766,20 +1801,24 @@ export function UserManagementView({
                     <label className="mb-2 block text-[11px] font-black uppercase tracking-widest text-gray-400">
                       Relationship Manager
                     </label>
-                    <select
+                    <SearchSelect
+                      options={[
+                        { value: "", label: "No relationship manager" },
+                        ...assignedRmOptions.map((option) => ({
+                          value: String(option.id),
+                          label: `${option.name} (${option.code})`,
+                        })),
+                      ]}
                       value={formState.rm_id}
-                      onChange={(event) =>
-                        setFormState((state) => ({ ...state, rm_id: event.target.value }))
+                      onChange={(nextValue) =>
+                        setFormState((state) => ({ ...state, rm_id: nextValue }))
                       }
-                      className="w-full rounded-xl border border-gray-100 bg-white px-4 py-3 text-sm font-semibold text-gray-700 focus:outline-none focus:ring-4 focus:ring-blue-500/10"
-                    >
-                      <option value="">No relationship manager</option>
-                      {assignedRmOptions.map((option) => (
-                        <option key={option.id} value={option.id}>
-                          {option.name} ({option.code})
-                        </option>
-                      ))}
-                    </select>
+                      searchable={assignedRmOptions.length > 6}
+                      triggerClassName="min-h-[3rem] rounded-xl px-4 py-3"
+                      valueLabelClassName="text-sm font-semibold text-gray-700"
+                      handleClassName="h-8 w-8 rounded-lg border-0 bg-transparent text-slate-400"
+                      selectStyle={{ borderColor: "#f3f4f6", boxShadow: "none" }}
+                    />
                   </div>
                 )}
 
@@ -1923,15 +1962,22 @@ export function UserManagementView({
                   <label className="mb-2 block text-[11px] font-black uppercase tracking-widest text-gray-400">
                     Relationship Manager
                   </label>
-                  <select
+                  <SearchSelect
+                    options={buildRmSelectOptions(assignRmOptionGroups, "No RM")}
                     value={assignRmState.rm_id}
-                    onChange={(event) =>
-                      setAssignRmState((state) => ({ ...state, rm_id: event.target.value }))
+                    onChange={(nextValue) =>
+                      setAssignRmState((state) => ({ ...state, rm_id: nextValue }))
                     }
-                    className="w-full rounded-xl border border-gray-100 bg-white px-4 py-3 text-sm font-semibold text-gray-700 focus:outline-none focus:ring-4 focus:ring-blue-500/10"
-                  >
-                    {renderRmSelectOptions(assignRmOptionGroups, "No RM")}
-                  </select>
+                    searchable={
+                      assignRmOptionGroups.matching.length +
+                        assignRmOptionGroups.others.length >
+                      6
+                    }
+                    triggerClassName="min-h-[3rem] rounded-xl px-4 py-3"
+                    valueLabelClassName="text-sm font-semibold text-gray-700"
+                    handleClassName="h-8 w-8 rounded-lg border-0 bg-transparent text-slate-400"
+                    selectStyle={{ borderColor: "#f3f4f6", boxShadow: "none" }}
+                  />
                   <p className="mt-2 text-xs font-medium text-gray-400">
                     {assignRmOptionGroups.matching.length > 0
                       ? `${assignRmOptionGroups.matching.length} RM option(s) match this location first.`
@@ -2294,12 +2340,7 @@ function SummaryCard({
 
 function LoadingState({ label }: { label: string }) {
   return (
-    <div className="flex flex-col items-center gap-4">
-      <div className="h-10 w-10 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
-      <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">
-        {label}
-      </p>
-    </div>
+    <PanelLogoLoader className="min-h-[16rem] p-4" label={label} size={54} />
   );
 }
 

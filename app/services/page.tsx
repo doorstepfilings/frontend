@@ -6,6 +6,8 @@ import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
 import { fetchServices } from "@/lib/features/services/services-slice";
 import { Button } from "@/components/ui/button";
 import { PublicShell } from "@/components/layout/public-shell";
+import { SearchSelect } from "@/components/ui/core/search-select";
+import { PanelLogoLoader } from "@/components/ui/logo-loader";
 
 const priceFormatter = new Intl.NumberFormat("en-IN");
 
@@ -154,33 +156,37 @@ export default function ServicesDirectoryPage() {
                 />
               </div>
 
-              <div className="relative">
-                <select
-                  value={activeCategory}
-                  onChange={(e) => setActiveCategory(e.target.value)}
-                  className="h-14 w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-blue-900"
-                >
-                  <option value="all">All Categories</option>
-                  {categoryOptions.map((cat) => (
-                    <option key={cat.id} value={cat.slug}>{cat.category}</option>
-                  ))}
-                </select>
-                <i className="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-[10px] text-slate-400" />
-              </div>
+              <SearchSelect
+                options={[
+                  { value: "all", label: "All Categories" },
+                  ...categoryOptions.map((cat) => ({
+                    value: String(cat.slug),
+                    label: String(cat.category),
+                  })),
+                ]}
+                value={activeCategory}
+                onChange={setActiveCategory}
+                searchable={categoryOptions.length > 6}
+                triggerClassName="h-14 rounded-2xl px-4 py-4"
+                valueLabelClassName="text-sm font-bold text-slate-700"
+                handleClassName="h-7 w-7 rounded-md border-0 bg-transparent text-slate-400"
+                selectStyle={{ borderColor: "#e2e8f0", background: "#f8fafc", boxShadow: "none" }}
+              />
 
-              <div className="relative">
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="h-14 w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-blue-900"
-                >
-                  <option value="featured">Sort by: Featured</option>
-                  <option value="name_asc">Name: A to Z</option>
-                  <option value="price_low">Price: Low to High</option>
-                  <option value="price_high">Price: High to Low</option>
-                </select>
-                <i className="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-[10px] text-slate-400" />
-              </div>
+              <SearchSelect
+                options={[
+                  { value: "featured", label: "Sort by: Featured" },
+                  { value: "name_asc", label: "Name: A to Z" },
+                  { value: "price_low", label: "Price: Low to High" },
+                  { value: "price_high", label: "Price: High to Low" },
+                ]}
+                value={sortBy}
+                onChange={setSortBy}
+                triggerClassName="h-14 rounded-2xl px-4 py-4"
+                valueLabelClassName="text-sm font-bold text-slate-700"
+                handleClassName="h-7 w-7 rounded-md border-0 bg-transparent text-slate-400"
+                selectStyle={{ borderColor: "#e2e8f0", background: "#f8fafc", boxShadow: "none" }}
+              />
 
               <button
                 onClick={clearFilters}
@@ -195,10 +201,11 @@ export default function ServicesDirectoryPage() {
         {/* Services Grid */}
         <section className="container mx-auto px-4 py-16">
           {loading && serviceIndex.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-24 text-center">
-              <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-900 border-t-transparent" />
-              <p className="mt-4 text-slate-500 font-bold">Loading services...</p>
-            </div>
+            <PanelLogoLoader
+              className="min-h-[18rem] px-0 py-0"
+              label="Loading services..."
+              size={60}
+            />
           ) : filteredServices.length === 0 ? (
             <div className="rounded-3xl border-2 border-dashed border-slate-200 py-32 text-center">
               <h3 className="text-2xl font-bold text-slate-900">No services found</h3>

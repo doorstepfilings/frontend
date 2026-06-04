@@ -54,7 +54,13 @@ export function MilestoneTimeline({
   hasCustomWorkflow,
   status = "applied",
   stepIndex = 0,
-  steps = ["applied", "under_review", "in_progress", "submitted_to_ca", "completed"],
+  steps = [
+    "applied",
+    "under_review",
+    "in_progress",
+    "submitted_to_ca",
+    "completed",
+  ],
   statusLabels = {},
   completedAt = null,
 }: MilestoneTimelineProps) {
@@ -88,7 +94,12 @@ export function MilestoneTimeline({
     }
 
     return steps.map((stepKey, index) => ({
-      badge: index === stepIndex ? "Current" : index < stepIndex ? "Completed" : "Pending",
+      badge:
+        index === stepIndex
+          ? "Current"
+          : index < stepIndex
+            ? "Completed"
+            : "Pending",
       index: index + 1,
       isCompleted: index < stepIndex,
       isCurrent: index === stepIndex,
@@ -105,14 +116,22 @@ export function MilestoneTimeline({
     timelineStages,
   ]);
 
-  const progressFill = clampFill(hasCustomWorkflow ? workflowTrackFill : systemTrackFill);
+  const progressFill = clampFill(
+    hasCustomWorkflow ? workflowTrackFill : systemTrackFill,
+  );
   const progressPercent = Math.round(progressFill * 100);
-  const isWorkflowFullyComplete = progressPercent >= 100 || status === "completed" || status === "approved";
+  const isWorkflowFullyComplete =
+    progressPercent >= 100 || status === "completed" || status === "approved";
 
   const updatedDisplayStages = displayStages.map((stage, i) => {
     // If the workflow is 100% done, make sure the final stage is marked as completed
     if (isWorkflowFullyComplete && i === displayStages.length - 1) {
-      return { ...stage, isCompleted: true, isCurrent: false, badge: "Completed" };
+      return {
+        ...stage,
+        isCompleted: true,
+        isCurrent: false,
+        badge: "Completed",
+      };
     }
     return stage;
   });
@@ -123,15 +142,10 @@ export function MilestoneTimeline({
     updatedDisplayStages[0] ??
     null;
   const currentStagePosition = currentDisplayStage
-    ? updatedDisplayStages.findIndex((stage) => stage.key === currentDisplayStage.key) + 1
+    ? updatedDisplayStages.findIndex(
+        (stage) => stage.key === currentDisplayStage.key,
+      ) + 1
     : 1;
-  const scopeChips = hasCustomWorkflow
-    ? [
-      currentWorkflowStage?.is_required ? "Required" : "Optional",
-      currentWorkflowStage?.is_active ? "Active" : "Inactive",
-    ]
-    : ["Shared", isWorkflowFullyComplete ? "Completed" : "Active"];
-
   if (updatedDisplayStages.length === 0) {
     return null;
   }
@@ -142,7 +156,9 @@ export function MilestoneTimeline({
         <div className="">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
-              {isWorkflowFullyComplete ? "Final Milestone" : "Current Milestone"}
+              {isWorkflowFullyComplete
+                ? "Final Milestone"
+                : "Current Milestone"}
             </p>
             <div className="mt-2 flex flex-wrap items-center gap-3">
               <p className="text-lg font-bold tracking-tight text-slate-950">
@@ -163,18 +179,79 @@ export function MilestoneTimeline({
             </div>
             <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-200">
               <div
-                className="h-full rounded-full bg-slate-900 transition-all duration-700 ease-out"
+                className="h-full rounded-full bg-emerald-600 transition-all duration-700 ease-out"
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
             <p className="mt-2 text-sm text-slate-600">
-              Step {Math.max(currentStagePosition, 1)} of {updatedDisplayStages.length}
+              Step {Math.max(currentStagePosition, 1)} of{" "}
+              {updatedDisplayStages.length}
             </p>
           </div>
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-[1.75rem] border border-slate-200 bg-white px-4 py-6">
+      <div className="space-y-3 sm:hidden">
+        {updatedDisplayStages.map((stage, index) => {
+          const nodeClasses = stage.isCurrent
+            ? "border-slate-900 bg-slate-900 text-white"
+            : stage.isCompleted
+              ? "border-emerald-600 bg-emerald-600 text-white"
+              : "border-slate-200 bg-white text-slate-500";
+          const cardClasses = stage.isCurrent
+            ? "border-slate-900 bg-slate-50 shadow-[0_12px_30px_rgba(15,23,42,0.08)]"
+            : stage.isCompleted
+              ? "border-emerald-200 bg-emerald-50"
+              : "border-slate-200 bg-white";
+          const badgeClasses = stage.isCurrent
+            ? "border-slate-900 text-slate-900"
+            : stage.isCompleted
+              ? "border-emerald-200 text-emerald-700"
+              : "border-slate-200 text-slate-500";
+
+          return (
+            <div key={stage.key} className="space-y-3">
+              <div className={`rounded-2xl border p-4 ${cardClasses}`}>
+                <div className="flex items-start gap-3">
+                  <div
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border text-sm font-bold ${nodeClasses}`}
+                  >
+                    {stage.isCompleted ? (
+                      <i className="fas fa-check text-xs" />
+                    ) : (
+                      stage.index
+                    )}
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-semibold text-slate-900">
+                        {stage.label}
+                      </p>
+                      <span
+                        className={`inline-flex items-center rounded-full border bg-white px-2.5 py-1 text-[10px] font-semibold ${badgeClasses}`}
+                      >
+                        {stage.badge}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs font-medium text-slate-500">
+                      Step {index + 1} of {updatedDisplayStages.length}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {index < updatedDisplayStages.length - 1 ? (
+                <div className="flex justify-center">
+                  <div className="h-4 w-px rounded-full bg-slate-200" />
+                </div>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="hidden overflow-x-auto rounded-[1.75rem] border border-slate-200 bg-white px-4 py-6 sm:block">
         <div
           className="relative mx-auto min-w-[36rem] px-2"
           style={{
@@ -185,7 +262,7 @@ export function MilestoneTimeline({
           <div
             className="absolute left-8 top-6 h-[2px] rounded-full transition-all duration-700 ease-out"
             style={{
-              background: "#0f172a",
+              background: "#059669",
               width:
                 updatedDisplayStages.length <= 1
                   ? "0%"
@@ -201,31 +278,38 @@ export function MilestoneTimeline({
           >
             {updatedDisplayStages.map((stage) => {
               const nodeClasses = stage.isCurrent
-                ? "border-slate-900 text-slate-900 shadow-[0_0_0_4px_rgba(15,23,42,0.08)]"
+                ? "border-slate-900 bg-white text-slate-900 shadow-[0_0_0_4px_rgba(15,23,42,0.08)]"
                 : stage.isCompleted
-                  ? "border-slate-700 text-slate-700"
-                  : "border-slate-300 text-slate-400";
+                  ? "border-emerald-600 bg-emerald-600 text-white"
+                  : "border-slate-300 bg-white text-slate-400";
               const badgeClasses = stage.isCurrent
                 ? "border-slate-900 text-slate-900"
                 : stage.isCompleted
-                  ? "border-slate-300 text-slate-700"
+                  ? "border-emerald-200 text-emerald-700"
                   : "border-slate-200 text-slate-500";
 
               return (
-                <div key={stage.key} className="flex flex-col items-center text-center">
+                <div
+                  key={stage.key}
+                  className="flex flex-col items-center text-center"
+                >
                   <div
-                    className={`flex h-12 w-12 items-center justify-center rounded-full border bg-white text-sm font-bold transition-all duration-300 ${nodeClasses}`}
+                    className={`flex h-12 w-12 items-center justify-center rounded-full border text-sm font-bold transition-all duration-300 ${nodeClasses}`}
                   >
                     {stage.isCompleted ? (
-                      <i className="fas fa-check text-xs" />
+                      <i className="fas fa-check text-sm" />
                     ) : (
                       stage.index
                     )}
                   </div>
 
                   <div className="mt-4 space-y-1.5">
-                    <p className="text-sm font-semibold text-slate-900">{stage.label}</p>
-                    <span className={`inline-flex items-center rounded-full border bg-white px-2.5 py-1 text-[10px] font-semibold ${badgeClasses}`}>
+                    <p className="text-sm font-semibold text-slate-900">
+                      {stage.label}
+                    </p>
+                    <span
+                      className={`inline-flex items-center rounded-full border bg-white px-2.5 py-1 text-[10px] font-semibold ${badgeClasses}`}
+                    >
                       {stage.badge}
                     </span>
                   </div>

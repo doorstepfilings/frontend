@@ -10,6 +10,7 @@ import {
 import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
 import { formatDateWithPattern } from "@/lib/utils/formatters";
 import { buildCollectionKey } from "@/lib/utils/list-keys";
+import { PanelLogoLoader } from "@/components/ui/logo-loader";
 
 export function MyOrdersView() {
     const dispatch = useAppDispatch();
@@ -86,9 +87,11 @@ export function MyOrdersView() {
             </div>
 
             {ordersLoading ? (
-                <div className="flex h-64 items-center justify-center">
-                    <div className="h-10 w-10 animate-spin rounded-full border-2 border-blue-900 border-t-transparent"></div>
-                </div>
+                <PanelLogoLoader
+                    className="min-h-[16rem] px-0 py-0"
+                    label="Loading orders..."
+                    size={56}
+                />
             ) : myOrders.length === 0 ? (
                 <div className="rounded-[3rem] border-2 border-dashed border-slate-100 bg-white p-20 text-center">
                     <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-slate-50 text-slate-200">

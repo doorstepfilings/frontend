@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { apiClient } from '@/lib/api/client';
 import { getStatusColor, getStatusLabel } from '@/lib/status-helpers';
 import { FileText, Download, Trash2, Loader2 } from 'lucide-react';
-import { LogoLoader } from '@/components/ui/logo-loader';
+import { PanelLogoLoader } from '@/components/ui/logo-loader';
 import { toast } from 'react-hot-toast';
 
 type MyServiceListItem = {
@@ -66,7 +66,15 @@ export function MyServicesList() {
         }
     };
 
-    if (loading) return <div className="flex items-center justify-center p-12"><LogoLoader size={48} /></div>;
+    if (loading) {
+        return (
+            <PanelLogoLoader
+                className="min-h-[16rem] p-4"
+                label="Loading your applications..."
+                size={52}
+            />
+        );
+    }
 
     if (services.length === 0) {
         return (

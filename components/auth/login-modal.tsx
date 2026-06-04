@@ -4,6 +4,7 @@ import React from "react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -11,6 +12,9 @@ interface LoginModalProps {
 }
 
 export const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
+  const pathname = usePathname();
+  const redirectQuery = pathname ? `?redirect=${encodeURIComponent(pathname)}` : "";
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} showCloseButton={false} size="sm">
       <div className="text-center">
@@ -25,7 +29,7 @@ export const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
           <Button variant="outline" className="flex-1" onClick={onClose}>
             Cancel
           </Button>
-          <Link href="/login" className="flex-1">
+          <Link href={`/login${redirectQuery}`} className="flex-1">
             <Button className="w-full bg-blue-900 hover:bg-blue-800">
               Login
             </Button>
@@ -34,7 +38,7 @@ export const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
         <p className="mt-4 text-sm text-gray-500">
           Don&apos;t have an account?{" "}
           <Link
-            href="/register"
+            href={`/register${redirectQuery}`}
             className="font-semibold text-blue-900 hover:underline"
           >
             Register here

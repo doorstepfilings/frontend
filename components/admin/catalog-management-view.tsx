@@ -7,12 +7,14 @@ import { AuthGuard } from "@/components/auth/auth-guard";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { useConfirm } from "@/hooks/use-confirm";
 import { apiClient } from "@/lib/api/client";
+import { SearchSelect } from "@/components/ui/core/search-select";
 import {
   fetchAdminCategories,
   fetchAdminServices,
 } from "@/lib/features/admin/admin-slice";
 import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
 import { formatDateWithPattern } from "@/lib/utils/formatters";
+import { PanelLogoLoader } from "@/components/ui/logo-loader";
 
 type CatalogType = "categories" | "services";
 
@@ -181,17 +183,20 @@ export function CatalogManagementView({
                 />
               </div>
               <div className="flex gap-3">
-                <select
+                <SearchSelect
+                  options={[
+                    { value: "created_at", label: "Date Created" },
+                    { value: "name", label: "Alpha Name" },
+                    ...(activeTab === "services"
+                      ? [{ value: "price", label: "Price Point" }]
+                      : []),
+                  ]}
                   value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-600 outline-none transition-all focus:ring-4 focus:ring-blue-500/10"
-                >
-                  <option value="created_at">Date Created</option>
-                  <option value="name">Alpha Name</option>
-                  {activeTab === "services" && (
-                    <option value="price">Price Point</option>
-                  )}
-                </select>
+                  onChange={setSortBy}
+                  triggerClassName="h-12 rounded-xl px-4 py-3"
+                  valueLabelClassName="text-[10px] font-bold uppercase tracking-wider text-slate-600"
+                  handleClassName="h-7 w-7 rounded-md border-0 bg-transparent text-slate-400"
+                />
                 <button
                   onClick={() =>
                     setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"))
@@ -209,12 +214,11 @@ export function CatalogManagementView({
 
             <div className="p-8">
               {catalogLoading ? (
-                <div className="flex flex-col items-center gap-4 py-32 text-center">
-                  <div className="h-10 w-10 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                    Loading Catalog Data...
-                  </p>
-                </div>
+                <PanelLogoLoader
+                  className="min-h-[18rem] px-0 py-0"
+                  label="Loading catalog data..."
+                  size={56}
+                />
               ) : currentData.length === 0 ? (
                 <div className="mx-auto max-w-xs py-32 text-center opacity-40">
                   <i className="fas fa-box-open mb-6 text-5xl text-slate-200"></i>
@@ -285,7 +289,7 @@ function CategoryCard({
           <span className="text-slate-600">
             {formatDateWithPattern(
               category.created_at,
-              "MMM d, yyyy HH:mm",
+              "dd MMM yyyy",
               "-",
             )}
           </span>
@@ -295,7 +299,7 @@ function CategoryCard({
           <span className="text-slate-600">
             {formatDateWithPattern(
               category.updated_at,
-              "MMM d, yyyy HH:mm",
+              "dd MMM yyyy",
               "-",
             )}
           </span>
@@ -348,7 +352,6 @@ function ServiceCard({ service }: { service: any }) {
           <p className="mb-4 line-clamp-2 text-xs font-medium leading-relaxed text-slate-500">
             {service.short_description}
           </p>
-
           <div className="mb-6 flex flex-wrap items-center gap-4">
             <ServiceMeta
               icon="fa-tags"
@@ -375,7 +378,7 @@ function ServiceCard({ service }: { service: any }) {
               <span className="text-[10px] font-semibold text-slate-600">
                 {formatDateWithPattern(
                   service.created_at,
-                  "MMM d, yyyy HH:mm",
+                  "dd MMM yyyy",
                   "-",
                 )}
               </span>
@@ -387,7 +390,7 @@ function ServiceCard({ service }: { service: any }) {
               <span className="text-[10px] font-semibold text-slate-600">
                 {formatDateWithPattern(
                   service.updated_at,
-                  "MMM d, yyyy HH:mm",
+                  "dd MMM yyyy",
                   "-",
                 )}
               </span>

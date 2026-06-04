@@ -1,59 +1,82 @@
 "use client";
 
 import React from "react";
+import { Plus, Trash2 } from "lucide-react";
 
 interface DynamicListProps<T> {
   title: string;
+  description?: string;
   items: T[];
   onAdd: () => void;
   onRemove: (index: number) => void;
   renderItem: (item: T, index: number) => React.ReactNode;
   addLabel?: string;
   emptyMessage?: string;
+  className?: string;
+  showCount?: boolean;
 }
 
 export function DynamicList<T>({
   title,
+  description,
   items,
   onAdd,
   onRemove,
   renderItem,
   addLabel = "Add Item",
   emptyMessage = "No items added yet.",
+  className = "",
+  showCount = true,
 }: DynamicListProps<T>) {
   return (
-    <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm p-10 space-y-10">
-      <div className="flex items-center justify-between px-2">
-        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-          {title}
-        </label>
+    <div
+      className={`space-y-5 rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-6 ${className}`}
+    >
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-1">
+          <label className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
+            {title}
+          </label>
+          {description ? (
+            <p className="text-sm leading-6 text-slate-600">{description}</p>
+          ) : null}
+          {showCount ? (
+            <p className="text-xs text-slate-400">
+              {items.length} item{items.length === 1 ? "" : "s"}
+            </p>
+          ) : null}
+        </div>
         <button
           type="button"
           onClick={onAdd}
-          className="h-10 px-6 bg-slate-50 text-slate-600 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all shadow-sm"
+          className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-700 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
         >
-          + {addLabel}
+          <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+          {addLabel}
         </button>
       </div>
 
       {items.length > 0 ? (
         <div className="grid grid-cols-1 gap-6">
           {items.map((item, index) => (
-            <div key={index} className="relative group">
+            <div key={index} className="space-y-3">
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => onRemove(index)}
+                  className="inline-flex h-9 items-center justify-center rounded-xl border border-rose-200 bg-white px-3 text-[11px] font-bold uppercase tracking-[0.18em] text-rose-500 transition hover:bg-rose-500 hover:text-white"
+                >
+                  <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                  Remove
+                </button>
+              </div>
               {renderItem(item, index)}
-              <button
-                type="button"
-                onClick={() => onRemove(index)}
-                className="absolute top-6 right-6 h-10 w-10 bg-white text-rose-400 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-rose-500 hover:text-white shadow-md border border-slate-100"
-              >
-                <i className="fas fa-times"></i>
-              </button>
             </div>
           ))}
         </div>
       ) : (
-        <div className="py-12 text-center border-2 border-dashed border-slate-50 rounded-[2.5rem]">
-          <p className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.2em]">
+        <div className="rounded-[1.5rem] border border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center">
+          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
             {emptyMessage}
           </p>
         </div>

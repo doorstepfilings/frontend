@@ -57,7 +57,7 @@ export const Modal = ({
 
   const modalContent = (
     <div className="fixed inset-0 z-[100] overflow-y-auto">
-      <div className="flex min-h-screen items-center justify-center p-4 text-center sm:p-6">
+      <div className="flex min-h-screen items-end justify-center p-3 text-center sm:items-center sm:p-6">
         {/* Overlay with subtle blur */}
         <div
           className="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] transition-all duration-500 animate-in fade-in"
@@ -66,14 +66,16 @@ export const Modal = ({
 
         {/* Modal Panel - Simplified & Clean */}
         <div
-          className={`relative z-10 transform overflow-hidden rounded-[2.5rem] bg-white text-left shadow-[0_32px_64px_-12px_rgba(0,0,0,0.14)] transition-all animate-in zoom-in-95 duration-300 ${sizeClasses[size]} ${className}`}
+          className={`relative z-10 w-full transform overflow-hidden rounded-[2rem] bg-white text-left shadow-[0_32px_64px_-12px_rgba(0,0,0,0.14)] transition-all animate-in zoom-in-95 duration-300 sm:rounded-[2.5rem] ${sizeClasses[size]} ${className}`}
           {...props}
         >
           {/* Header - No Border, Clean Title */}
           {(title || showCloseButton) && (
-            <div className="flex items-center justify-between px-10 pt-10 pb-2">
+            <div className="flex items-center justify-between px-5 pb-2 pt-5 sm:px-10 sm:pt-10">
               {title && (
-                <h3 className="text-2xl font-black text-slate-900 tracking-tight leading-none">{title}</h3>
+                <h3 className="pr-4 text-xl font-black leading-none tracking-tight text-slate-900 sm:text-2xl">
+                  {title}
+                </h3>
               )}
               {showCloseButton && (
                 <button
@@ -87,7 +89,7 @@ export const Modal = ({
           )}
 
           {/* Content - Spacious Padding */}
-          <div className="px-10 pb-10 pt-6">{children}</div>
+          <div className="px-5 pb-5 pt-5 sm:px-10 sm:pb-10 sm:pt-6">{children}</div>
         </div>
       </div>
     </div>

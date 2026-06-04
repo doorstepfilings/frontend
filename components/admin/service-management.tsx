@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
+import { PanelLogoLoader } from '@/components/ui/logo-loader';
 
 import { ServiceModal } from '@/components/admin/service-modal';
 
@@ -89,7 +90,9 @@ export function ServiceManagement() {
         }
     };
 
-    if (loading) return <div>Loading services...</div>;
+    if (loading) {
+        return <PanelLogoLoader label="Loading services..." size={54} />;
+    }
 
     return (
         <Card className="shadow-lg border-0 bg-white/50 backdrop-blur-sm">

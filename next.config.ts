@@ -16,6 +16,11 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "images.unsplash.com",
       },
+      {
+        protocol: "https",
+        hostname: "flagcdn.com",
+        pathname: "/24x18/**",
+      },
     ],
   },
   async rewrites() {

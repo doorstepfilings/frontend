@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { rmApi } from '@/lib/api/rm-api';
+import { PanelLogoLoader } from '@/components/ui/logo-loader';
 
 export function RMUserManagement() {
     const [users, setUsers] = useState<any[]>([]);
@@ -25,7 +26,9 @@ export function RMUserManagement() {
         fetchUsers();
     }, []);
 
-    if (loading) return <div>Loading assigned users...</div>;
+    if (loading) {
+        return <PanelLogoLoader label="Loading assigned users..." size={54} />;
+    }
 
     return (
         <Card className="shadow-lg border-0 bg-white/50 backdrop-blur-sm">

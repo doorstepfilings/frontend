@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { format, isValid } from "date-fns";
 import type { AdminRecord } from "@/lib/admin/record-helpers";
+import { PanelLogoLoader } from "@/components/ui/logo-loader";
 
 export function formatAdminDate(
   value: Date | string | number | null | undefined,
@@ -70,21 +71,24 @@ export function getLocationDisplay(record: AdminRecord | null | undefined) {
 
 export function LoadingState({ label }: { label: string }) {
   return (
-    <div className="flex min-h-[24rem] items-center justify-center">
-      <div className="flex flex-col items-center gap-4">
-        <div className="h-12 w-12 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
-        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">
-          {label}
-        </p>
-      </div>
-    </div>
+    <PanelLogoLoader
+      className="panel-page min-h-[24rem]"
+      label={label}
+      size={64}
+      surfaceClassName="max-w-2xl"
+    />
   );
 }
 
 export function ErrorBanner({ message }: { message: string }) {
   return (
-    <div className="rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
-      {message}
+    <div className="rounded-[1.4rem] border border-rose-100 bg-rose-50 px-4 py-4 text-sm font-semibold text-rose-700 sm:px-5">
+      <div className="flex items-start gap-3">
+        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-rose-600">
+          <i className="fas fa-triangle-exclamation text-xs" />
+        </span>
+        <p className="leading-6">{message}</p>
+      </div>
     </div>
   );
 }
@@ -100,21 +104,23 @@ export function SummaryStat({
 }) {
   const toneClass =
     tone === "blue"
-      ? "text-blue-700"
+      ? "border-blue-100 bg-blue-50/60 text-blue-800"
       : tone === "emerald"
-        ? "text-emerald-700"
+        ? "border-emerald-100 bg-emerald-50/60 text-emerald-800"
         : tone === "amber"
-          ? "text-amber-700"
+          ? "border-amber-100 bg-amber-50/60 text-amber-800"
           : tone === "indigo"
-            ? "text-indigo-700"
-            : "text-gray-900";
+            ? "border-indigo-100 bg-indigo-50/60 text-indigo-800"
+            : "border-slate-200 bg-white text-slate-900";
 
   return (
-    <div className="rounded-2xl border border-gray-100 bg-white p-4">
-      <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+    <div className={`panel-card rounded-[1.4rem] border p-4 sm:p-5 ${toneClass}`}>
+      <p className="text-[9px] font-black uppercase tracking-[0.16em] text-slate-400">
         {label}
       </p>
-      <div className={`mt-1 text-lg font-black ${toneClass}`}>{value}</div>
+      <div className="mt-2 break-words text-base font-bold leading-snug tracking-tight text-slate-900 sm:text-lg">
+        {value}
+      </div>
     </div>
   );
 }
@@ -129,10 +135,14 @@ export function DetailSection({
   children: ReactNode;
 }) {
   return (
-    <section className="overflow-hidden rounded-[2rem] border border-gray-100 bg-white shadow-[var(--admin-card-shadow)]">
-      <div className="border-b border-gray-100 px-6 py-4">
-        <h2 className="text-lg font-black text-gray-900">{title}</h2>
-        <p className="mt-1 text-sm text-gray-500">{subtitle}</p>
+    <section className="panel-card overflow-hidden">
+      <div className="border-b border-slate-100 px-5 py-5 sm:px-6">
+        <h2 className="text-base font-black tracking-tight text-slate-900 sm:text-lg">
+          {title}
+        </h2>
+        <p className="mt-1 text-[13px] font-medium leading-6 text-slate-500">
+          {subtitle}
+        </p>
       </div>
       {children}
     </section>
@@ -147,11 +157,13 @@ export function EmptySection({
   icon: string;
 }) {
   return (
-    <div className="px-6 py-16 text-center">
-      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 text-gray-300">
+    <div className="px-5 py-10 sm:px-6 sm:py-14">
+      <div className="panel-empty-state px-6 py-12 text-center">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-300">
         <i className={`fas ${icon} text-xl`} />
+        </div>
+        <p className="mt-4 text-sm font-semibold text-slate-500">{label}</p>
       </div>
-      <p className="mt-4 text-sm font-semibold text-gray-500">{label}</p>
     </div>
   );
 }

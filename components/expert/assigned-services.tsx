@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
 import { getStatusColor, getStatusLabel } from '@/lib/status-helpers';
+import { PanelLogoLoader } from '@/components/ui/logo-loader';
 
 import { RequestDetailModal } from '@/components/accountant/request-detail-modal';
 
@@ -62,7 +63,9 @@ export function AssignedServices() {
         setIsModalOpen(true);
     };
 
-    if (loading) return <div>Loading assigned services...</div>;
+    if (loading) {
+        return <PanelLogoLoader label="Loading assigned services..." size={54} />;
+    }
 
     return (
         <Card className="shadow-lg border-0 bg-white/50 backdrop-blur-sm">

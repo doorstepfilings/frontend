@@ -6,6 +6,7 @@ import { setStoredUser, type AuthUser } from "@/lib/auth/storage";
 import { usePincodeLookup } from "@/lib/hooks/use-pincode-lookup";
 import { parseApiError } from "@/lib/utils/error-parser";
 import { FormField } from "@/components/ui/core/form-field";
+import { PageLogoLoader } from "@/components/ui/logo-loader";
 
 type ProfileResponse = {
   data?: AuthUser;
@@ -206,20 +207,11 @@ export function AccountView() {
   return (
     <>
       {loading ? (
-        <div className="flex h-96 items-center justify-center">
-          <div className="text-center">
-            <div className="mx-auto mb-4 flex items-end justify-center gap-2">
-              {[0, 1, 2, 3, 4].map((index) => (
-                <span
-                  key={index}
-                  className="h-8 w-2 animate-loading-bar rounded-sm bg-blue-900"
-                  style={{ animationDelay: `${index * 100}ms` }}
-                />
-              ))}
-            </div>
-            <p className="text-gray-500">Loading your account...</p>
-          </div>
-        </div>
+        <PageLogoLoader
+          className="min-h-[24rem]"
+          label="Loading your account..."
+          size={64}
+        />
       ) : (
         <div className="mx-auto max-w-5xl space-y-6">
           <div className="mb-8">

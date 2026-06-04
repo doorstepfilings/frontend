@@ -7,9 +7,11 @@ import { fetchAccountantDashboard } from "@/lib/features/accountant/accountant-s
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { AuthGuard } from "@/components/auth/auth-guard";
 import { StatCard } from "@/components/dashboard/stat-card";
+import { InsightBarChart } from "@/components/dashboard/insight-bar-chart";
 import { StatusIndicator } from "@/components/ui/status-indicator";
 import { buildCollectionKey } from "@/lib/utils/list-keys";
 import { useStoredUser } from "@/lib/auth/hooks";
+import { PanelLogoLoader } from "@/components/ui/logo-loader";
 
 export function AccountantDashboardView() {
   const dispatch = useAppDispatch();
@@ -27,6 +29,66 @@ export function AccountantDashboardView() {
         .slice(0, 3),
     [serviceRequests],
   );
+  const recentRequests = useMemo(() => serviceRequests.slice(0, 5), [serviceRequests]);
+  const pipelineChartData = useMemo(() => {
+    const draftBuckets = [
+      {
+        label: "New Assigned",
+        value: serviceRequests.filter((request: any) => request.status === "applied").length,
+        tone: "blue" as const,
+        helper: "Freshly assigned to you",
+      },
+      {
+        label: "Under Review",
+        value: serviceRequests.filter((request: any) => request.status === "under_review").length,
+        tone: "indigo" as const,
+        helper: "Documents being verified",
+      },
+      {
+        label: "Processing",
+        value: serviceRequests.filter((request: any) =>
+          ["in_progress", "paid", "document_collection"].includes(request.status),
+        ).length,
+        tone: "amber" as const,
+        helper: "Active execution work",
+      },
+      {
+        label: "Sent to CA",
+        value: serviceRequests.filter((request: any) => request.status === "submitted_to_ca").length,
+        tone: "slate" as const,
+        helper: "Waiting on final approval",
+      },
+      {
+        label: "Action Required",
+        value: serviceRequests.filter((request: any) => request.status === "update_required").length,
+        tone: "rose" as const,
+        helper: "Needs client correction",
+      },
+      {
+        label: "Completed",
+        value: serviceRequests.filter((request: any) =>
+          ["completed", "approved"].includes(request.status),
+        ).length,
+        tone: "emerald" as const,
+        helper: "Closed successfully",
+      },
+    ];
+
+    const bucketTotal = draftBuckets.reduce((sum, item) => sum + item.value, 0);
+    const unmatchedCount = Math.max(serviceRequests.length - bucketTotal, 0);
+
+    return unmatchedCount > 0
+      ? [
+          ...draftBuckets,
+          {
+            label: "Other States",
+            value: unmatchedCount,
+            tone: "slate" as const,
+            helper: "Statuses outside the main workflow",
+          },
+        ]
+      : draftBuckets;
+  }, [serviceRequests]);
 
   useEffect(() => {
     dispatch(fetchAccountantDashboard());
@@ -35,21 +97,16 @@ export function AccountantDashboardView() {
   return (
     <AuthGuard allowedRoles={["accountant"]}>
       <AdminLayout>
-        <div className="space-y-10 px-2 pb-20">
-          <section className="overflow-hidden rounded-[2.5rem] border border-slate-200/70 bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.98),_rgba(239,246,255,0.92)_45%,_rgba(255,255,255,1)_72%)] p-6 shadow-[0_30px_80px_rgba(15,23,42,0.08)] lg:p-8">
-            <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-end">
+        <div className="panel-page">
+          <section className="panel-hero overflow-hidden p-5 sm:p-6 lg:p-8">
+            <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_21rem] xl:items-end">
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.22em] text-blue-600">
                   Accountant Panel
                 </p>
-                <h1 className="mt-3 text-4xl font-black tracking-tight text-slate-950 lg:text-5xl">
+                <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-950 lg:text-5xl">
                   Accountant Workspace
                 </h1>
-                <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-slate-500">
-                  Review assigned filings, move active requests through milestones,
-                  and focus first on applications that need corrections or
-                  verification.
-                </p>
                 <div className="mt-6 flex flex-wrap items-center gap-3">
                   <span className="inline-flex items-center rounded-full border border-blue-100 bg-blue-50 px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-blue-700">
                     Operations Desk
@@ -60,7 +117,7 @@ export function AccountantDashboardView() {
                 </div>
               </div>
 
-              <div className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
+              <div className="panel-card bg-white/95 p-5 sm:p-6">
                 <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
                   Daily Snapshot
                 </p>
@@ -119,26 +176,64 @@ export function AccountantDashboardView() {
             />
           </div>
 
-          <div className="grid grid-cols-1 gap-10 xl:grid-cols-3">
-            <div className="space-y-6 xl:col-span-2">
-              <div className="min-h-[500px] overflow-hidden rounded-[3rem] border border-slate-200/60 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.06)]">
-                <div className="flex items-center justify-between border-b border-slate-100 px-8 py-8 md:px-10">
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+            <div className="space-y-4 sm:space-y-6 xl:col-span-2">
+              <div className="panel-table-shell min-h-[500px]">
+                <div className="panel-section-header border-b border-slate-100 px-5 py-5 sm:px-6">
                   <div>
-                    <h3 className="text-xl font-black tracking-tight text-slate-900">
+                    <h3 className="text-lg font-black tracking-tight text-slate-900 sm:text-xl">
                       Active Work Queue
                     </h3>
                     <p className="mt-1 text-sm font-medium text-slate-500">
                       Your latest filings, ordered for quick follow-up.
                     </p>
                   </div>
-                  <span className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-600">
+                  <span className="panel-chip">
                     {serviceRequests.length} tasks
                   </span>
                 </div>
 
-                <div className="overflow-x-auto">
+                <div className="space-y-4 p-4 md:hidden">
+                  {loading ? (
+                    <PanelLogoLoader
+                      className="panel-empty-state min-h-[16rem] px-0 py-0"
+                      label="Loading assignments..."
+                      size={54}
+                      surfaceClassName="max-w-md"
+                    />
+                  ) : recentRequests.length === 0 ? (
+                    <div className="panel-empty-state px-5 py-14 text-center text-sm font-medium">
+                      No assigned tasks
+                    </div>
+                  ) : (
+                    recentRequests.map((request: any) => (
+                      <Link
+                        key={String(request.id)}
+                        href={`/accountant/service-requests/${request.id}`}
+                        className="panel-card block p-4"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-sm font-black text-slate-900">
+                              {request.service?.name}
+                            </p>
+                            <p className="mt-1 text-[11px] font-semibold text-slate-500">
+                              {request.user?.name}
+                            </p>
+                          </div>
+                          <StatusIndicator status={request.status} />
+                        </div>
+                        <div className="mt-4 inline-flex h-10 items-center rounded-xl bg-blue-900 px-4 text-[10px] font-black uppercase tracking-[0.14em] text-white">
+                          Process Task
+                        </div>
+                      </Link>
+                    ))
+                  )}
+                </div>
+
+                <div className="hidden overflow-x-auto md:block">
                   <table className="w-full text-left">
-                    <thead className="bg-slate-50/60">
+                    <thead className="panel-table-head">
                       <tr>
                         <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">
                           Service / Client
@@ -155,12 +250,12 @@ export function AccountantDashboardView() {
                       {loading ? (
                         <tr>
                           <td colSpan={3} className="px-8 py-24 text-center">
-                            <div className="flex flex-col items-center gap-4">
-                              <div className="h-10 w-10 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
-                              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                                Loading assignments...
-                              </p>
-                            </div>
+                            <PanelLogoLoader
+                              className="min-h-0 px-0 py-0"
+                              label="Loading assignments..."
+                              size={54}
+                              surfaceClassName="max-w-md"
+                            />
                           </td>
                         </tr>
                       ) : serviceRequests.length === 0 ? (
@@ -172,7 +267,7 @@ export function AccountantDashboardView() {
                           </td>
                         </tr>
                       ) : (
-                        serviceRequests.slice(0, 5).map((request: any, index: number) => (
+                        recentRequests.map((request: any, index: number) => (
                           <tr
                             key={buildCollectionKey(
                               request,
@@ -210,9 +305,9 @@ export function AccountantDashboardView() {
               </div>
             </div>
 
-            <div className="space-y-6">
-              <div className="rounded-[3rem] bg-slate-900 p-10 text-white shadow-2xl shadow-slate-900/20">
-                <h3 className="mb-8 text-xl font-black tracking-tight">
+            <div className="space-y-4 sm:space-y-6">
+              <div className="panel-card-dark p-6 text-white sm:p-8">
+                <h3 className="mb-6 text-xl font-black tracking-tight">
                   Performance
                 </h3>
                 <div className="space-y-6">
@@ -254,7 +349,7 @@ export function AccountantDashboardView() {
                 </div>
               </div>
 
-              <div className="rounded-[3rem] border border-slate-200/60 bg-white p-8 shadow-[0_20px_50px_rgba(15,23,42,0.06)]">
+              <div className="panel-card p-5 sm:p-8">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <h3 className="text-lg font-black tracking-tight text-slate-900">

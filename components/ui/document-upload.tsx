@@ -3,6 +3,7 @@
 import React from "react";
 import { formatFileSize, getDocumentIcon } from "@/lib/utils/document-helpers";
 import { Button } from "./button";
+import { SearchSelect } from "@/components/ui/core/search-select";
 
 export interface DocumentUploadRow {
   file: File | null;
@@ -120,21 +121,23 @@ export const DocumentUpload = ({
                       Document Type
                     </label>
                     {availableTypes.length > 0 ? (
-                      <div className="relative">
-                        <select
-                          value={row.type}
-                          onChange={(event) => onTypeChange(index, event.target.value)}
-                          className="h-[50px] w-full appearance-none rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                        >
-                          <option value="">Select Type</option>
-                          {availableTypes.map((type) => (
-                            <option key={type.id || type} value={type.value || type}>
-                              {type.label || type}
-                            </option>
-                          ))}
-                        </select>
-                        <i className="fas fa-chevron-down pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[10px] text-gray-400" />
-                      </div>
+                      <SearchSelect
+                        options={[
+                          { value: "", label: "Select Type" },
+                          ...availableTypes.map((type) => ({
+                            value: String(type.value || type),
+                            label: String(type.label || type),
+                          })),
+                        ]}
+                        value={row.type}
+                        onChange={(nextValue) => onTypeChange(index, nextValue)}
+                        searchable={availableTypes.length > 6}
+                        treatEmptyValueAsPlaceholder
+                        triggerClassName="min-h-[50px] rounded-xl px-4 py-3"
+                        valueLabelClassName="text-sm font-semibold text-gray-700"
+                        handleClassName="h-7 w-7 rounded-md border-0 bg-transparent text-gray-400"
+                        selectStyle={{ borderColor: "#e5e7eb", boxShadow: "none" }}
+                      />
                     ) : (
                       <input
                         type="text"
@@ -203,23 +206,25 @@ export const DocumentUpload = ({
 
                 {rowSource === "existing" ? (
                   <div className="space-y-3">
-                    <div className="relative">
-                      <select
-                        value={row.existing_document_id || ""}
-                        onChange={(event) =>
-                          onExistingDocumentChange?.(index, event.target.value)
-                        }
-                        className="h-[50px] w-full appearance-none rounded-xl border border-gray-200 bg-white px-4 pr-10 text-sm font-semibold text-gray-700 outline-none transition-all focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
-                      >
-                        <option value="">Select a previous document</option>
-                        {existingDocuments.map((doc) => (
-                          <option key={doc.id} value={doc.id}>
-                            {doc.label || doc.file_name}
-                          </option>
-                        ))}
-                      </select>
-                      <i className="fas fa-chevron-down pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-xs text-gray-300" />
-                    </div>
+                    <SearchSelect
+                      options={[
+                        { value: "", label: "Select a previous document" },
+                        ...existingDocuments.map((doc) => ({
+                          value: String(doc.id),
+                          label: String(doc.label || doc.file_name || ""),
+                        })),
+                      ]}
+                      value={String(row.existing_document_id || "")}
+                      onChange={(nextValue) =>
+                        onExistingDocumentChange?.(index, nextValue)
+                      }
+                      searchable={existingDocuments.length > 6}
+                      treatEmptyValueAsPlaceholder
+                      triggerClassName="min-h-[50px] rounded-xl px-4 py-3"
+                      valueLabelClassName="text-sm font-semibold text-gray-700"
+                      handleClassName="h-7 w-7 rounded-md border-0 bg-transparent text-gray-300"
+                      selectStyle={{ borderColor: "#e5e7eb", boxShadow: "none" }}
+                    />
 
                     {selectedExistingDocument ? (
                       <div className="flex items-start gap-3 rounded-xl border border-emerald-100 bg-emerald-50 p-4">

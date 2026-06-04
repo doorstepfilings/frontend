@@ -17,6 +17,7 @@ export type ServiceDocument = {
   file_url?: string | null;
   id: number | string;
   status?: string | null;
+  notes?: string | null;
   [key: string]: unknown;
 };
 

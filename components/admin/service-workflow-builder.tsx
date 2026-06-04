@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { GripVertical, Plus, Trash2, X } from "lucide-react";
 import {
   closestCenter,
   DndContext,
@@ -24,8 +25,10 @@ import {
 } from "@/lib/api/admin-api";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/core/form-field";
+import { SearchSelect } from "@/components/ui/core/search-select";
 import { useConfirm } from "@/hooks/use-confirm";
 import { parseApiError } from "@/lib/utils/error-parser";
+import { PanelLogoLoader } from "@/components/ui/logo-loader";
 
 const PANEL_CLASS = "rounded-3xl border border-slate-200 bg-white shadow-sm";
 const INPUT_CLASS =
@@ -36,6 +39,7 @@ const TITLE_CLASS = "text-2xl font-bold tracking-tight text-slate-900";
 
 type ServiceWorkflowBuilderProps = {
   serviceId: number | null;
+  variant?: "card" | "embedded";
 };
 
 type ApiRecord = Record<string, unknown>;
@@ -101,6 +105,7 @@ function normalizeWorkflow(workflow: unknown): AdminServiceWorkflow {
 
 export function ServiceWorkflowBuilder({
   serviceId,
+  variant = "card",
 }: ServiceWorkflowBuilderProps) {
   const { confirm, ConfirmDialog } = useConfirm();
   const sensors = useSensors(
@@ -161,6 +166,10 @@ export function ServiceWorkflowBuilder({
   const isOrderDirty =
     orderedWorkflows.map((workflow) => workflow.id).join(",") !==
     syncedOrderIds.join(",");
+  const containerClassName =
+    variant === "embedded"
+      ? "rounded-[1.75rem] border border-slate-200/80 bg-slate-50/80"
+      : PANEL_CLASS;
 
   async function loadWorkflowData(targetServiceId: number) {
     setLoading(true);
@@ -393,7 +402,7 @@ export function ServiceWorkflowBuilder({
 
   if (!serviceId) {
     return (
-      <div className={`${PANEL_CLASS} p-6 sm:p-8`}>
+      <div className={`${containerClassName} p-6 sm:p-8`}>
         <p className={KICKER_CLASS}>Milestone Builder</p>
         <h2 className={`mt-2 ${TITLE_CLASS}`}>Service Milestones</h2>
       </div>
@@ -401,7 +410,7 @@ export function ServiceWorkflowBuilder({
   }
 
   return (
-    <div className={`${PANEL_CLASS} p-6 sm:p-8`}>
+    <div className={`${containerClassName} p-6 sm:p-8`}>
       <ConfirmDialog />
       <CreateStageModal
         key={createModalTarget ?? "closed"}
@@ -456,34 +465,38 @@ export function ServiceWorkflowBuilder({
             label={orderedWorkflows.length === 0 ? "Add First Milestone" : "Append Milestone"}
             className="flex-1"
           >
-            <div className="flex items-center gap-2">
-              <select
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
+              <SearchSelect
+                options={[
+                  { value: "", label: "Select a reusable milestone..." },
+                  ...availableStages.map((stage) => ({
+                    value: String(stage.id),
+                    label: stage.name,
+                  })),
+                ]}
                 value={appendStageId}
-                onChange={(event) => setAppendStageId(event.target.value)}
-                className={`${INPUT_CLASS} appearance-none flex-1`}
-              >
-                <option value="">Select a reusable milestone...</option>
-                {availableStages.map((stage) => (
-                  <option key={stage.id} value={stage.id}>
-                    {stage.name}
-                  </option>
-                ))}
-              </select>
+                onChange={setAppendStageId}
+                searchable={availableStages.length > 6}
+                treatEmptyValueAsPlaceholder
+                triggerClassName={`${INPUT_CLASS} min-h-[3rem] flex-1`}
+                valueLabelClassName="text-sm font-medium text-slate-900"
+                handleClassName="h-8 w-8 rounded-lg border-0 bg-transparent text-slate-400"
+              />
               <button
                 type="button"
-                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-blue-600 shadow-sm transition hover:border-blue-300 hover:bg-blue-50"
+                className="flex h-12 w-full shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 text-[11px] font-bold uppercase tracking-[0.16em] text-blue-600 shadow-sm transition hover:border-blue-300 hover:bg-blue-50 sm:w-auto"
                 onClick={() => setCreateModalTarget("append")}
                 title="Create New Milestone"
               >
-                <i className="fas fa-plus" />
+                <Plus className="h-3.5 w-3.5" aria-hidden="true" />
               </button>
             </div>
           </FormField>
 
-          <div className="flex flex-col gap-3 lg:w-[280px]">
+          <div className="flex flex-col">
             <Button
               type="button"
-              className="rounded-2xl bg-blue-600 px-5 py-3 font-semibold text-white shadow-lg shadow-blue-600/15"
+              className="jsx-1954957fa388241e admin-btn h-12 min-w-[11rem] rounded-2xl text-xs flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-60"
               onClick={() =>
                 void handleAssignStage(
                   appendStageId,
@@ -502,14 +515,12 @@ export function ServiceWorkflowBuilder({
 
       <div className="mt-8 space-y-4">
         {loading || isInitialLoadPending ? (
-          <div className="flex items-center justify-center rounded-3xl border border-slate-200 bg-slate-50 px-6 py-14">
-            <div className="flex flex-col items-center gap-4">
-              <div className="h-10 w-10 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
-              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
-                Loading milestones...
-              </p>
-            </div>
-          </div>
+          <PanelLogoLoader
+            className="min-h-[16rem] rounded-3xl border border-slate-200 bg-slate-50 px-0 py-0"
+            label="Loading milestones..."
+            size={54}
+            surfaceClassName="max-w-md"
+          />
         ) : error ? (
           <div className="rounded-3xl border border-rose-200 bg-rose-50 p-6">
             <p className="text-sm font-semibold text-rose-700">{error}</p>
@@ -606,35 +617,45 @@ function InsertStageControl({
   value: string;
 }) {
   return (
-    <div className="flex min-w-[260px] flex-1 flex-wrap items-center gap-2 rounded-2xl border border-blue-100 bg-blue-50/80 p-2">
-      <div className="min-w-[180px] flex-1">
-        <select
+    <div className="flex w-full flex-col gap-2 rounded-2xl border border-blue-100 bg-blue-50/80 p-2 sm:min-w-[260px] sm:flex-1 sm:flex-row sm:flex-wrap sm:items-center">
+      <div className="w-full sm:min-w-[180px] sm:flex-1">
+        <SearchSelect
+          options={[
+            { value: "", label: `${label}...` },
+            ...options.map((stage) => ({
+              value: String(stage.id),
+              label: stage.name,
+            })),
+          ]}
           value={value}
-          onChange={(event) => onChange(event.target.value)}
-          className="w-full cursor-pointer appearance-none rounded-xl border border-blue-100 bg-white px-3 py-2 text-sm font-semibold text-slate-900 outline-none transition focus:border-blue-300"
-        >
-          <option value="">{label}...</option>
-          {options.map((stage) => (
-            <option key={`${slotKey}-${stage.id}`} value={stage.id}>
-              {stage.name}
-            </option>
-          ))}
-        </select>
+          onChange={onChange}
+          searchable={options.length > 6}
+          treatEmptyValueAsPlaceholder
+          triggerClassName="min-h-[2.75rem] rounded-xl bg-white px-3 py-2"
+          valueLabelClassName="text-sm font-semibold text-slate-900"
+          handleClassName="h-7 w-7 rounded-lg border-0 bg-transparent text-slate-400"
+          selectStyle={{
+            borderColor: "#dbeafe",
+            background: "#ffffff",
+            boxShadow: "none",
+          }}
+        />
       </div>
       <button
         type="button"
         onClick={onCreateNew}
-        className="flex h-10 items-center justify-center rounded-xl border border-blue-200 bg-white px-3 text-[10px] font-black uppercase tracking-widest text-blue-700 transition-colors hover:border-blue-300 hover:bg-blue-100"
+        className="flex h-10 w-full items-center justify-center rounded-xl border border-blue-200 bg-white px-3 text-[10px] font-black uppercase tracking-widest text-blue-700 transition-colors hover:border-blue-300 hover:bg-blue-100 sm:w-auto"
       >
+        <Plus className="h-3.5 w-3.5" aria-hidden="true" />
         New
       </button>
       <button
         type="button"
-        className="flex h-10 items-center justify-center rounded-xl bg-blue-600 px-4 text-[10px] font-black uppercase tracking-widest text-white shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+        className="flex h-10 w-full items-center justify-center rounded-xl bg-blue-600 px-4 text-[10px] font-black uppercase tracking-widest text-white shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
         onClick={onSubmit}
         disabled={loading || !value}
       >
-        {loading ? <i className="fas fa-spinner fa-spin" /> : "Insert"}
+        {loading ? "Saving..." : "Insert"}
       </button>
     </div>
   );
@@ -680,21 +701,21 @@ function SortableWorkflowCard({
   return (
     <div ref={setNodeRef} style={style}>
       <div className="group flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition-all hover:border-blue-200 hover:shadow-md xl:flex-row xl:items-center xl:justify-between">
-        <div className="flex items-center gap-4 flex-1">
+        <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
           <button
             type="button"
-            className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50 text-slate-400 transition-colors hover:bg-blue-50 hover:text-blue-600"
+            className="flex h-10 w-full items-center justify-center rounded-xl bg-slate-50 px-3 text-[10px] font-black uppercase tracking-widest text-slate-400 transition-colors hover:bg-blue-50 hover:text-blue-600 sm:w-auto"
             {...attributes}
             {...listeners}
           >
-            <i className="fas fa-grip-vertical" />
+            <GripVertical className="h-4 w-4" aria-hidden="true" />
           </button>
 
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-xs font-black text-white">
             {position}
           </div>
 
-          <div className="flex-1 min-w-[200px]">
+          <div className="min-w-0 flex-1">
             <h3 className="text-sm font-bold text-slate-900">
               {workflow.stage?.name || "Untitled milestone"}
             </h3>
@@ -716,7 +737,7 @@ function SortableWorkflowCard({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-end gap-2 shrink-0 xl:max-w-[58%]">
+        <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end xl:w-auto xl:max-w-[58%]">
           {insertControl.open ? (
             <InsertStageControl
               slotKey={insertControl.slotKey}
@@ -733,29 +754,32 @@ function SortableWorkflowCard({
           <button
             type="button"
             onClick={insertControl.onToggle}
-            className={`flex h-10 w-10 items-center justify-center rounded-xl border transition-colors ${
-              insertControl.open
-                ? "border-blue-200 bg-blue-50 text-blue-600"
-                : "border-slate-200 bg-white text-slate-500 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
-            }`}
+            className={`flex h-10 w-full items-center justify-center rounded-xl border px-3 text-[10px] font-black uppercase tracking-widest transition-colors sm:w-auto ${insertControl.open
+              ? "border-blue-200 bg-blue-50 text-blue-600"
+              : "border-slate-200 bg-white text-slate-500 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
+              }`}
             title={
               insertControl.open
                 ? "Hide add milestone"
                 : "Add milestone after this"
             }
           >
-            <i className={`fas ${insertControl.open ? "fa-times" : "fa-plus"} text-xs`} />
+            {insertControl.open ? (
+              <X className="h-3.5 w-3.5" aria-hidden="true" />
+            ) : (
+              <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+            )}
+            {insertControl.open ? "Close" : "Add"}
           </button>
 
           <button
             type="button"
             onClick={onToggleRequired}
             disabled={busy}
-            className={`flex h-10 items-center justify-center rounded-xl border px-4 transition-colors ${
-              workflow.is_required
-                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                : "border-slate-200 bg-white text-slate-500"
-            } ${busy ? "opacity-60" : ""}`}
+            className={`flex h-10 w-full items-center justify-center rounded-xl border px-4 transition-colors sm:w-auto ${workflow.is_required
+              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+              : "border-slate-200 bg-white text-slate-500"
+              } ${busy ? "opacity-60" : ""}`}
             title={workflow.is_required ? "Required Step" : "Optional Step"}
           >
             <span className="text-[10px] font-black uppercase tracking-widest">
@@ -765,16 +789,13 @@ function SortableWorkflowCard({
 
           <button
             type="button"
-            className="flex h-10 w-10 items-center justify-center rounded-xl border border-rose-100 bg-rose-50 text-rose-600 transition-colors hover:bg-rose-600 hover:text-white"
+            className="flex h-10 w-full items-center justify-center rounded-xl border border-rose-100 bg-rose-50 px-3 text-[10px] font-black uppercase tracking-widest text-rose-600 transition-colors hover:bg-rose-600 hover:text-white sm:w-auto"
             onClick={onDelete}
             disabled={busy}
             title="Remove milestone"
           >
-            {busy ? (
-              <i className="fas fa-spinner fa-spin text-xs" />
-            ) : (
-              <i className="fas fa-trash-alt text-xs" />
-            )}
+            <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+            {busy ? "Removing" : "Delete"}
           </button>
         </div>
       </div>
@@ -832,9 +853,9 @@ function CreateStageModal({
           <button
             type="button"
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-900"
+            className="flex h-8 min-w-8 items-center justify-center rounded-full bg-slate-100 px-2 text-sm font-bold text-slate-500 hover:bg-slate-200 hover:text-slate-900"
           >
-            <i className="fas fa-times" />
+            <X className="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
 

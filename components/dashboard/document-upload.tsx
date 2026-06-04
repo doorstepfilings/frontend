@@ -2,6 +2,7 @@
 
 import React from "react";
 import { formatFileSize, getDocumentIcon } from "@/lib/utils/document-helpers";
+import { SearchSelect } from "@/components/ui/core/search-select";
 
 type DocumentUploadProps = {
   rows: any[];
@@ -111,18 +112,23 @@ export function DocumentUpload({
                       Document Type
                     </label>
                     {availableTypes.length > 0 ? (
-                      <select
+                      <SearchSelect
+                        options={[
+                          { value: "", label: "Select Type" },
+                          ...availableTypes.map((type: any) => ({
+                            value: String(type.value || type),
+                            label: String(type.label || type),
+                          })),
+                        ]}
                         value={row.type}
-                        onChange={(event) => onTypeChange(index, event.target.value)}
-                        className="h-[56px] w-full rounded-2xl border-2 border-slate-100 bg-white px-5 text-sm font-bold text-slate-700 outline-none transition-all focus:border-blue-500"
-                      >
-                        <option value="">Select Type</option>
-                        {availableTypes.map((type: any) => (
-                          <option key={type.id || type} value={type.value || type}>
-                            {type.label || type}
-                          </option>
-                        ))}
-                      </select>
+                        onChange={(nextValue) => onTypeChange(index, nextValue)}
+                        searchable={availableTypes.length > 6}
+                        treatEmptyValueAsPlaceholder
+                        triggerClassName="min-h-[56px] rounded-2xl px-5 py-4"
+                        valueLabelClassName="text-sm font-bold text-slate-700"
+                        handleClassName="h-8 w-8 rounded-lg border-0 bg-transparent text-slate-400"
+                        selectStyle={{ borderColor: "#f1f5f9", borderWidth: "2px", boxShadow: "none" }}
+                      />
                     ) : (
                       <input
                         type="text"
@@ -186,21 +192,23 @@ export function DocumentUpload({
 
                 {rowSource === "existing" ? (
                   <div className="space-y-4">
-                    <div className="relative">
-                      <select
-                        value={row.existing_document_id || ""}
-                        onChange={(event) => onExistingDocumentChange?.(index, event.target.value)}
-                        className="h-[56px] w-full appearance-none rounded-2xl border-2 border-slate-100 bg-white px-5 pr-12 text-sm font-bold text-slate-700 outline-none transition-all focus:border-blue-500"
-                      >
-                        <option value="">Select a previous document</option>
-                        {existingDocuments.map((doc) => (
-                          <option key={doc.id} value={doc.id}>
-                            {doc.label || doc.file_name}
-                          </option>
-                        ))}
-                      </select>
-                      <i className="fas fa-chevron-down pointer-events-none absolute right-5 top-1/2 -translate-y-1/2 text-xs text-slate-300" />
-                    </div>
+                    <SearchSelect
+                      options={[
+                        { value: "", label: "Select a previous document" },
+                        ...existingDocuments.map((doc) => ({
+                          value: String(doc.id),
+                          label: String(doc.label || doc.file_name || ""),
+                        })),
+                      ]}
+                      value={String(row.existing_document_id || "")}
+                      onChange={(nextValue) => onExistingDocumentChange?.(index, nextValue)}
+                      searchable={existingDocuments.length > 6}
+                      treatEmptyValueAsPlaceholder
+                      triggerClassName="min-h-[56px] rounded-2xl px-5 py-4"
+                      valueLabelClassName="text-sm font-bold text-slate-700"
+                      handleClassName="h-8 w-8 rounded-lg border-0 bg-transparent text-slate-300"
+                      selectStyle={{ borderColor: "#f1f5f9", borderWidth: "2px", boxShadow: "none" }}
+                    />
 
                     {selectedExistingDocument ? (
                       <div className="flex items-center gap-4 rounded-2xl border-2 border-blue-50 bg-white p-4">

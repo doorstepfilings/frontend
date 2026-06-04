@@ -16,7 +16,6 @@ import { StatusManagement } from "./status-management";
 import { FormDataRenderer } from "@/components/ui/form-data-renderer";
 import { AccountantDocumentList } from "@/components/accountant/accountant-document-list";
 import { splitDocumentsByOwner } from "@/lib/utils/document-helpers";
-import { ChatBox } from "@/components/chat/ChatBox";
 import { formatDateWithPattern } from "@/lib/utils/formatters";
 
 const STATUS_CONFIG: any = {
@@ -152,22 +151,23 @@ export function ApplicationDetailView() {
   return (
     <AuthGuard allowedRoles={["super_admin"]}>
       <AdminLayout>
-        <div className="mx-auto max-w-6xl space-y-8 pb-24">
-          <div className="flex flex-col justify-between gap-6 border-b border-slate-100 pb-8 md:flex-row md:items-center">
-            <div className="flex items-center gap-5">
+        <div className="panel-page">
+          <section className="panel-hero p-5 sm:p-6 lg:p-8">
+            <div className="flex flex-col justify-between gap-6 xl:flex-row xl:items-center">
+            <div className="flex items-start gap-4 sm:gap-5">
               <Link
                 href="/admin/service-applications"
-                className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-400 shadow-sm transition-all hover:border-blue-100 hover:text-blue-600"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-400 shadow-sm transition-all hover:border-blue-100 hover:text-blue-600 sm:h-12 sm:w-12"
               >
                 <i className="fas fa-chevron-left text-xs"></i>
               </Link>
-              <div>
-                <div className="flex items-center gap-4">
-                  <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+              <div className="min-w-0">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+                  <h1 className="break-words text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
                     Order #{orderLabel}
                   </h1>
                   <span
-                    className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-wider ${statusConfig.color}`}
+                    className={`inline-flex w-fit items-center gap-2 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-wider ${statusConfig.color}`}
                   >
                     <i className={`fas ${statusConfig.icon} text-[9px]`}></i>
                     {statusConfig.label}
@@ -178,16 +178,20 @@ export function ApplicationDetailView() {
                 </p>
               </div>
             </div>
-            <div className="flex gap-3">
-              <button className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-xs font-bold text-slate-700 shadow-sm transition-all hover:bg-slate-50">
-                <i className="fas fa-file-pdf text-xs text-rose-500"></i> Export
-                PDF
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <button
+                className="flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-xs font-bold text-slate-700 shadow-sm transition-all hover:bg-slate-50 sm:w-auto"
+              >
+                <i className="fas fa-file-pdf text-xs text-rose-500"></i> Save PDF
               </button>
-              <button className="flex h-10 items-center gap-2 rounded-xl bg-slate-900 px-5 text-xs font-bold text-white shadow-lg shadow-slate-900/10 transition-all hover:bg-blue-600">
+              <button
+                className="flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 text-xs font-bold text-white shadow-lg shadow-slate-900/10 transition-all hover:bg-blue-600 sm:w-auto"
+              >
                 <i className="fas fa-print text-xs"></i> Print
               </button>
             </div>
           </div>
+          </section>
 
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
             <div className="space-y-8 lg:col-span-2">
@@ -226,7 +230,7 @@ export function ApplicationDetailView() {
                 </InfoSection>
               </div>
 
-              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <div className="panel-card overflow-hidden">
                 <FormDataRenderer
                   formData={app.form_data}
                   title="Application Data"
@@ -306,7 +310,7 @@ export function ApplicationDetailView() {
             </div>
 
             <div className="space-y-6">
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="panel-card p-6">
                 <h3 className="mb-6 text-xs font-bold uppercase tracking-widest text-slate-400">
                   Process Management
                 </h3>
@@ -336,7 +340,13 @@ function InfoSection({ title, icon, children }: any) {
   );
 }
 
-function DetailRow({ label, value }: { label: string; value?: string }) {
+function DetailRow({
+  label,
+  value,
+}: {
+  label: string;
+  value?: string;
+}) {
   return (
     <div className="flex flex-col">
       <span className="mb-0.5 text-[10px] font-bold uppercase tracking-tight text-slate-400">

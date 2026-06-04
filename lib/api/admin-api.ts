@@ -95,8 +95,6 @@ export type UpdateApplicationStageInput = {
   client_message?: string | null;
 };
 
-
-
 export const adminApi = {
   // Users
   getUsers: (role?: string) => api.get("/admin/users", { params: { role } }),
@@ -104,12 +102,9 @@ export const adminApi = {
   getAccountants: () => api.get("/admin/accountants"),
   storeUser: (data: any) => api.post("/admin/users/store", data),
   deleteUser: (id: number) => api.delete(`/admin/users/${id}`),
-  assignRM: (data: AssignRMInput) =>
-    api.post("/admin/users/assign-rm", data),
-  assignAccountant: (data: {
-    user_id: number;
-    accountant_id: number | null;
-  }) => api.post("/admin/users/assign-accountant", data),
+  assignRM: (data: AssignRMInput) => api.post("/admin/users/assign-rm", data),
+  assignAccountant: (data: { user_id: number; accountant_id: number | null }) =>
+    api.post("/admin/users/assign-accountant", data),
   updateRole: (id: number, data: UpdateRoleInput) =>
     api.post(`/admin/users/update-role/${id}`, data),
 
@@ -145,7 +140,8 @@ export const adminApi = {
     api.post("/admin/workflows/default/apply", data),
 
   // Service workflows
-  getServiceWorkflows: (serviceId: number) => api.get(`/admin/workflows/${serviceId}`),
+  getServiceWorkflows: (serviceId: number) =>
+    api.get(`/admin/workflows/${serviceId}`),
   assignWorkflowStage: (data: WorkflowAssignInput) =>
     api.post("/admin/workflows/assign", data),
   reorderServiceWorkflows: (data: WorkflowReorderInput) =>
@@ -160,16 +156,17 @@ export const adminApi = {
     api.get("/admin/service-applications", { params: { status } }),
   getApplication: (id: number) => api.get(`/admin/service-applications/${id}`),
   updateApplicationStatus: (id: number, data: any) =>
-    api.patch(`/admin/service-applications/${id}/status`, data),
+    api.post(`/admin/service-applications/${id}/status`, data),
   updateApplicationStage: (id: number, data: UpdateApplicationStageInput) =>
     api.patch(`/admin/service-applications/${id}/stage`, data),
   assignAccountantToService: (id: number, accountantId: number) =>
-    api.post(`/admin/service-applications/${id}/assign-accountant`, {
+    api.post(`/admin/service-applications/${id}/assign`, {
       accountant_id: accountantId,
     }),
 
   // Details
-  getRMDetails: (id: number) => api.get(`/admin/regional-managers/${id}/details`),
+  getRMDetails: (id: number) =>
+    api.get(`/admin/regional-managers/${id}/details`),
   getAccountantDetails: (id: number) =>
     api.get(`/admin/accountants/${id}/details`),
   getUserDetails: (id: number) => api.get(`/admin/users/${id}/details`),

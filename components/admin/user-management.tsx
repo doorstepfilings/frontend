@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
+import { PanelLogoLoader } from '@/components/ui/logo-loader';
 
 export function UserManagement() {
     const [users, setUsers] = useState<any[]>([]);
@@ -35,7 +36,9 @@ export function UserManagement() {
         }
     };
 
-    if (loading) return <div>Loading users...</div>;
+    if (loading) {
+        return <PanelLogoLoader label="Loading users..." size={54} />;
+    }
 
     return (
         <Card className="shadow-lg border-0 bg-white/50 backdrop-blur-sm">

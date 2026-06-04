@@ -5,11 +5,90 @@ import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
 import { fetchAccountantDashboard } from "@/lib/features/accountant/accountant-slice";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { AuthGuard } from "@/components/auth/auth-guard";
-import { StatCard } from "@/components/dashboard/stat-card";
-import { splitDocumentsByOwner } from "@/lib/utils/document-helpers";
+import { isClientDocument } from "@/lib/utils/document-helpers";
 import { AccountantDocumentList } from "./accountant-document-list";
 import { apiClient } from "@/lib/api/client";
 import { toast } from "react-hot-toast";
+import { SearchSelect } from "@/components/ui/core/search-select";
+
+function getRequestDocuments(request: any) {
+    const snakeCaseDocuments = Array.isArray(request?.request_documents)
+        ? request.request_documents
+        : [];
+    const camelCaseDocuments = Array.isArray(request?.requestDocuments)
+        ? request.requestDocuments
+        : [];
+
+    if (snakeCaseDocuments.length === 0) {
+        return camelCaseDocuments;
+    }
+
+    if (camelCaseDocuments.length === 0) {
+        return snakeCaseDocuments;
+    }
+
+    const documentsByKey = new Map<string, any>();
+
+    [...snakeCaseDocuments, ...camelCaseDocuments].forEach((doc, index) => {
+        const key = String(
+            doc?.id ??
+            doc?.file_url ??
+            doc?.fileUrl ??
+            doc?.file_path ??
+            doc?.filePath ??
+            doc?.file_name ??
+            doc?.fileName ??
+            `document-${index}`,
+        );
+
+        documentsByKey.set(key, { ...(documentsByKey.get(key) || {}), ...doc });
+    });
+
+    return Array.from(documentsByKey.values());
+}
+
+function normalizeAccountantDocument(doc: any, request: any) {
+    return {
+        ...doc,
+        document_name: doc.document_name ?? doc.documentName ?? null,
+        document_type: doc.document_type ?? doc.documentType ?? null,
+        document_category: doc.document_category ?? doc.documentCategory ?? null,
+        file_name: doc.file_name ?? doc.fileName ?? null,
+        file_url: doc.file_url ?? doc.fileUrl ?? doc.file_path ?? doc.filePath ?? null,
+        file_size: doc.file_size ?? doc.fileSize ?? null,
+        mime_type: doc.mime_type ?? doc.mimeType ?? null,
+        created_at: doc.created_at ?? doc.createdAt ?? doc.uploaded_at ?? doc.uploadedAt ?? null,
+        uploaded_by: doc.uploaded_by ?? doc.uploadedBy ?? null,
+        clientName: request.user?.name,
+        serviceName: request.service?.name,
+        serviceId: request.service?.id,
+        requestId: request.id,
+        requestStatus: request.status,
+    };
+}
+
+function isAccountantReviewDocument(doc: any) {
+    const type = String(doc.document_type ?? doc.documentType ?? "").toLowerCase();
+    const category = String(doc.document_category ?? doc.documentCategory ?? "").toLowerCase();
+
+    if (["internal", "internal_only", "internal_document"].includes(type)) {
+        return false;
+    }
+
+    if (["internal", "internal_document"].includes(category)) {
+        return false;
+    }
+
+    if (type === "client" || type === "client_document") {
+        return true;
+    }
+
+    if (["client_document", "client_visible", "certificate", "report", "other"].includes(category)) {
+        return true;
+    }
+
+    return isClientDocument(doc);
+}
 
 export function AccountantDocumentsView() {
     const dispatch = useAppDispatch();
@@ -26,14 +105,9 @@ export function AccountantDocumentsView() {
 
     const allDocs = useMemo(() => {
         return serviceRequests.flatMap((req: any) => {
-            return (req.request_documents || []).map((doc: any) => ({
-                ...doc,
-                clientName: req.user?.name,
-                serviceName: req.service?.name,
-                serviceId: req.service?.id,
-                requestId: req.id,
-                requestStatus: req.status
-            }));
+            return getRequestDocuments(req).map((doc: any) =>
+                normalizeAccountantDocument(doc, req),
+            );
         });
     }, [serviceRequests]);
 
@@ -62,7 +136,14 @@ export function AccountantDocumentsView() {
         });
     }, [allDocs, search, statusFilter, serviceFilter]);
 
-    const { clientDocs, internalDocs } = splitDocumentsByOwner(filteredDocs);
+    const clientDocs = useMemo(
+        () => filteredDocs.filter((doc) => isAccountantReviewDocument(doc)),
+        [filteredDocs],
+    );
+    const internalDocs = useMemo(
+        () => filteredDocs.filter((doc) => !isAccountantReviewDocument(doc)),
+        [filteredDocs],
+    );
 
     const stats = useMemo(() => ({
         total: allDocs.length,
@@ -137,27 +218,37 @@ export function AccountantDocumentsView() {
                                 </div>
 
                                 <div className="flex flex-wrap items-center gap-4 w-full lg:w-auto">
-                                    <select 
+                                    <SearchSelect
+                                        options={[
+                                            { value: "all", label: "All Service Tracks" },
+                                            ...uniqueServices.map((service) => ({
+                                                value: String(service.id),
+                                                label: String(service.name ?? ""),
+                                            })),
+                                        ]}
                                         value={serviceFilter}
-                                        onChange={(e) => setServiceFilter(e.target.value)}
-                                        className="h-12 px-6 bg-white border border-slate-200 rounded-xl text-[11px] font-bold uppercase tracking-wide text-slate-600 focus:outline-none focus:border-slate-300 appearance-none min-w-[180px] shadow-sm"
-                                    >
-                                        <option value="all">All Service Tracks</option>
-                                        {uniqueServices.map(service => (
-                                            <option key={service.id} value={service.id}>{service.name}</option>
-                                        ))}
-                                    </select>
+                                        onChange={setServiceFilter}
+                                        searchable={uniqueServices.length > 6}
+                                        triggerClassName="h-12 min-w-[180px] rounded-xl px-6 py-3"
+                                        valueLabelClassName="text-[11px] font-bold uppercase tracking-wide text-slate-600"
+                                        handleClassName="h-7 w-7 rounded-md border-0 bg-transparent text-slate-400"
+                                        selectStyle={{ borderColor: "#e2e8f0", boxShadow: "0 1px 2px rgba(15,23,42,0.05)" }}
+                                    />
 
-                                    <select 
+                                    <SearchSelect
+                                        options={[
+                                            { value: "all", label: "Lifecycle Status" },
+                                            { value: "pending", label: "Review Pending" },
+                                            { value: "verified", label: "Verified" },
+                                            { value: "rejected", label: "Rejected" },
+                                        ]}
                                         value={statusFilter}
-                                        onChange={(e) => setStatusFilter(e.target.value)}
-                                        className="h-12 px-6 bg-white border border-slate-200 rounded-xl text-[11px] font-bold uppercase tracking-wide text-slate-600 focus:outline-none focus:border-slate-300 appearance-none shadow-sm"
-                                    >
-                                        <option value="all">Lifecycle Status</option>
-                                        <option value="pending">Review Pending</option>
-                                        <option value="verified">Verified</option>
-                                        <option value="rejected">Rejected</option>
-                                    </select>
+                                        onChange={setStatusFilter}
+                                        triggerClassName="h-12 rounded-xl px-6 py-3"
+                                        valueLabelClassName="text-[11px] font-bold uppercase tracking-wide text-slate-600"
+                                        handleClassName="h-7 w-7 rounded-md border-0 bg-transparent text-slate-400"
+                                        selectStyle={{ borderColor: "#e2e8f0", boxShadow: "0 1px 2px rgba(15,23,42,0.05)" }}
+                                    />
                                 </div>
                             </div>
 

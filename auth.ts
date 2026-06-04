@@ -183,7 +183,7 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
 
         const authPayload = result.data;
         if (!authPayload) {
-          return null;
+          throw new Error(result.error ?? "Invalid email or password");
         }
 
         return buildAuthorizedUser(authPayload);
@@ -211,7 +211,7 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
 
         const authPayload = result.data;
         if (!authPayload) {
-          return null;
+          throw new Error(result.error ?? "Invalid mobile number or OTP");
         }
 
         return buildAuthorizedUser(authPayload);

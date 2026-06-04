@@ -7,7 +7,7 @@ import { useAppSelector } from "@/lib/store/hooks";
 import DashboardSidebar from "@/components/layout/DashboardSidebar";
 import { getDefaultRedirectPath } from "@/lib/auth/redirects";
 import { useAuthStatus, useStoredToken, useStoredUser } from "@/lib/auth/hooks";
-import { LogoLoader } from "@/components/ui/logo-loader";
+import { PageLogoLoader } from "@/components/ui/logo-loader";
 
 const pageItems = [
   { path: "/dashboard", label: "Dashboard" },
@@ -59,9 +59,11 @@ export function UserDashboardShell({
 
   if (loading || authStatus === "loading") {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <LogoLoader size={64} />
-      </div>
+      <PageLogoLoader
+        className="min-h-screen bg-slate-50"
+        label="Authenticating customer workspace..."
+        size={64}
+      />
     );
   }
 
@@ -73,7 +75,7 @@ export function UserDashboardShell({
     <div className="flex min-h-screen overflow-x-hidden bg-gray-50">
       <DashboardSidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
 
-      <div className="w-full flex-1 transition-all duration-300 lg:ml-64">
+      <div className="w-full flex-1 transition-all duration-300 lg:ml-64 min-w-0">
         <header className="sticky top-0 z-30 border-b border-gray-100 bg-white">
           <div className="flex items-center justify-between px-4 py-4 lg:px-8">
             <div className="flex items-center gap-4">

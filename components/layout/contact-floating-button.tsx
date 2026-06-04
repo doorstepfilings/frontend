@@ -11,6 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { SearchSelect } from "@/components/ui/core/search-select";
 
 export function ContactFloatingButton() {
   const dispatch = useAppDispatch();
@@ -166,19 +167,25 @@ export function ContactFloatingButton() {
                 <label className="mb-1 block text-xs font-semibold text-gray-700">
                   Service Related to
                 </label>
-                <select
-                  name="service"
+                <SearchSelect
+                  options={[
+                    { value: "", label: "Select a service" },
+                    ...allServices.map((service, idx) => ({
+                      value: String(service.name ?? idx),
+                      label: String(service.name ?? ""),
+                    })),
+                  ]}
                   value={formData.service}
-                  onChange={handleChange}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none transition-all focus:border-transparent focus:ring-2 focus:ring-blue-900"
-                >
-                  <option value="">Select a service</option>
-                  {allServices.map((service, idx) => (
-                    <option key={idx} value={service.name}>
-                      {service.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(nextValue) =>
+                    setFormData((current) => ({ ...current, service: nextValue }))
+                  }
+                  searchable={allServices.length > 6}
+                  treatEmptyValueAsPlaceholder
+                  triggerClassName="min-h-[2.5rem] rounded-lg px-3 py-2"
+                  valueLabelClassName="text-sm text-gray-700"
+                  handleClassName="h-6 w-6 rounded-md border-0 bg-transparent text-slate-400"
+                  selectStyle={{ borderColor: "#d1d5db", boxShadow: "none" }}
+                />
               </div>
 
               <div>

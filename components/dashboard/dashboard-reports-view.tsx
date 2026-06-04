@@ -13,6 +13,7 @@ import {
 } from "@/lib/utils/document-helpers";
 import { formatDateWithPattern } from "@/lib/utils/formatters";
 import { getStatusColorClass, getStatusLabel } from "@/lib/utils/status-helpers";
+import { PanelLogoLoader } from "@/components/ui/logo-loader";
 
 export function DashboardReportsView() {
   const dispatch = useAppDispatch();
@@ -46,9 +47,11 @@ export function DashboardReportsView() {
 
   if (loading && reports.length === 0) {
     return (
-      <div className="flex h-96 items-center justify-center">
-        <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-900 border-t-transparent" />
-      </div>
+      <PanelLogoLoader
+        className="min-h-[24rem] px-0 py-0"
+        label="Loading reports..."
+        size={60}
+      />
     );
   }
 

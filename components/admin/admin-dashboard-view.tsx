@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { format, isValid } from "date-fns";
 import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
@@ -8,6 +8,10 @@ import { fetchAdminStats, fetchRecentActivity } from "@/lib/features/admin/admin
 import { AuthGuard } from "@/components/auth/auth-guard";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { DetailViewSkeleton } from "@/components/ui/skeletons/detail-view-skeleton";
+import { StatCard } from "@/components/dashboard/stat-card";
+import { InsightBarChart } from "@/components/dashboard/insight-bar-chart";
+import { SearchSelect } from "@/components/ui/core/search-select";
+import { PanelLogoLoader } from "@/components/ui/logo-loader";
 
 type ActivityItem = {
   id?: number | string;
@@ -290,48 +294,96 @@ export function AdminDashboardView() {
       label: "Total Clients",
       value: resolvedStats.users ?? 0,
       icon: "fa-users",
-      iconColors: "bg-gradient-to-br from-blue-50 to-blue-100 text-blue-700",
+      color: "blue" as const,
       link: "/admin/users",
-      trend: "+12%",
-      trendColor: "text-emerald-600",
     },
     {
       label: "Managers",
       value: resolvedStats.rms ?? 0,
       icon: "fa-user-tie",
-      iconColors: "bg-gradient-to-br from-orange-50 to-orange-100 text-orange-700",
+      color: "amber" as const,
       link: "/admin/regional-managers",
-      trend: "+3%",
-      trendColor: "text-amber-600",
     },
     {
       label: "Accountants",
       value: resolvedStats.accountants ?? 0,
       icon: "fa-calculator",
-      iconColors: "bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-700",
+      color: "emerald" as const,
       link: "/admin/accountants",
-      trend: "0%",
-      trendColor: "text-gray-500",
     },
     {
       label: "Service Catalog",
       value: resolvedStats.services ?? 0,
       icon: "fa-briefcase",
-      iconColors: "bg-gradient-to-br from-purple-50 to-purple-100 text-purple-700",
+      color: "indigo" as const,
       link: "/admin/services",
-      trend: "+5%",
-      trendColor: "text-emerald-600",
     },
     {
       label: "Pending Tasks",
       value: pendingEnquiries + pendingApplications,
       icon: "fa-clock",
-      iconColors: "bg-gradient-to-br from-rose-50 to-rose-100 text-rose-700",
+      color: "rose" as const,
       link: "/admin/enquiries",
-      trend: "-8%",
-      trendColor: "text-emerald-600",
     },
   ];
+
+  const filteredActivity = recentActivity;
+
+  const activityChartData = useMemo(() => {
+    const counts = {
+      application: 0,
+      enquiry: 0,
+      user: 0,
+      activity: 0,
+    };
+
+    filteredActivity.forEach((item) => {
+      const activityType = getActivityType(item);
+      if (activityType === "application") {
+        counts.application += 1;
+        return;
+      }
+
+      if (activityType === "enquiry") {
+        counts.enquiry += 1;
+        return;
+      }
+
+      if (activityType === "user") {
+        counts.user += 1;
+        return;
+      }
+
+      counts.activity += 1;
+    });
+
+    return [
+      {
+        label: "Applications",
+        value: counts.application,
+        tone: "blue" as const,
+        helper: "Service requests created",
+      },
+      {
+        label: "Enquiries",
+        value: counts.enquiry,
+        tone: "emerald" as const,
+        helper: "Client conversations",
+      },
+      {
+        label: "Users",
+        value: counts.user,
+        tone: "indigo" as const,
+        helper: "Registration activity",
+      },
+      {
+        label: "Other Events",
+        value: counts.activity,
+        tone: "slate" as const,
+        helper: "System and unmatched events",
+      },
+    ];
+  }, [filteredActivity]);
 
   const isInitialLoading = statsLoading && activityLoading && !stats && recentActivity.length === 0;
 
@@ -348,74 +400,86 @@ export function AdminDashboardView() {
   return (
     <AuthGuard allowedRoles={["super_admin"]}>
       <AdminLayout>
-        <div className="space-y-8">
+        <div className="panel-page">
+          <section className="panel-hero p-5 sm:p-6 lg:p-8">
           <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
             <div>
-              <h1 className="text-3xl font-black tracking-tight text-gray-900">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600">
+                Super Admin
+              </p>
+              <h1 className="mt-2 text-3xl font-black tracking-tight text-gray-900">
                 Dashboard Overview
               </h1>
-              <p className="mt-1 text-sm font-medium text-gray-500">
+              <p className="mt-2 text-sm font-medium text-gray-500">
                 Monitor system performance and stakeholder activity in real-time.
               </p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row">
-              <div className="flex items-center gap-2 rounded-2xl border border-gray-100/50 bg-white p-2">
+              <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white p-2">
                 <span className="px-3 text-[10px] font-black uppercase tracking-widest text-gray-400">
                   Period
                 </span>
-                <select
-                  value={timeRange}
-                  onChange={(event) => setTimeRange(event.target.value)}
-                  className="rounded-xl border-0 bg-gray-50 px-3 py-2 text-[10px] font-black text-gray-600 outline-none ring-0"
-                >
-                  <option value="today">Today</option>
-                  <option value="week">This Week</option>
-                  <option value="month">This Month</option>
-                </select>
+                <div className="min-w-[150px]">
+                  <SearchSelect
+                    options={[
+                      { value: "today", label: "Today" },
+                      { value: "week", label: "This Week" },
+                      { value: "month", label: "This Month" },
+                    ]}
+                    value={timeRange}
+                    onChange={setTimeRange}
+                    triggerClassName="min-h-[2.5rem] rounded-xl px-3 py-2"
+                    valueLabelClassName="text-[10px] font-black text-gray-600"
+                    handleClassName="h-6 w-6 rounded-md border-0 bg-transparent text-slate-400"
+                    selectStyle={{
+                      boxShadow: "none",
+                      borderColor: "transparent",
+                      background: "#f8fafc",
+                    }}
+                  />
+                </div>
               </div>
               <button
                 onClick={() => loadData()}
                 disabled={statsLoading || activityLoading}
-                className="flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-3.5 text-[11px] font-black uppercase tracking-widest text-white shadow-lg shadow-blue-600/20 transition-all hover:shadow-blue-700/30 disabled:cursor-not-allowed disabled:opacity-50"
+                className="admin-btn justify-center rounded-2xl px-6 py-3.5 text-[11px] tracking-widest disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <i className={`fas fa-sync-alt ${statsLoading || activityLoading ? "animate-spin" : ""}`} />
                 {statsLoading || activityLoading ? "Refreshing..." : "Refresh Data"}
               </button>
             </div>
           </div>
+          </section>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {statCards.map((card) => (
               <Link
                 key={card.label}
                 href={card.link}
-                className="group overflow-hidden rounded-[2.5rem] border border-gray-100/50 bg-gradient-to-br from-white to-gray-50 shadow-[var(--admin-card-shadow)] transition-all hover:shadow-[var(--admin-card-hover)]"
+                className="block"
               >
-                <div className="p-6">
-                  <div className="mb-4 flex items-center justify-between">
-                    <div className={`flex h-14 w-14 items-center justify-center rounded-2xl ${card.iconColors} shadow-lg shadow-blue-900/5 transition-transform duration-300 group-hover:scale-110`}>
-                      <i className={`fas ${card.icon} text-xl`} />
-                    </div>
-                    <div className={`rounded-full border border-white/60 bg-white/50 px-3 py-1 text-[9px] font-black uppercase tracking-widest ${card.trendColor}`}>
-                      {card.trend}
-                    </div>
-                  </div>
-                  <div>
-                    <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-gray-400">
-                      {card.label}
-                    </p>
-                    <h3 className="text-2xl font-black tracking-tight text-gray-900 transition-colors group-hover:text-blue-900">
-                      {card.value}
-                    </h3>
-                  </div>
-                </div>
+                <StatCard
+                  label={card.label}
+                  value={card.value}
+                  icon={card.icon}
+                  color={card.color}
+                />
               </Link>
             ))}
           </div>
 
+          <InsightBarChart
+            title="Recent Activity Mix"
+            subtitle="Visual summary of the latest activity stream."
+            totalLabel="Latest"
+            totalValue={filteredActivity.length}
+            emptyLabel="No recent activity was found."
+            data={activityChartData}
+          />
+
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-            <div className="xl:col-span-2 min-h-[400px] overflow-hidden rounded-[2.5rem] border border-gray-100/50 bg-white shadow-[var(--admin-card-shadow)]">
-              <div className="flex items-center justify-between border-b border-gray-50 bg-gradient-to-r from-gray-50 to-white p-6">
+            <div className="panel-table-shell xl:col-span-2 min-h-[400px]">
+              <div className="panel-section-header border-b border-gray-50 bg-gradient-to-r from-gray-50 to-white p-5 sm:p-6">
                 <div>
                   <h2 className="text-xs font-black uppercase tracking-widest text-gray-400">
                     Recent Activity Stream
@@ -431,9 +495,54 @@ export function AdminDashboardView() {
                   View All <i className="fas fa-arrow-right text-[8px]" />
                 </Link>
               </div>
-              <div className="overflow-x-auto">
+              <div className="space-y-3 p-4 md:hidden">
+                {activityLoading && filteredActivity.length === 0 ? (
+                  <PanelLogoLoader
+                    className="panel-empty-state min-h-[16rem] px-0 py-0"
+                    label="Fetching activity..."
+                    size={54}
+                    surfaceClassName="max-w-md"
+                  />
+                ) : filteredActivity.length === 0 ? (
+                  <div className="panel-empty-state px-5 py-14 text-center text-sm font-medium">
+                    No recent activity detected
+                  </div>
+                ) : (
+                  filteredActivity.slice(0, 6).map((item: ActivityItem, index: number) => {
+                    const activityType = getActivityType(item);
+                    const activityName = getActivityName(item);
+                    const activityUnit = getActivityUnit(item);
+                    const activityStatus = getActivityStatus(item);
+                    const activityDate = formatActivityDate(item);
+                    const badge = getActivityBadge(activityType);
+                    return (
+                      <div key={getActivityKey(item, index)} className="panel-card p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className={`flex h-8 w-8 items-center justify-center rounded-full ${badge.iconWrap}`}>
+                                <i className={`fas fa-${badge.icon} text-[10px]`} />
+                              </span>
+                              <span className={`rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-widest ${badge.badge}`}>
+                                {activityType}
+                              </span>
+                            </div>
+                            <p className="mt-3 text-sm font-black text-slate-900">{activityName}</p>
+                            <p className="mt-1 text-[11px] font-medium text-slate-500">{activityUnit}</p>
+                            <p className="mt-2 text-[10px] font-bold text-slate-400">{activityDate}</p>
+                          </div>
+                          <span className={`inline-block rounded-xl border px-3 py-2 text-[9px] font-black uppercase tracking-widest ${getStatusColor(activityStatus)}`}>
+                            {activityStatus}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+              <div className="hidden overflow-x-auto md:block">
                 <table className="w-full text-left">
-                  <thead>
+                  <thead className="panel-table-head">
                     <tr className="bg-gradient-to-r from-gray-50 to-white">
                       <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400">
                         Type
@@ -453,21 +562,18 @@ export function AdminDashboardView() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
-                    {activityLoading && recentActivity.length === 0 ? (
+                    {activityLoading && filteredActivity.length === 0 ? (
                       <tr>
                         <td colSpan={5} className="px-8 py-20 text-center">
-                          <div className="flex flex-col items-center">
-                            <div className="relative h-16 w-16">
-                              <div className="absolute left-0 top-0 h-full w-full rounded-full bg-gray-100" />
-                              <div className="absolute left-0 top-0 h-full w-full animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
-                            </div>
-                            <p className="mt-4 text-[10px] font-black uppercase tracking-widest text-gray-400">
-                              Fetching Activity...
-                            </p>
-                          </div>
+                          <PanelLogoLoader
+                            className="min-h-0 px-0 py-0"
+                            label="Fetching activity..."
+                            size={56}
+                            surfaceClassName="max-w-md"
+                          />
                         </td>
                       </tr>
-                    ) : recentActivity.length === 0 ? (
+                    ) : filteredActivity.length === 0 ? (
                       <tr>
                         <td colSpan={5} className="px-8 py-16 text-center">
                           <div className="flex flex-col items-center">
@@ -481,7 +587,7 @@ export function AdminDashboardView() {
                         </td>
                       </tr>
                     ) : (
-                      recentActivity.map((item: ActivityItem, index: number) => {
+                      filteredActivity.map((item: ActivityItem, index: number) => {
                         const activityType = getActivityType(item);
                         const activityName = getActivityName(item);
                         const activityEmail = getActivityEmail(item);
@@ -551,7 +657,7 @@ export function AdminDashboardView() {
               </div>
             </div>
 
-            <div className="flex flex-col justify-between rounded-[2.5rem] border border-white/10 bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900 p-8 text-white shadow-[var(--admin-card-shadow)]">
+            <div className="panel-card-dark flex flex-col justify-between p-6 text-white sm:p-8">
               <div>
                 <div className="mb-6 flex items-center gap-4">
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 backdrop-blur-sm">
@@ -609,7 +715,7 @@ export function AdminDashboardView() {
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             <Link
               href="/admin/users"
-              className="group overflow-hidden rounded-[2rem] border border-blue-100/50 bg-gradient-to-br from-blue-50 to-blue-100 shadow-[var(--admin-card-shadow)] transition-all hover:shadow-[var(--admin-card-hover)]"
+              className="panel-card group overflow-hidden border-blue-100/60 bg-gradient-to-br from-blue-50 to-white transition-all hover:-translate-y-0.5"
             >
               <div className="p-6">
                 <div className="mb-4 flex items-center gap-4">
@@ -636,7 +742,7 @@ export function AdminDashboardView() {
 
             <Link
               href="/admin/services/create"
-              className="group overflow-hidden rounded-[2rem] border border-purple-100/50 bg-gradient-to-br from-purple-50 to-purple-100 shadow-[var(--admin-card-shadow)] transition-all hover:shadow-[var(--admin-card-hover)]"
+              className="panel-card group overflow-hidden border-indigo-100/60 bg-gradient-to-br from-indigo-50 to-white transition-all hover:-translate-y-0.5"
             >
               <div className="p-6">
                 <div className="mb-4 flex items-center gap-4">
@@ -663,7 +769,7 @@ export function AdminDashboardView() {
 
             <Link
               href="/admin/categories"
-              className="group overflow-hidden rounded-[2rem] border border-amber-100/50 bg-gradient-to-br from-amber-50 to-amber-100 shadow-[var(--admin-card-shadow)] transition-all hover:shadow-[var(--admin-card-hover)]"
+              className="panel-card group overflow-hidden border-amber-100/60 bg-gradient-to-br from-amber-50 to-white transition-all hover:-translate-y-0.5"
             >
               <div className="p-6">
                 <div className="mb-4 flex items-center gap-4">

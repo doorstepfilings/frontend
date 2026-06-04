@@ -6,6 +6,7 @@ import { fetchMyServices } from "@/lib/features/services/services-slice";
 import Link from "next/link";
 import { buildCollectionKey } from "@/lib/utils/list-keys";
 import { formatDateWithPattern } from "@/lib/utils/formatters";
+import { PanelLogoLoader } from "@/components/ui/logo-loader";
 
 export function ReportsView() {
     const dispatch = useAppDispatch();
@@ -41,9 +42,11 @@ export function ReportsView() {
             </div>
 
             {loading ? (
-                <div className="flex items-center justify-center h-64">
-                    <div className="h-10 w-10 animate-spin rounded-full border-2 border-blue-900 border-t-transparent"></div>
-                </div>
+                <PanelLogoLoader
+                    className="min-h-[16rem] px-0 py-0"
+                    label="Loading reports..."
+                    size={56}
+                />
             ) : reports.length === 0 ? (
                 <div className="bg-white rounded-[3rem] border-2 border-dashed border-slate-100 p-24 text-center shadow-sm">
                     <div className="h-20 w-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-200">

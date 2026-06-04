@@ -152,7 +152,7 @@ export function UserDashboardView() {
                       service.service?.name,
                     ])}
                     href={`/dashboard/services/${service.id}`}
-                    className="group flex items-center justify-between px-6 py-4 transition-colors hover:bg-gray-50"
+                    className="group flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-6 py-4 transition-colors hover:bg-gray-50"
                   >
                     <div className="flex items-center gap-4">
                       <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-600">

@@ -21,6 +21,8 @@ import { toast } from "react-hot-toast";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { AuthGuard } from "@/components/auth/auth-guard";
 import { Button } from "@/components/ui/button";
+import { SearchSelect } from "@/components/ui/core/search-select";
+import { PanelLogoLoader } from "@/components/ui/logo-loader";
 import {
   adminApi,
   type AdminDefaultWorkflow,
@@ -512,34 +514,30 @@ export function DefaultWorkflowView() {
           Add Milestone
         </label>
 
-        <div className="relative min-w-[320px]">
-          <select
+        <div className="min-w-[320px]">
+          <SearchSelect
+            options={[
+              { value: "", label: "Select reusable milestone" },
+              ...availableStages.map((stage) => ({
+                value: String(stage.id),
+                label: stage.name,
+              })),
+            ]}
             value={appendStageId}
-            onChange={(event) => {
-              const val = event.target.value;
-              setAppendStageId(val);
+            onChange={(nextValue) => {
+              setAppendStageId(nextValue);
 
-              if (val) {
-                handleInsertStage(val, orderedWorkflow.length + 1);
+              if (nextValue) {
+                handleInsertStage(nextValue, orderedWorkflow.length + 1);
               }
             }}
             disabled={availableStages.length === 0}
-            className={`${INPUT_CLASS} h-14 rounded-2xl border border-slate-200 bg-white pr-12 shadow-sm appearance-none`}
-          >
-            <option value="">
-              Select reusable milestone
-            </option>
-
-            {availableStages.map((stage) => (
-              <option key={stage.id} value={stage.id}>
-                {stage.name}
-              </option>
-            ))}
-          </select>
-
-          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400">
-            <i className="fas fa-chevron-down text-xs" />
-          </div>
+            searchable={availableStages.length > 6}
+            treatEmptyValueAsPlaceholder
+            triggerClassName="h-14 rounded-2xl px-5 py-3.5"
+            valueLabelClassName="text-sm font-medium text-slate-900"
+            handleClassName="h-8 w-8 rounded-lg border-0 bg-transparent text-slate-400"
+          />
         </div>
       </div>
 
@@ -631,7 +629,7 @@ export function DefaultWorkflowView() {
                     <div>#</div>
                     <div>Milestone</div>
                     <div>Type</div>
-                    <div>Assigned To</div>
+                    <div>Usage</div>
                     <div className="text-center">Required</div>
                     <div className="text-right">Actions</div>
                   </div>
@@ -712,7 +710,7 @@ export function DefaultWorkflowView() {
                 loading={saving}
                 className="h-10 rounded-2xl bg-blue-600 px-6 text-xs font-bold uppercase tracking-wider text-white shadow-lg shadow-blue-600/10 transition hover:bg-blue-700"
               >
-                Publish Workflow
+                Save Workflow
               </Button>
             </div>
           </div>
@@ -751,8 +749,6 @@ function SortableDefaultWorkflowCard({
     color: color,
     borderColor: `${color}25`,
   };
-
-  const assignedCount = ((Number(item.stage?.id) || 0) % 3) + 1;
 
   return (
     <div
@@ -801,8 +797,8 @@ function SortableDefaultWorkflowCard({
         </div>
 
         <div className="flex items-center text-sm text-slate-600">
-          <i className="fas fa-users text-slate-400 mr-2" />
-          {assignedCount}
+          <i className="fas fa-diagram-project text-slate-400 mr-2" />
+          Shared template
         </div>
 
         <div className="flex justify-center">
@@ -852,14 +848,12 @@ function SortableDefaultWorkflowCard({
 
 function LoadingPanel({ label }: { label: string }) {
   return (
-    <div className="flex items-center justify-center rounded-3xl border border-slate-200 bg-slate-50 px-6 py-14">
-      <div className="flex flex-col items-center gap-4">
-        <div className="h-10 w-10 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
-        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
-          {label}
-        </p>
-      </div>
-    </div>
+    <PanelLogoLoader
+      className="min-h-[16rem] rounded-3xl border border-slate-200 bg-slate-50 px-0 py-0"
+      label={label}
+      size={54}
+      surfaceClassName="max-w-md"
+    />
   );
 }
 

@@ -5,6 +5,8 @@ import { AdminLayout } from "@/components/layout/AdminLayout";
 import { AuthGuard } from "@/components/auth/auth-guard";
 import { toast } from "react-hot-toast";
 import { rmApi } from "@/lib/api/rm-api";
+import { SearchSelect } from "@/components/ui/core/search-select";
+import { PanelLogoLoader } from "@/components/ui/logo-loader";
 
 async function fetchAssignedUsersData() {
     const [usersRes, accountantsRes] = await Promise.all([
@@ -112,7 +114,12 @@ export function RMAssignedUsersView() {
                                     {loading ? (
                                         <tr>
                                             <td colSpan={4} className="px-8 py-32 text-center">
-                                                <div className="h-10 w-10 animate-spin rounded-full border-2 border-blue-600 border-t-transparent mx-auto"></div>
+                                                <PanelLogoLoader
+                                                    className="min-h-0 px-0 py-0"
+                                                    label="Loading assigned users..."
+                                                    size={54}
+                                                    surfaceClassName="max-w-md"
+                                                />
                                             </td>
                                         </tr>
                                     ) : users.length === 0 ? (
@@ -139,29 +146,28 @@ export function RMAssignedUsersView() {
                                                 <span className="text-[10px] font-bold text-slate-400">{user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}</span>
                                             </td>
                                             <td className="px-8 py-6 text-right">
-                                                <select
-                                                    value={user.accountant_id || ""}
-                                                    onChange={(e) =>
+                                                <SearchSelect
+                                                    options={[
+                                                        { value: "", label: "Awaiting Mapping" },
+                                                        ...accountants.map((accountant: any) => ({
+                                                            value: String(accountant.id),
+                                                            label: String(accountant.name ?? ""),
+                                                        })),
+                                                    ]}
+                                                    value={String(user.accountant_id || "")}
+                                                    onChange={(nextValue) =>
                                                         void handleAssignAccountant(
                                                             user.id,
-                                                            e.target.value,
+                                                            nextValue,
                                                         )
                                                     }
                                                     disabled={assigningUserId === user.id}
-                                                    className="h-11 min-w-[220px] rounded-xl border border-slate-200 bg-white px-4 text-[10px] font-black uppercase tracking-widest text-slate-600 outline-none transition-all focus:ring-4 focus:ring-blue-500/10 disabled:opacity-60"
-                                                >
-                                                    <option value="">
-                                                        Awaiting Mapping
-                                                    </option>
-                                                    {accountants.map((accountant: any) => (
-                                                        <option
-                                                            key={accountant.id}
-                                                            value={accountant.id}
-                                                        >
-                                                            {accountant.name}
-                                                        </option>
-                                                    ))}
-                                                </select>
+                                                    searchable={accountants.length > 6}
+                                                    triggerClassName="min-h-[2.75rem] min-w-[220px] rounded-xl px-4 py-3"
+                                                    valueLabelClassName="text-[10px] font-black uppercase tracking-widest text-slate-600"
+                                                    handleClassName="h-6 w-6 rounded-md border-0 bg-transparent text-slate-400"
+                                                    selectStyle={{ borderColor: "#e2e8f0", boxShadow: "none" }}
+                                                />
                                             </td>
                                         </tr>
                                     ))}

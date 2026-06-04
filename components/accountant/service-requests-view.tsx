@@ -9,6 +9,7 @@ import { StatusIndicator } from "@/components/ui/status-indicator";
 import Link from "next/link";
 import { buildCollectionKey } from "@/lib/utils/list-keys";
 import { format } from "date-fns";
+import { PanelLogoLoader } from "@/components/ui/logo-loader";
 
 const TABS = [
     { id: 'all', label: 'All Requests', icon: 'fa-list-ul', statuses: [] },
@@ -43,61 +44,142 @@ export function AccountantServiceRequestsView() {
         });
     }, [serviceRequests, activeTab, searchQuery]);
 
+    const formatRequestDate = (req: any) => {
+        const date = req.updated_at || req.created_at;
+        if (!date) return "---";
+        const parsed = new Date(date);
+        return isNaN(parsed.getTime()) ? "---" : format(parsed, "MMM dd");
+    };
+
     return (
         <AuthGuard allowedRoles={["accountant"]}>
             <AdminLayout>
-                <div className="space-y-10 pb-20 px-2">
-                    {/* Professional Header */}
+                <div className="panel-page">
+                    <section className="panel-hero p-5 sm:p-6 lg:p-8">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                         <div>
-                            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Service Pipeline</h1>
-                            <p className="text-sm text-slate-500 mt-1">Lifecycle management and milestone tracking for active services.</p>
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600">Accountant Panel</p>
+                            <h1 className="mt-2 text-3xl font-black text-slate-900 tracking-tight">Service Pipeline</h1>
+                            <p className="mt-2 text-sm text-slate-500 font-medium">Lifecycle management and milestone tracking for active services.</p>
                         </div>
                         <div className="flex items-center gap-4">
-                            <div className="relative group w-full md:w-72">
+                            <div className="relative group w-full sm:max-w-full md:w-72">
                                 <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
                                 <input 
                                     type="text" 
                                     placeholder="Quick Search..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full pl-11 pr-4 py-2.5 bg-slate-100/50 border border-transparent rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:bg-white focus:border-slate-200 transition-all shadow-none"
+                                    className="panel-input w-full pl-11 pr-4 text-sm font-medium shadow-sm"
                                 />
                             </div>
                         </div>
                     </div>
+                    </section>
 
                     {/* Clean Tab System */}
-                    <div className="flex flex-wrap gap-2 p-1.5 bg-slate-100/80 rounded-2xl w-fit">
-                        {TABS.map((tab) => {
-                            const count = tab.id === 'all' ? serviceRequests.length : serviceRequests.filter((r: any) => tab.statuses.includes(r.status)).length;
-                            return (
-                                <button
-                                    key={tab.id}
-                                    onClick={() => setActiveTab(tab.id)}
-                                    className={`flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-[11px] font-bold transition-all ${
-                                        activeTab === tab.id
-                                            ? "bg-white text-slate-900 shadow-sm border border-slate-200/50"
-                                            : "text-slate-500 hover:text-slate-700 hover:bg-white/50"
-                                    }`}
+                    <div className="-mx-1 overflow-x-auto px-1 pb-1">
+                        <div className="flex min-w-max gap-2 rounded-2xl bg-slate-100/80 p-1.5">
+                            {TABS.map((tab) => {
+                                const count = tab.id === 'all' ? serviceRequests.length : serviceRequests.filter((r: any) => tab.statuses.includes(r.status)).length;
+                                return (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setActiveTab(tab.id)}
+                                        className={`flex items-center gap-2.5 rounded-xl px-4 py-2.5 text-[11px] font-bold transition-all sm:px-5 ${
+                                            activeTab === tab.id
+                                                ? "border border-slate-200/50 bg-white text-slate-900 shadow-sm"
+                                                : "text-slate-500 hover:bg-white/50 hover:text-slate-700"
+                                        }`}
+                                    >
+                                        <i className={`fas ${tab.icon} opacity-50`}></i>
+                                        {tab.label}
+                                        {count > 0 && (
+                                            <span className={`ml-1 rounded-md px-1.5 py-0.5 text-[9px] ${activeTab === tab.id ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-600'}`}>
+                                                {count}
+                                            </span>
+                                        )}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    <div className="space-y-4 md:hidden">
+                        {loading ? (
+                            <PanelLogoLoader
+                                className="panel-empty-state min-h-[16rem] px-0 py-0 shadow-sm"
+                                label="Loading pipeline..."
+                                size={54}
+                                surfaceClassName="max-w-md"
+                            />
+                        ) : filteredRequests.length === 0 ? (
+                            <div className="panel-empty-state px-6 py-16 text-center shadow-sm">
+                                <p className="text-sm font-medium text-slate-400">No records found for this selection</p>
+                            </div>
+                        ) : filteredRequests.map((req: any, index: number) => (
+                            <div
+                                key={buildCollectionKey(req, index, "accountant-pipeline-request-mobile", [
+                                    req.user?.email,
+                                    req.service?.name,
+                                ])}
+                                className="panel-card p-5"
+                            >
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0">
+                                        <h4 className="text-base font-bold leading-snug text-slate-900">
+                                            {req.service?.name}
+                                        </h4>
+                                        <p className="mt-1 text-[10px] font-medium uppercase tracking-wide text-slate-400">
+                                            {req.service?.category?.name || "Standard"}
+                                        </p>
+                                    </div>
+                                    <span className="shrink-0 text-[10px] font-mono font-bold text-slate-400">
+                                        #{req.application_unique_id || req.id}
+                                    </span>
+                                </div>
+
+                                <div className="mt-4 flex items-center gap-3.5">
+                                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-xs font-bold text-white shadow-sm">
+                                        {req.user?.name?.charAt(0).toUpperCase()}
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="truncate text-sm font-bold text-slate-900">
+                                            {req.user?.name}
+                                        </p>
+                                        <p className="truncate text-[11px] font-medium text-slate-400">
+                                            {req.user?.email}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="mt-4 flex flex-wrap items-center gap-3">
+                                    <StatusIndicator status={req.status} />
+                                    <div className="inline-flex items-center gap-1.5 rounded-lg border border-slate-100 bg-slate-50 px-2.5 py-1.5 text-xs font-bold text-slate-600">
+                                        <i className="far fa-file-alt opacity-50"></i>
+                                        {req.request_documents?.length || 0}
+                                    </div>
+                                    <p className="text-xs font-bold text-slate-700">
+                                        {formatRequestDate(req)}
+                                    </p>
+                                </div>
+
+                                <Link
+                                    href={`/accountant/service-requests/${req.id}`}
+                                    className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 text-[11px] font-bold uppercase tracking-wide text-white shadow-sm transition-all hover:bg-slate-800"
                                 >
-                                    <i className={`fas ${tab.icon} opacity-50`}></i>
-                                    {tab.label}
-                                    {count > 0 && (
-                                        <span className={`ml-1 px-1.5 py-0.5 rounded-md text-[9px] ${activeTab === tab.id ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-600'}`}>
-                                            {count}
-                                        </span>
-                                    )}
-                                </button>
-                            );
-                        })}
+                                    Process
+                                    <i className="fas fa-arrow-right text-[10px] opacity-50"></i>
+                                </Link>
+                            </div>
+                        ))}
                     </div>
 
                     {/* Simplified Table Content */}
-                    <div className="bg-white rounded-3xl border border-slate-200/60 shadow-sm overflow-hidden">
+                    <div className="panel-table-shell hidden md:block">
                         <div className="overflow-x-auto">
                             <table className="w-full text-left">
-                                <thead className="bg-slate-50/50 border-b border-slate-100">
+                                <thead className="panel-table-head border-b border-slate-100">
                                     <tr>
                                         <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Service Detail</th>
                                         <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Client Identity</th>
@@ -111,10 +193,12 @@ export function AccountantServiceRequestsView() {
                                     {loading ? (
                                         <tr>
                                             <td colSpan={6} className="px-8 py-32 text-center">
-                                                <div className="flex flex-col items-center gap-4">
-                                                    <div className="h-10 w-10 animate-spin rounded-full border-2 border-slate-200 border-t-slate-900 mx-auto"></div>
-                                                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Loading Pipeline...</p>
-                                                </div>
+                                                <PanelLogoLoader
+                                                    className="min-h-0 px-0 py-0"
+                                                    label="Loading pipeline..."
+                                                    size={54}
+                                                    surfaceClassName="max-w-md"
+                                                />
                                             </td>
                                         </tr>
                                     ) : filteredRequests.length === 0 ? (
@@ -164,12 +248,7 @@ export function AccountantServiceRequestsView() {
                                             </td>
                                             <td className="px-8 py-6 text-center">
                                                 <p className="text-xs font-bold text-slate-700">
-                                                    {(() => {
-                                                        const date = req.updated_at || req.created_at;
-                                                        if (!date) return '---';
-                                                        const d = new Date(date);
-                                                        return isNaN(d.getTime()) ? '---' : format(d, 'MMM dd');
-                                                    })()}
+                                                    {formatRequestDate(req)}
                                                 </p>
                                             </td>
                                             <td className="px-8 py-6 text-right">

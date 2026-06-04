@@ -1,10 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import {
-  isClientDocument,
-  isInternalDocument,
-} from "@/lib/utils/document-helpers";
+import { isClientDocument } from "@/lib/utils/document-helpers";
 import { ImageLightbox } from "@/components/ui/image-lightbox";
 import { useDocumentGallery } from "@/lib/hooks/use-document-gallery";
 import { Modal } from "@/components/ui/modal";
@@ -55,7 +52,28 @@ export function RequestDocumentList({
   const { clientDocs, internalDocs } = useMemo(() => {
     const isClientDocCheck = (doc: any) => {
       // client files uploaded by users or marked for client view
-      if (doc.document_type === "client" || doc.documentCategory === "client_document") return true;
+      const type = String(doc.document_type ?? doc.documentType ?? "").toLowerCase();
+      const category = String(
+        doc.document_category ?? doc.documentCategory ?? "",
+      ).toLowerCase();
+
+      if (["internal", "internal_only", "internal_document"].includes(type)) {
+        return false;
+      }
+
+      if (["internal", "internal_document"].includes(category)) {
+        return false;
+      }
+
+      if (type === "client" || type === "client_document") return true;
+      if (
+        ["client_document", "client_visible", "certificate", "report", "other"].includes(
+          category,
+        )
+      ) {
+        return true;
+      }
+
       return isClientDocument ? isClientDocument(doc) : (doc.uploadedBy?.role === "user" || String(doc.uploadedById) === String(userId));
     };
 
@@ -81,8 +99,10 @@ export function RequestDocumentList({
     if (!onUploadDocument) return;
 
     try {
+      const nextTab = uploadForm.documentType === "client" ? "client" : "internal";
       await onUploadDocument(uploadForm.file, uploadForm.documentType, uploadForm.notes);
       toast.success("Document uploaded successfully");
+      setActiveTab(nextTab);
       setShowUploadModal(false);
       setUploadForm({ file: null, documentType: "internal", notes: "" });
     } catch (err: any) {
@@ -105,7 +125,7 @@ export function RequestDocumentList({
   };
 
   return (
-    <div className="rounded-3xl border border-slate-200/60 bg-white p-8 shadow-sm space-y-6">
+    <div className="space-y-6 rounded-3xl border border-slate-200/60 bg-white p-5 shadow-sm sm:p-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h3 className="text-sm font-bold text-slate-900 tracking-tight">Request Documents</h3>
@@ -118,7 +138,7 @@ export function RequestDocumentList({
           <button
             type="button"
             onClick={() => setShowUploadModal(true)}
-            className="h-10 px-5 rounded-2xl bg-slate-900 text-white text-xs font-bold uppercase tracking-[0.16em] hover:bg-blue-600 transition-all shadow-sm"
+            className="h-10 w-full rounded-2xl bg-slate-900 px-5 text-xs font-bold uppercase tracking-[0.16em] text-white transition-all shadow-sm hover:bg-blue-600 sm:w-auto"
           >
             Upload Artifact
           </button>
@@ -126,7 +146,7 @@ export function RequestDocumentList({
       </div>
 
       {/* Tabs */}
-      <div className="flex rounded-2xl bg-slate-50 p-1.5 border border-slate-100">
+      <div className="flex flex-col rounded-2xl border border-slate-100 bg-slate-50 p-1.5 sm:flex-row">
         <button
           type="button"
           onClick={() => setActiveTab("client")}
@@ -195,7 +215,7 @@ export function RequestDocumentList({
                     <i className={`fas ${isDeliverable ? "fa-certificate" : "fa-file-alt"} text-xs`} />
                   </div>
                   <div className="min-w-0 space-y-1.5">
-                    <p className={`text-xs font-black uppercase tracking-wider truncate max-w-[280px] ${isDeliverable ? "text-blue-900" : "text-slate-800"}`}>
+                    <p className={`max-w-full break-words text-xs font-black uppercase tracking-wider sm:max-w-[280px] ${isDeliverable ? "text-blue-900" : "text-slate-800"}`}>
                       {label}
                     </p>
                     <div className="flex flex-wrap gap-2">
@@ -217,14 +237,14 @@ export function RequestDocumentList({
                       ) : null}
                     </div>
                     {doc.notes && (
-                      <p className="text-xs text-slate-500 font-semibold leading-relaxed mt-2 p-3 bg-white border border-slate-100 rounded-xl max-w-xl">
+                      <p className="mt-2 max-w-full rounded-xl border border-slate-100 bg-white p-3 text-xs font-semibold leading-relaxed text-slate-500 sm:max-w-xl">
                         {doc.notes}
                       </p>
                     )}
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 self-end md:self-center">
+                <div className="flex flex-wrap items-center gap-2 self-start md:self-center md:justify-end">
                   {previewIndex >= 0 && (
                     <button
                       type="button"
@@ -321,7 +341,7 @@ export function RequestDocumentList({
             placeholder="Add brief details about this upload..."
           />
 
-          <div className="flex gap-3 pt-2">
+          <div className="flex flex-col gap-3 pt-2 sm:flex-row">
             <Button
               type="button"
               variant="outline"
@@ -373,7 +393,7 @@ export function RequestDocumentList({
             placeholder={verifyForm.status === "rejected" ? "Clearly explain the correction required..." : "Add validation notes (optional)..."}
           />
 
-          <div className="flex gap-3 pt-2">
+          <div className="flex flex-col gap-3 pt-2 sm:flex-row">
             <Button
               type="button"
               variant="outline"

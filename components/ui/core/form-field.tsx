@@ -6,6 +6,7 @@ interface FormFieldProps {
   label: string;
   required?: boolean;
   error?: string;
+  hint?: string;
   children: React.ReactNode;
   className?: string;
 }
@@ -14,22 +15,28 @@ export function FormField({
   label,
   required,
   error,
+  hint,
   children,
   className = "",
 }: FormFieldProps) {
   return (
-    <div className={`space-y-4 ${className}`}>
-      <div className="flex justify-between items-center px-2">
-        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-          {label} {required && <span className="text-rose-500">*</span>}
-        </label>
+    <div className={`space-y-2.5 ${className}`}>
+      <div className="flex flex-wrap items-start justify-between gap-2 px-1">
+        <div className="space-y-1">
+          <label className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
+            {label} {required && <span className="text-rose-500">*</span>}
+          </label>
+          {hint ? (
+            <p className="text-xs leading-5 text-slate-500">{hint}</p>
+          ) : null}
+        </div>
         {error && (
-          <span className="text-[10px] font-bold text-rose-500 uppercase tracking-tighter animate-pulse">
+          <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-rose-500">
             {error}
           </span>
         )}
       </div>
-      <div className="relative group">{children}</div>
+      <div className="relative">{children}</div>
     </div>
   );
 }

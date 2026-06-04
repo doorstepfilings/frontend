@@ -10,6 +10,7 @@ import { useStoredUser } from "@/lib/auth/hooks";
 import { rmApi } from "@/lib/api/rm-api";
 import { buildCollectionKey } from "@/lib/utils/list-keys";
 import { getStatusLabel } from "@/lib/utils/status-helpers";
+import { PanelLogoLoader } from "@/components/ui/logo-loader";
 
 const TERMINAL_STATUSES = new Set(["approved", "cancelled", "completed", "rejected"]);
 const REVIEW_STATUSES = new Set(["applied", "under_review", "update_required"]);
@@ -134,9 +135,12 @@ export function RMDashboardView() {
 
                 <div className="space-y-4">
                   {loading ? (
-                    <div className="flex items-center justify-center py-12">
-                      <div className="h-10 w-10 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
-                    </div>
+                    <PanelLogoLoader
+                      className="min-h-[12rem] px-0 py-0"
+                      label="Loading assigned users..."
+                      size={54}
+                      surfaceClassName="max-w-md"
+                    />
                   ) : recentUsers.length === 0 ? (
                     <div className="rounded-[2rem] bg-slate-50 p-8 text-center text-sm font-bold uppercase tracking-widest text-slate-400">
                       No assigned users found
@@ -190,9 +194,12 @@ export function RMDashboardView() {
 
                 <div className="space-y-4">
                   {loading ? (
-                    <div className="flex items-center justify-center py-12">
-                      <div className="h-10 w-10 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
-                    </div>
+                    <PanelLogoLoader
+                      className="min-h-[12rem] px-0 py-0"
+                      label="Loading service pipeline..."
+                      size={54}
+                      surfaceClassName="max-w-md"
+                    />
                   ) : recentRequests.length === 0 ? (
                     <div className="rounded-[2rem] bg-slate-50 p-8 text-center text-sm font-bold uppercase tracking-widest text-slate-400">
                       No service requests found

@@ -11,21 +11,12 @@ import { apiClient } from "@/lib/api/client";
 import { toast } from "react-hot-toast";
 
 import { FormDataRenderer } from "@/components/ui/form-data-renderer";
-import { LifecycleStatusPicker } from "@/components/ui/lifecycle-status-picker";
 import { formatDateWithPattern } from "@/lib/utils/formatters";
 import { Modal } from "@/components/ui/modal";
 import { FormSelect, FormTextarea } from "@/components/ui/form-controls";
 import { Button } from "@/components/ui/button";
 import {
   ACCOUNTANT_DEFAULT_LIFECYCLE_STATUSES,
-  ACCOUNTANT_SPECIAL_LIFECYCLE_STATUSES,
-  buildLifecycleStatusGroups,
-  canTransitionLifecycleStatus,
-  filterLifecycleStatusOptions,
-  normalizeSharedLifecycleStage,
-  resolveInitialLifecycleStatusSelection,
-  type SharedLifecycleStage,
-  type WorkflowStage,
   type TimelineStage,
   type DefaultWorkflowTemplateItem,
   normalizeWorkflowStage,
@@ -39,6 +30,152 @@ import {
 import { MilestoneTimeline } from "@/components/ui/milestone-timeline";
 import { RequestDocumentList } from "@/components/ui/request-document-list";
 
+const DOCUMENT_ARRAY_KEYS = [
+  "request_documents",
+  "requestDocuments",
+  "documents",
+];
+
+const SINGLE_DOCUMENT_KEYS = [
+  "document",
+  "request_document",
+  "requestDocument",
+];
+
+function getResponsePayload(responseData: any) {
+  return (
+    responseData?.data?.request ||
+    responseData?.request ||
+    responseData?.data ||
+    responseData
+  );
+}
+
+function isDocumentLike(value: any) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+
+  return Boolean(
+    value.file_url ||
+    value.fileUrl ||
+    value.file_path ||
+    value.filePath ||
+    value.file_name ||
+    value.fileName ||
+    value.document_name ||
+    value.documentName ||
+    value.document_type ||
+    value.documentType ||
+    value.document_category ||
+    value.documentCategory,
+  );
+}
+
+function extractDocumentList(source: any): any[] {
+  if (Array.isArray(source)) {
+    return source;
+  }
+
+  if (!source || typeof source !== "object") {
+    return [];
+  }
+
+  for (const key of DOCUMENT_ARRAY_KEYS) {
+    if (Array.isArray(source[key])) {
+      return source[key];
+    }
+  }
+
+  for (const key of SINGLE_DOCUMENT_KEYS) {
+    if (isDocumentLike(source[key])) {
+      return [source[key]];
+    }
+  }
+
+  if (source.data && source.data !== source) {
+    return extractDocumentList(source.data);
+  }
+
+  return isDocumentLike(source) ? [source] : [];
+}
+
+function getDocumentMergeKey(doc: any, index: number) {
+  return String(
+    doc?.id ??
+      doc?.uuid ??
+      doc?.file_url ??
+      doc?.fileUrl ??
+      doc?.file_path ??
+      doc?.filePath ??
+      doc?.file_name ??
+      doc?.fileName ??
+      `document-${index}`,
+  );
+}
+
+function mergeDocumentLists(...documentLists: any[][]) {
+  const seen = new Map<string, any>();
+
+  documentLists.flat().forEach((doc, index) => {
+    if (!doc || typeof doc !== "object") {
+      return;
+    }
+
+    const key = getDocumentMergeKey(doc, index);
+    seen.set(key, { ...(seen.get(key) || {}), ...doc });
+  });
+
+  return Array.from(seen.values());
+}
+
+function getRequestDocuments(request: any) {
+  if (!request) {
+    return [];
+  }
+
+  return mergeDocumentLists(
+    Array.isArray(request.request_documents) ? request.request_documents : [],
+    Array.isArray(request.requestDocuments) ? request.requestDocuments : [],
+  );
+}
+
+function attachRequestDocuments(request: any, extraDocuments: any[] = []) {
+  if (!request || typeof request !== "object") {
+    return request;
+  }
+
+  const requestDocuments = mergeDocumentLists(
+    getRequestDocuments(request),
+    extraDocuments,
+  );
+
+  return {
+    ...request,
+    request_documents: requestDocuments,
+    requestDocuments: requestDocuments,
+  };
+}
+
+async function fetchAccountantRequestData(
+  requestId: string,
+  extraDocuments: any[] = [],
+) {
+  const [requestRes, documentsRes] = await Promise.all([
+    apiClient.get(`/accountant/service-requests/${requestId}`),
+    apiClient
+      .get(`/accountant/service-requests/${requestId}/documents`)
+      .catch(() => null),
+  ]);
+
+  const requestPayload = getResponsePayload(requestRes.data);
+  const endpointDocuments = extractDocumentList(documentsRes?.data);
+
+  return attachRequestDocuments(
+    requestPayload,
+    mergeDocumentLists(endpointDocuments, extraDocuments),
+  );
+}
 
 export function AccountantRequestDetailView() {
   const params = useParams();
@@ -47,37 +184,29 @@ export function AccountantRequestDetailView() {
   const [req, setReq] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
-  const [showStatusModal, setShowStatusModal] = useState(false);
   const [showStageModal, setShowStageModal] = useState(false);
-  const [lifecycleStages, setLifecycleStages] = useState<SharedLifecycleStage[]>(
-    [],
-  );
   const [defaultWorkflowTemplate, setDefaultWorkflowTemplate] = useState<
     DefaultWorkflowTemplateItem[]
   >([]);
-  const [lifecycleStagesLoading, setLifecycleStagesLoading] = useState(false);
-  const [statusForm, setStatusForm] = useState({
-    status: "",
-    ca_notes: "",
-    update_note: "",
-    rejection_reason: "",
-  });
   const [stageForm, setStageForm] = useState({
     service_workflow_id: "",
     client_message: "",
   });
   const [revisionNotes, setRevisionNotes] = useState("");
-  const applyRequestState = (payload: any) => {
-    setReq(payload);
-    setStatusForm((prev) => ({ ...prev, status: payload?.status || prev.status }));
+  const applyRequestState = (payload: any, extraDocuments: any[] = []) => {
+    const nextRequest = attachRequestDocuments(payload, extraDocuments);
+    setReq(nextRequest);
+    return nextRequest;
   };
 
-  const fetchData = async () => {
+  const fetchData = async (extraDocuments: any[] = []) => {
     try {
-      const res = await apiClient.get(`/accountant/service-requests/${id}`);
-      applyRequestState(res.data?.data || res.data);
-    } catch (err) {
+      const nextRequest = await fetchAccountantRequestData(id, extraDocuments);
+      applyRequestState(nextRequest);
+      return nextRequest;
+    } catch {
       toast.error("Failed to synchronize dossier");
+      return null;
     } finally {
       setLoading(false);
     }
@@ -96,13 +225,13 @@ export function AccountantRequestDetailView() {
       setDefaultWorkflowTemplate([]);
 
       try {
-        const res = await apiClient.get(`/accountant/service-requests/${id}`);
+        const nextRequest = await fetchAccountantRequestData(id);
 
         if (!isMounted) {
           return;
         }
 
-        applyRequestState(res.data?.data || res.data);
+        applyRequestState(nextRequest);
       } catch {
         if (isMounted) {
           toast.error("Failed to synchronize dossier");
@@ -171,50 +300,6 @@ export function AccountantRequestDetailView() {
     };
   }, [req]);
 
-  useEffect(() => {
-    if (!showStatusModal) {
-      return;
-    }
-
-    let isMounted = true;
-
-    async function loadLifecycleStages() {
-      setLifecycleStagesLoading(true);
-
-      try {
-        const response = await apiClient.get("/accountant/lifecycle-stages");
-        const payload = response.data?.data ?? response.data;
-
-        if (!isMounted) {
-          return;
-        }
-
-        setLifecycleStages(
-          Array.isArray(payload)
-            ? payload.map(normalizeSharedLifecycleStage)
-            : [],
-        );
-      } catch (error: any) {
-        if (isMounted) {
-          toast.error(
-            error?.response?.data?.message ||
-            "Failed to load shared lifecycle milestones",
-          );
-        }
-      } finally {
-        if (isMounted) {
-          setLifecycleStagesLoading(false);
-        }
-      }
-    }
-
-    void loadLifecycleStages();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [showStatusModal]);
-
   const stepIndex = useMemo(() => {
     if (!req?.status) return 0;
     if (req.status === "update_required" || req.status === "rejected") return 0;
@@ -228,25 +313,28 @@ export function AccountantRequestDetailView() {
   const currentStageFromProgress = req?.progress?.current_stage
     ? normalizeWorkflowStage(req.progress.current_stage)
     : null;
-  const requestedWorkflowId = parsePositiveNumber(req?.current_service_workflow_id);
+  const requestedWorkflowId = parsePositiveNumber(
+    req?.current_service_workflow_id,
+  );
   const serviceWorkflowStages: TimelineStage[] = (() => {
-    const rawStages = Array.isArray(req?.workflow_stages) && req.workflow_stages.length > 0
-      ? req.workflow_stages
-      : Array.isArray(req?.progress?.stages)
-        ? req.progress.stages
-        : [];
+    const rawStages =
+      Array.isArray(req?.workflow_stages) && req.workflow_stages.length > 0
+        ? req.workflow_stages
+        : Array.isArray(req?.progress?.stages)
+          ? req.progress.stages
+          : [];
     const normalizedStages = Array.isArray(rawStages)
-      ? [...rawStages]
-        .map(normalizeWorkflowStage)
-        .sort(sortWorkflowStages)
+      ? [...rawStages].map(normalizeWorkflowStage).sort(sortWorkflowStages)
       : [];
 
     const mergedStages =
       currentStageFromProgress &&
-        !normalizedStages.some((stage) =>
-          stageIdentityMatches(stage, currentStageFromProgress),
-        )
-        ? [...normalizedStages, currentStageFromProgress].sort(sortWorkflowStages)
+      !normalizedStages.some((stage) =>
+        stageIdentityMatches(stage, currentStageFromProgress),
+      )
+        ? [...normalizedStages, currentStageFromProgress].sort(
+            sortWorkflowStages,
+          )
         : normalizedStages;
 
     return attachTimelineMetadata(mergedStages);
@@ -279,36 +367,36 @@ export function AccountantRequestDetailView() {
     ) ||
     timelineStages[0] ||
     null;
-  const currentWorkflowId =
-    !showingSharedWorkflowTemplate
-      ? parsePositiveNumber(currentWorkflowStage?.id) ?? requestedWorkflowId ?? 0
-      : 0;
+  const currentWorkflowId = !showingSharedWorkflowTemplate
+    ? (parsePositiveNumber(currentWorkflowStage?.id) ??
+      requestedWorkflowId ??
+      0)
+    : 0;
   const currentWorkflowOrder =
     currentWorkflowStage &&
-      Number.isFinite(
-        Number(
-          timelineStages.find((stage) =>
-            stageIdentityMatches(stage, currentWorkflowStage),
-          )
-            ?.timeline_index,
-        ),
-      )
-      ? Number(
+    Number.isFinite(
+      Number(
         timelineStages.find((stage) =>
           stageIdentityMatches(stage, currentWorkflowStage),
+        )?.timeline_index,
+      ),
+    )
+      ? Number(
+          timelineStages.find((stage) =>
+            stageIdentityMatches(stage, currentWorkflowStage),
+          )?.timeline_index,
         )
-          ?.timeline_index,
-      )
       : null;
   const workflowStepIndex =
-    currentWorkflowOrder && currentWorkflowOrder > 0 ? currentWorkflowOrder - 1 : 0;
+    currentWorkflowOrder && currentWorkflowOrder > 0
+      ? currentWorkflowOrder - 1
+      : 0;
   const workflowTrackFill =
     timelineStages.length <= 1
       ? 0
       : workflowStepIndex / (timelineStages.length - 1);
-  const workflowStageSummary =
-    hasServiceSpecificWorkflow
-      ? serviceWorkflowStages
+  const workflowStageSummary = hasServiceSpecificWorkflow
+    ? serviceWorkflowStages
         .map(
           (stage) =>
             `${stage.timeline_index}. ${getWorkflowStageLabel(
@@ -317,35 +405,38 @@ export function AccountantRequestDetailView() {
             )}`,
         )
         .join(" -> ")
-      : null;
+    : null;
   const selectableWorkflowStages = hasServiceSpecificWorkflow
     ? serviceWorkflowStages.filter(
-      (stage) =>
-        parsePositiveNumber(stage.id) !== null &&
-        (stage.is_active ||
-          (!showingSharedWorkflowTemplate &&
-            stageIdentityMatches(stage, currentWorkflowStage))),
-    )
+        (stage) =>
+          parsePositiveNumber(stage.id) !== null &&
+          (stage.is_active ||
+            (!showingSharedWorkflowTemplate &&
+              stageIdentityMatches(stage, currentWorkflowStage))),
+      )
     : [];
-  const availableLifecycleStatuses = useMemo(
-    () =>
-      filterLifecycleStatusOptions({
-        currentStatus: req?.status,
-        selectedStatus: statusForm.status,
-        defaultStatuses: [...ACCOUNTANT_DEFAULT_LIFECYCLE_STATUSES],
-        specialStatuses: [...ACCOUNTANT_SPECIAL_LIFECYCLE_STATUSES],
-      }),
-    [req?.status, statusForm.status],
-  );
-  const lifecycleStatusGroups = useMemo(
-    () =>
-      buildLifecycleStatusGroups({
-        defaultStages: lifecycleStages,
-        defaultStatuses: availableLifecycleStatuses.defaultStatuses,
-        specialStatuses: availableLifecycleStatuses.specialStatuses,
-      }),
-    [availableLifecycleStatuses, lifecycleStages],
-  );
+  const normalizedRequestStatus = String(req?.status || "").toLowerCase();
+  const isTerminalRequest = [
+    "approved",
+    "completed",
+    "cancelled",
+    "rejected",
+  ].includes(normalizedRequestStatus);
+  const canCompleteRequest = [
+    "in_progress",
+    "submitted_to_ca",
+    "approved",
+  ].includes(normalizedRequestStatus);
+  const canCancelRequest =
+    !isTerminalRequest &&
+    [
+      "applied",
+      "paid",
+      "under_review",
+      "update_required",
+      "in_progress",
+      "submitted_to_ca",
+    ].includes(normalizedRequestStatus);
 
   const handleQuickStageUpdate = async (targetStatus: string) => {
     setUpdating(true);
@@ -365,9 +456,7 @@ export function AccountantRequestDetailView() {
   const openStageModal = () => {
     setStageForm({
       service_workflow_id:
-        currentWorkflowId > 0
-          ? String(currentWorkflowId)
-          : "",
+        currentWorkflowId > 0 ? String(currentWorkflowId) : "",
       client_message: req?.client_message || "",
     });
     setShowStageModal(true);
@@ -388,21 +477,26 @@ export function AccountantRequestDetailView() {
       setShowStageModal(false);
       fetchData();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Failed to update milestone");
+      toast.error(
+        error.response?.data?.message || "Failed to update milestone",
+      );
     } finally {
       setUpdating(false);
     }
   };
 
   const handleRevisionSubmit = async () => {
-    if (!revisionNotes.trim()) return toast.error("Description of updates is mandatory");
+    if (!revisionNotes.trim())
+      return toast.error("Description of updates is mandatory");
     setUpdating(true);
     try {
-      await apiClient.post(`/accountant/service-requests/${id}/revision`, { notes: revisionNotes });
+      await apiClient.post(`/accountant/service-requests/${id}/revision`, {
+        notes: revisionNotes,
+      });
       toast.success("Revision committed to review");
       setRevisionNotes("");
       fetchData();
-    } catch (error: any) {
+    } catch {
       toast.error("Revision commit failed");
     } finally {
       setUpdating(false);
@@ -411,28 +505,43 @@ export function AccountantRequestDetailView() {
 
   const handleDeleteDoc = async (docId: string | number) => {
     try {
-      await apiClient.delete(`/accountant/service-requests/${id}/documents/${docId}`);
+      await apiClient.delete(
+        `/accountant/service-requests/${id}/documents/${docId}`,
+      );
       toast.success("Artifact purged from archives");
       fetchData();
-    } catch (err) {
+    } catch {
       toast.error("Purge failed");
     }
   };
 
-  const handleUpdateDocStatus = async (doc: any, status: string, notes?: string) => {
+  const handleUpdateDocStatus = async (
+    doc: any,
+    status: string,
+    notes?: string,
+  ) => {
     try {
-      await apiClient.patch(`/accountant/service-requests/${id}/documents/${doc.id}/status`, { status, notes });
+      await apiClient.patch(
+        `/accountant/service-requests/${id}/documents/${doc.id}/status`,
+        { status, notes },
+      );
       toast.success("Artifact status updated");
       fetchData();
-    } catch (err) {
+    } catch {
       toast.error("Status update failed");
     }
   };
 
   const handleCopyApplicationId = async () => {
-    const applicationLabel = String(req?.application_unique_id || req?.id || "").trim();
+    const applicationLabel = String(
+      req?.application_unique_id || req?.id || "",
+    ).trim();
 
-    if (!applicationLabel || typeof navigator === "undefined" || !navigator.clipboard) {
+    if (
+      !applicationLabel ||
+      typeof navigator === "undefined" ||
+      !navigator.clipboard
+    ) {
       toast.error("Application ID is not available to copy");
       return;
     }
@@ -481,7 +590,9 @@ export function AccountantRequestDetailView() {
                   </h1>
                   <div className="mt-4 flex flex-wrap items-center gap-3 text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">
                     <span>Order ID:</span>
-                    <span className="text-blue-600">#{req.application_unique_id || req.id}</span>
+                    <span className="text-blue-600">
+                      #{req.application_unique_id || req.id}
+                    </span>
                     <button
                       type="button"
                       onClick={() => void handleCopyApplicationId()}
@@ -559,7 +670,14 @@ export function AccountantRequestDetailView() {
                   hasCustomWorkflow={hasServiceSpecificWorkflow}
                   status={req.status}
                   stepIndex={stepIndex}
-                  completedAt={req.updated_at ? formatDateWithPattern(req.updated_at, "d MMM yyyy, h:mm a") : undefined}
+                  completedAt={
+                    req.updated_at
+                      ? formatDateWithPattern(
+                          req.updated_at,
+                          "d MMM yyyy, h:mm a",
+                        )
+                      : undefined
+                  }
                 />
               </div>
 
@@ -575,7 +693,9 @@ export function AccountantRequestDetailView() {
                 <div className="p-8 bg-slate-50 rounded-3xl border border-slate-100">
                   <div className="flex items-center gap-3 mb-4">
                     <i className="fas fa-info-circle text-slate-400" />
-                    <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Internal Directives</h3>
+                    <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
+                      Internal Directives
+                    </h3>
                   </div>
                   <p className="text-sm font-medium text-slate-700 leading-relaxed">
                     {req.ca_notes}
@@ -591,8 +711,14 @@ export function AccountantRequestDetailView() {
                       <i className="fas fa-exclamation-triangle" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-bold text-rose-900 tracking-tight">Correction Required</h3>
-                      <p className="text-sm text-rose-700/70 mt-1 font-medium">{req.update_note || req.revision_notes || "Client needs to address specific discrepancies."}</p>
+                      <h3 className="text-lg font-bold text-rose-900 tracking-tight">
+                        Correction Required
+                      </h3>
+                      <p className="text-sm text-rose-700/70 mt-1 font-medium">
+                        {req.update_note ||
+                          req.revision_notes ||
+                          "Client needs to address specific discrepancies."}
+                      </p>
                     </div>
                   </div>
                   <div className="space-y-4">
@@ -608,7 +734,11 @@ export function AccountantRequestDetailView() {
                       disabled={updating || !revisionNotes.trim()}
                       className="w-full h-12 bg-rose-600 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-rose-700 transition-all shadow-md disabled:opacity-30"
                     >
-                      {updating ? <i className="fas fa-spinner fa-spin" /> : "Commit Corrections"}
+                      {updating ? (
+                        <i className="fas fa-spinner fa-spin" />
+                      ) : (
+                        "Commit Corrections"
+                      )}
                     </button>
                   </div>
                 </div>
@@ -616,7 +746,7 @@ export function AccountantRequestDetailView() {
 
               {/* Document Repository */}
               <RequestDocumentList
-                documents={req.request_documents || []}
+                documents={getRequestDocuments(req)}
                 role="accountant"
                 userId={req.user?.id}
                 onDeleteDocument={handleDeleteDoc}
@@ -629,10 +759,14 @@ export function AccountantRequestDetailView() {
                   if (req.status === "in_progress" && docType === "internal") {
                     formData.append("is_final", "true");
                   }
-                  await apiClient.post(`/accountant/service-requests/${id}/documents`, formData, {
-                    headers: { "Content-Type": "multipart/form-data" },
-                  });
-                  fetchData();
+                  const uploadResponse = await apiClient.post(
+                    `/accountant/service-requests/${id}/documents`,
+                    formData,
+                    {
+                      headers: { "Content-Type": "multipart/form-data" },
+                    },
+                  );
+                  await fetchData(extractDocumentList(uploadResponse.data));
                 }}
                 actionLoading={updating}
               />
@@ -642,14 +776,22 @@ export function AccountantRequestDetailView() {
             <div className="space-y-10">
               {/* Task Management */}
               <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm md:p-8">
-                <h3 className="mb-6 text-lg font-bold tracking-tight text-slate-900">Management</h3>
+                <h3 className="mb-6 text-lg font-bold tracking-tight text-slate-900">
+                  Management
+                </h3>
 
-                {["completed", "approved", "submitted_to_ca"].includes(req.status) && (
+                {["completed", "approved", "submitted_to_ca"].includes(
+                  req.status,
+                ) && (
                   <div className="mb-6">
                     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-center">
                       <p className="flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-600">
-                        <i className={`fas ${req.status === 'submitted_to_ca' ? 'fa-hourglass-half' : 'fa-check-circle'}`}></i>
-                        {req.status === 'submitted_to_ca' ? 'Review Pending' : 'Workflow Finalized'}
+                        <i
+                          className={`fas ${req.status === "submitted_to_ca" ? "fa-hourglass-half" : "fa-check-circle"}`}
+                        ></i>
+                        {req.status === "submitted_to_ca"
+                          ? "Review Pending"
+                          : "Workflow Finalized"}
                       </p>
                     </div>
                   </div>
@@ -678,7 +820,11 @@ export function AccountantRequestDetailView() {
                         disabled={updating}
                         className="w-full h-12 bg-slate-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-wider hover:bg-slate-800 transition-all shadow-sm disabled:opacity-50"
                       >
-                        {updating ? <i className="fas fa-spinner fa-spin" /> : "Initiate Review"}
+                        {updating ? (
+                          <i className="fas fa-spinner fa-spin" />
+                        ) : (
+                          "Initiate Review"
+                        )}
                       </button>
                     )}
 
@@ -689,14 +835,24 @@ export function AccountantRequestDetailView() {
                           disabled={updating}
                           className="w-full h-12 bg-slate-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-wider hover:bg-slate-800 transition-all shadow-sm disabled:opacity-50"
                         >
-                          {updating ? <i className="fas fa-spinner fa-spin" /> : "Approve Docs"}
+                          {updating ? (
+                            <i className="fas fa-spinner fa-spin" />
+                          ) : (
+                            "Approve Docs"
+                          )}
                         </button>
                         <div className="rounded-2xl border border-blue-100 bg-blue-50/50 p-4 text-left">
                           <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-blue-700 flex items-center gap-1.5 mb-1.5">
-                            <i className="fas fa-info-circle" /> How to Request Updates
+                            <i className="fas fa-info-circle" /> How to Request
+                            Updates
                           </p>
                           <p className="text-[11px] font-medium leading-relaxed text-blue-900">
-                            To request corrections or updates, simply select <strong className="text-rose-700">Corrections</strong> for any document in the Client Documents section below.
+                            To request corrections or updates, simply select{" "}
+                            <strong className="text-rose-700">
+                              Corrections
+                            </strong>{" "}
+                            for any document in the Client Documents section
+                            below.
                           </p>
                         </div>
                       </div>
@@ -704,11 +860,17 @@ export function AccountantRequestDetailView() {
 
                     {req.status === "in_progress" && (
                       <button
-                        onClick={() => handleQuickStageUpdate("submitted_to_ca")}
+                        onClick={() =>
+                          handleQuickStageUpdate("submitted_to_ca")
+                        }
                         disabled={updating}
                         className="w-full h-12 bg-slate-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-wider hover:bg-slate-800 transition-all shadow-sm disabled:opacity-50"
                       >
-                        {updating ? <i className="fas fa-spinner fa-spin" /> : "Submit Dossier"}
+                        {updating ? (
+                          <i className="fas fa-spinner fa-spin" />
+                        ) : (
+                          "Submit Dossier"
+                        )}
                       </button>
                     )}
 
@@ -718,8 +880,44 @@ export function AccountantRequestDetailView() {
                         disabled={updating}
                         className="w-full h-12 bg-slate-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-wider hover:bg-slate-800 transition-all shadow-sm disabled:opacity-50"
                       >
-                        {updating ? <i className="fas fa-spinner fa-spin" /> : "Restart Review"}
+                        {updating ? (
+                          <i className="fas fa-spinner fa-spin" />
+                        ) : (
+                          "Restart Review"
+                        )}
                       </button>
+                    )}
+
+                    {(canCompleteRequest || canCancelRequest) && (
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        {canCompleteRequest && (
+                          <button
+                            onClick={() => handleQuickStageUpdate("completed")}
+                            disabled={updating}
+                            className="h-12 rounded-2xl bg-emerald-600 text-[11px] font-bold uppercase tracking-wider text-white shadow-sm transition-all hover:bg-emerald-700 disabled:opacity-50"
+                          >
+                            {updating ? (
+                              <i className="fas fa-spinner fa-spin" />
+                            ) : (
+                              "Complete Service"
+                            )}
+                          </button>
+                        )}
+
+                        {canCancelRequest && (
+                          <button
+                            onClick={() => handleQuickStageUpdate("cancelled")}
+                            disabled={updating}
+                            className="h-12 rounded-2xl border border-rose-200 bg-rose-50 text-[11px] font-bold uppercase tracking-wider text-rose-700 transition-all hover:border-rose-300 hover:bg-rose-100 disabled:opacity-50"
+                          >
+                            {updating ? (
+                              <i className="fas fa-spinner fa-spin" />
+                            ) : (
+                              "Cancel Service"
+                            )}
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
@@ -729,7 +927,11 @@ export function AccountantRequestDetailView() {
         </div>
       </AdminLayout>
 
-      <Modal isOpen={showStageModal} onClose={() => setShowStageModal(false)} title="Update Service Milestone">
+      <Modal
+        isOpen={showStageModal}
+        onClose={() => setShowStageModal(false)}
+        title="Update Service Milestone"
+      >
         <form onSubmit={handleUpdateWorkflowStage} className="space-y-6">
           <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-700">
@@ -744,21 +946,20 @@ export function AccountantRequestDetailView() {
             label="Target Milestone"
             value={stageForm.service_workflow_id}
             onChange={(e) =>
-              setStageForm({ ...stageForm, service_workflow_id: e.target.value })
+              setStageForm({
+                ...stageForm,
+                service_workflow_id: e.target.value,
+              })
             }
             placeholder="Clear current milestone"
-            options={selectableWorkflowStages
-              .map((stage) => ({
-                value: stage.id,
-                label: `${stage.timeline_index}. ${getWorkflowStageLabel(
-                  stage,
-                  stage.timeline_index,
-                )}${stage.is_required ? " (Required)" : " (Optional)"
-                  }`,
-              }))}
-            helpText={
-              workflowStageSummary
-            }
+            options={selectableWorkflowStages.map((stage) => ({
+              value: stage.id,
+              label: `${stage.timeline_index}. ${getWorkflowStageLabel(
+                stage,
+                stage.timeline_index,
+              )}${stage.is_required ? " (Required)" : " (Optional)"}`,
+            }))}
+            helpText={workflowStageSummary}
           />
           <FormTextarea
             label="Client Message"

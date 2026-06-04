@@ -5,6 +5,7 @@ import { apiClient } from "@/lib/api/client";
 import type { AuthUser } from "@/lib/auth/types";
 import type { User } from "@/lib/features/auth/types";
 import { clearStoredUserOverride } from "@/lib/auth/storage";
+import { appConfig } from "@/lib/config";
 
 type AuthResult = {
   token: string;
@@ -63,12 +64,25 @@ function normalizeSignedInUser(user: AuthUser): User {
 }
 
 async function resolveSessionAfterSignIn() {
-  const session = await getSession();
-  const user = session?.user;
-  const token = session?.accessToken;
+  let session = await getSession();
+  let user = session?.user;
+  let token = session?.accessToken;
 
   if (!user || !token) {
-    throw new Error("Unable to establish a signed-in session.");
+    // Retry up to 5 times with a 250ms delay to allow NextAuth cookie synchronization
+    for (let i = 0; i < 5; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 250));
+      session = await getSession();
+      user = session?.user;
+      token = session?.accessToken;
+      if (user && token) {
+        break;
+      }
+    }
+  }
+
+  if (!user || !token) {
+    throw new Error("We couldn't load your account session. Please check your internet connection and try logging in again.");
   }
 
   clearStoredUserOverride();
@@ -101,6 +115,24 @@ export async function signInWithPassword({
   password,
   redirectTo,
 }: PasswordLoginInput): Promise<AuthResult> {
+  // Call backend directly to get detailed error messages
+  const response = await fetch(`${appConfig.backendUrl}/api/user/login`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ email, password }),
+  });
+
+  const payload = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const errorMsg = payload?.message;
+    const formattedMsg = Array.isArray(errorMsg) ? errorMsg.join(", ") : errorMsg;
+    throw new Error(formattedMsg ?? "Invalid email or password.");
+  }
+
   const result = await signIn("credentials", {
     email,
     password,
@@ -110,7 +142,7 @@ export async function signInWithPassword({
 
   if (!result?.ok) {
     throw new Error(
-      getCredentialErrorMessage(result, "Invalid email or password. Please try again."),
+      getCredentialErrorMessage(result, "Incorrect credentials. Please try again."),
     );
   }
 
@@ -122,6 +154,24 @@ export async function signInWithMobileOtp({
   otp,
   redirectTo,
 }: MobileOtpLoginInput): Promise<AuthResult> {
+  // Call backend directly to get detailed error messages
+  const response = await fetch(`${appConfig.backendUrl}/api/user/login-with-mobile`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ mobile_number, otp }),
+  });
+
+  const payload = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const errorMsg = payload?.message;
+    const formattedMsg = Array.isArray(errorMsg) ? errorMsg.join(", ") : errorMsg;
+    throw new Error(formattedMsg ?? "Invalid mobile number or OTP.");
+  }
+
   const result = await signIn("mobile-otp", {
     mobile_number,
     otp,
@@ -131,7 +181,7 @@ export async function signInWithMobileOtp({
 
   if (!result?.ok) {
     throw new Error(
-      getCredentialErrorMessage(result, "Invalid mobile number or OTP. Please try again."),
+      getCredentialErrorMessage(result, "Incorrect mobile number or OTP. Please try again."),
     );
   }
 

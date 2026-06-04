@@ -44,9 +44,27 @@ const LIFECYCLE_STATUS_FLOW: Record<string, string[]> = {
     "approved",
     "cancelled",
   ],
-  submitted_to_ca: ["applied", "in_progress", "approved", "cancelled", "completed"],
-  approved: ["applied", "submitted_to_ca", "in_progress", "under_review", "completed"],
-  completed: ["applied", "approved", "submitted_to_ca", "in_progress", "under_review"],
+  submitted_to_ca: [
+    "applied",
+    "in_progress",
+    "approved",
+    "cancelled",
+    "completed",
+  ],
+  approved: [
+    "applied",
+    "submitted_to_ca",
+    "in_progress",
+    "under_review",
+    "completed",
+  ],
+  completed: [
+    "applied",
+    "approved",
+    "submitted_to_ca",
+    "in_progress",
+    "under_review",
+  ],
   cancelled: ["applied"],
   rejected: ["applied"],
 };
@@ -75,7 +93,8 @@ const DEFAULT_LIFECYCLE_STATUS_META: Record<
   DefaultLifecycleStatusMeta
 > = {
   applied: {
-    description: "Application received and queued for the shared lifecycle flow.",
+    description:
+      "Application received and queued for the shared lifecycle flow.",
     fallbackColor: "#0f766e",
     fallbackLabel: "Start",
     icon: "fa-play",
@@ -125,7 +144,8 @@ const SPECIAL_LIFECYCLE_STATUS_META: Record<
 > = {
   cancelled: {
     color: "#64748b",
-    description: "Cancel this application and remove it from active processing.",
+    description:
+      "Cancel this application and remove it from active processing.",
     icon: "fa-ban",
     label: "Cancel Application",
   },
@@ -149,7 +169,9 @@ export const ACCOUNTANT_SPECIAL_LIFECYCLE_STATUSES = [
   "update_required",
 ] as const;
 
-export function normalizeSharedLifecycleStage(stage: any): SharedLifecycleStage {
+export function normalizeSharedLifecycleStage(
+  stage: any,
+): SharedLifecycleStage {
   return {
     id: Number(stage?.id ?? 0),
     name: String(stage?.name ?? ""),
@@ -175,9 +197,9 @@ export function canTransitionLifecycleStatus(
     return true;
   }
 
-  return (
-    LIFECYCLE_STATUS_FLOW[normalizedCurrentStatus] ?? []
-  ).includes(normalizedNextStatus);
+  return (LIFECYCLE_STATUS_FLOW[normalizedCurrentStatus] ?? []).includes(
+    normalizedNextStatus,
+  );
 }
 
 export function resolveInitialLifecycleStatusSelection(
@@ -252,7 +274,9 @@ function buildDefaultLifecycleOption(
   };
 }
 
-function buildSpecialLifecycleOption(status: string): LifecycleStatusOption | null {
+function buildSpecialLifecycleOption(
+  status: string,
+): LifecycleStatusOption | null {
   const meta = SPECIAL_LIFECYCLE_STATUS_META[status];
 
   if (!meta) {
@@ -345,18 +369,24 @@ export type DefaultWorkflowTemplateItem = {
 };
 
 export const SHARED_TIMELINE_STAGE_SLUGS_BY_STATUS: Record<string, string[]> = {
-  in_cart: ["start"],
-  payment_pending: ["start"],
-  applied: ["start"],
-  paid: ["start"],
-  under_review: ["verification", "review", "start"],
+  in_cart: ["payment-verification", "start"],
+  payment_pending: ["payment-verification", "start"],
+  applied: ["payment-verification", "start"],
+  paid: ["payment-verification", "start"],
+  under_review: ["start", "verification", "review"],
   update_required: ["verification", "review", "start"],
   in_progress: ["review", "verification", "start"],
   submitted_to_ca: ["department-submission", "review", "verification", "start"],
-  approved: ["completed"],
-  completed: ["completed"],
-  cancelled: ["start"],
+  approved: ["completed", "complete"],
+  completed: ["completed", "complete"],
+  cancelled: ["cancelled", "canceled", "cancel"],
   rejected: ["start"],
+};
+
+const MUTUALLY_EXCLUSIVE_TERMINAL_STAGE_SLUGS: Record<string, string[]> = {
+  approved: ["cancelled", "canceled", "cancel"],
+  completed: ["cancelled", "canceled", "cancel"],
+  cancelled: ["completed", "complete"],
 };
 
 export function parsePositiveNumber(value: unknown): number | null {
@@ -367,6 +397,19 @@ export function parsePositiveNumber(value: unknown): number | null {
   }
 
   return parsedValue;
+}
+
+function isMutuallyExclusiveTerminalStage(
+  status: unknown,
+  stage: WorkflowStage,
+) {
+  const normalizedStatus = String(status ?? "")
+    .trim()
+    .toLowerCase();
+  const excludedSlugs =
+    MUTUALLY_EXCLUSIVE_TERMINAL_STAGE_SLUGS[normalizedStatus] ?? [];
+
+  return excludedSlugs.includes(normalizeStageName(stage.slug).toLowerCase());
 }
 
 export function normalizeStageName(value: unknown): string {
@@ -406,10 +449,10 @@ export function normalizeWorkflowStage(stage: any): WorkflowStage {
     id:
       parsePositiveNumber(
         stage?.service_workflow_id ??
-        stage?.serviceWorkflowId ??
-        stage?.workflow_id ??
-        stage?.workflowId ??
-        stage?.id,
+          stage?.serviceWorkflowId ??
+          stage?.workflow_id ??
+          stage?.workflowId ??
+          stage?.id,
       ) ??
       parsePositiveNumber(workflowStage?.service_workflow_id) ??
       parsePositiveNumber(workflowStage?.serviceWorkflowId) ??
@@ -420,10 +463,10 @@ export function normalizeWorkflowStage(stage: any): WorkflowStage {
     stage_id:
       parsePositiveNumber(
         stage?.stage_id ??
-        stage?.stageId ??
-        workflowStage?.stage_id ??
-        workflowStage?.stageId ??
-        workflowStage?.id,
+          stage?.stageId ??
+          workflowStage?.stage_id ??
+          workflowStage?.stageId ??
+          workflowStage?.id,
       ) ?? null,
     name:
       normalizeStageName(stage?.name) ||
@@ -458,7 +501,9 @@ export function normalizeWorkflowStage(stage: any): WorkflowStage {
       true,
     ),
     is_completed: Boolean(stage?.is_completed ?? stage?.isCompleted ?? false),
-    is_current: Boolean(stage?.is_current ?? stage?.isCurrent ?? stage?.current ?? false),
+    is_current: Boolean(
+      stage?.is_current ?? stage?.isCurrent ?? stage?.current ?? false,
+    ),
   };
 }
 
@@ -486,7 +531,9 @@ export function resolveSharedTimelineCurrentIndex(
     return -1;
   }
 
-  const normalizedStatus = String(status ?? "").trim().toLowerCase();
+  const normalizedStatus = String(status ?? "")
+    .trim()
+    .toLowerCase();
   const candidateSlugs =
     SHARED_TIMELINE_STAGE_SLUGS_BY_STATUS[normalizedStatus] ?? [];
 
@@ -512,9 +559,7 @@ export function buildSharedTimelineStages(
   status: unknown,
 ) {
   const normalizedStages = Array.isArray(template)
-    ? [...template]
-      .map(normalizeWorkflowStage)
-      .sort(sortWorkflowStages)
+    ? [...template].map(normalizeWorkflowStage).sort(sortWorkflowStages)
     : [];
 
   if (normalizedStages.length === 0) {
@@ -530,7 +575,10 @@ export function buildSharedTimelineStages(
     normalizedStages.map((stage, index) => ({
       ...stage,
       is_active: true,
-      is_completed: currentStageIndex >= 0 && index < currentStageIndex,
+      is_completed:
+        currentStageIndex >= 0 &&
+        index < currentStageIndex &&
+        !isMutuallyExclusiveTerminalStage(status, stage),
       is_current: index === currentStageIndex,
     })),
   );
@@ -554,8 +602,14 @@ export function getWorkflowStageLabel(
 }
 
 export function stageIdentityMatches(
-  left: Pick<WorkflowStage, "id" | "stage_id" | "name" | "order_index"> | null | undefined,
-  right: Pick<WorkflowStage, "id" | "stage_id" | "name" | "order_index"> | null | undefined,
+  left:
+    | Pick<WorkflowStage, "id" | "stage_id" | "name" | "order_index">
+    | null
+    | undefined,
+  right:
+    | Pick<WorkflowStage, "id" | "stage_id" | "name" | "order_index">
+    | null
+    | undefined,
 ) {
   if (!left || !right) {
     return false;
@@ -586,9 +640,5 @@ export function stageIdentityMatches(
   const leftName = normalizeStageName(left.name).toLowerCase();
   const rightName = normalizeStageName(right.name).toLowerCase();
 
-  return (
-    leftName.length > 0 &&
-    rightName.length > 0 &&
-    leftName === rightName
-  );
+  return leftName.length > 0 && rightName.length > 0 && leftName === rightName;
 }

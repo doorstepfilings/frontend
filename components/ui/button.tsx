@@ -1,5 +1,6 @@
 import { Button as ButtonPrimitive } from "@base-ui/react/button"
 import { cva, type VariantProps } from "class-variance-authority"
+import { Loader2 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
@@ -55,7 +56,7 @@ function Button({
       disabled={loading || props.disabled}
       {...props}
     >
-      {loading && <i className="fas fa-spinner fa-spin mr-2" />}
+      {loading ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
       {children}
     </ButtonPrimitive>
   )
