@@ -7,6 +7,7 @@ import { useAppSelector } from "@/lib/store/hooks";
 import DashboardSidebar from "@/components/layout/DashboardSidebar";
 import { getDefaultRedirectPath } from "@/lib/auth/redirects";
 import { useAuthStatus, useStoredToken, useStoredUser } from "@/lib/auth/hooks";
+import { PageLogoLoader } from "@/components/ui/logo-loader";
 
 const pageItems = [
   { path: "/dashboard", label: "Dashboard" },
@@ -58,12 +59,11 @@ export function UserDashboardShell({
 
   if (loading || authStatus === "loading") {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-blue-900 border-t-transparent" />
-          <p className="text-sm text-gray-600">Loading dashboard...</p>
-        </div>
-      </div>
+      <PageLogoLoader
+        className="min-h-screen bg-slate-50"
+        label="Authenticating customer workspace..."
+        size={64}
+      />
     );
   }
 
@@ -75,7 +75,7 @@ export function UserDashboardShell({
     <div className="flex min-h-screen overflow-x-hidden bg-gray-50">
       <DashboardSidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
 
-      <div className="w-full flex-1 transition-all duration-300 lg:ml-64">
+      <div className="min-w-0 w-full flex-1 transition-all duration-300 lg:ml-64">
         <header className="sticky top-0 z-30 border-b border-gray-100 bg-white">
           <div className="flex items-center justify-between px-4 py-4 lg:px-8">
             <div className="flex items-center gap-4">

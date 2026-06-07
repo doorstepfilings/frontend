@@ -7,8 +7,14 @@ import {
   getDocumentIcon,
   getDocumentSourceUrl,
   openDocumentInNewTab,
+  isImageDocument,
+  resolveStorageUrl,
 } from "@/lib/utils/document-helpers";
 import { format } from "date-fns";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { useStoredUser } from "@/lib/auth/hooks";
+import { ImageLightbox, type ImageLightboxSlide } from "@/components/ui/image-lightbox";
+import { ChatNoteModal } from "@/components/ui/chat-note-modal";
 
 const DOC_STATUS: any = {
   pending: { cls: "bg-amber-50 text-amber-700 border-amber-200", icon: "fa-clock", label: "Pending" },
@@ -32,9 +38,30 @@ export const AccountantDocumentList = ({
   onDelete,
   onUpdateStatus,
 }: AccountantDocumentListProps) => {
+  const currentUser = useStoredUser();
   const [updatingId, setUpdatingId] = useState<string | number | null>(null);
   const [remarkingId, setRemarkingId] = useState<string | number | null>(null);
   const [remark, setRemark] = useState("");
+  const [lightboxIndex, setLightboxIndex] = useState(-1);
+  const [viewingNoteDoc, setViewingNoteDoc] = useState<any | null>(null);
+
+  const imageGallery = React.useMemo(() => {
+    return documents.reduce<Array<{ docId: string | number; slide: ImageLightboxSlide }>>((gallery, doc) => {
+      const src = resolveStorageUrl(doc.file_url ?? doc.url ?? doc.path ?? null);
+      if (!src || !isImageDocument(doc)) {
+        return gallery;
+      }
+      gallery.push({
+        docId: doc.id,
+        slide: {
+          alt: doc.file_name ?? doc.document_name ?? "Document",
+          src,
+          download: doc.file_name ? { filename: doc.file_name, url: src } : src,
+        },
+      });
+      return gallery;
+    }, []);
+  }, [documents]);
 
   const handleStatusChange = async (doc: any, newStatus: string) => {
     if (!onUpdateStatus) return;
@@ -65,9 +92,17 @@ export const AccountantDocumentList = ({
     }
   };
 
-  const handleOpenDocument = async (doc: any) => {
+  const handleOpenDocument = (doc: any) => {
+    if (isImageDocument(doc)) {
+      const previewIndex = imageGallery.findIndex((item) => String(item.docId) === String(doc.id));
+      if (previewIndex >= 0) {
+        setLightboxIndex(previewIndex);
+        return;
+      }
+    }
+
     try {
-      await openDocumentInNewTab(
+      openDocumentInNewTab(
         getDocumentSourceUrl(doc),
         doc.file_name ?? doc.document_name ?? "document",
       );
@@ -141,25 +176,21 @@ export const AccountantDocumentList = ({
 
                   <div className="flex items-center gap-3">
                     {onUpdateStatus && (
-                      <div className="relative inline-flex items-center">
-                        <select
-                          value={["pending", "verified", "approved", "rejected"].includes(doc.status) ? doc.status : "pending"}
-                          disabled={updatingId === doc.id}
-                          onChange={(e) => handleStatusChange(doc, e.target.value)}
-                          className={`appearance-none rounded-lg border px-3 py-1.5 pr-8 text-[9px] font-bold uppercase tracking-wider transition-all focus:outline-none focus:ring-4 focus:ring-blue-500/10 disabled:opacity-60 cursor-pointer ${
-                            doc.status === "verified" || doc.status === "approved"
-                              ? "border-emerald-100 bg-emerald-50 text-emerald-700"
-                              : doc.status === "rejected"
-                              ? "border-rose-100 bg-rose-50 text-rose-700"
-                              : "border-amber-100 bg-amber-50 text-amber-700"
-                          }`}
-                        >
-                          <option value="pending">⏳ Pending</option>
-                          <option value="verified">✅ Verified</option>
-                          <option value="rejected">❌ Corrections</option>
-                        </select>
-                        <i className={`fas ${updatingId === doc.id ? "fa-circle-notch animate-spin" : "fa-chevron-down"} absolute right-3 text-[8px] opacity-40 pointer-events-none`} />
-                      </div>
+                      <SearchableSelect
+                        value={["pending", "verified", "approved", "rejected"].includes(doc.status) ? doc.status : "pending"}
+                        disabled={updatingId === doc.id}
+                        isLoading={updatingId === doc.id}
+                        onChange={(e) => handleStatusChange(doc, e.target.value)}
+                        options={[
+                          { value: "pending", label: "⏳ Pending" },
+                          { value: "verified", label: "✅ Verified" },
+                          { value: "rejected", label: "❌ Corrections" }
+                        ]}
+                        className="min-w-[155px]"
+                        isClearable={false}
+                        isSearchable={false}
+                        size="sm"
+                      />
                     )}
 
                     {!onUpdateStatus && (
@@ -167,6 +198,17 @@ export const AccountantDocumentList = ({
                         <i className={`fas ${ds.icon}`} />
                         {ds.label}
                       </div>
+                    )}
+
+                    {doc.notes && !isRemarking && (
+                      <button
+                        onClick={() => setViewingNoteDoc(doc)}
+                        className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-[9px] font-bold uppercase tracking-wider ${doc.status === 'rejected' ? 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100' : 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100'} transition-colors cursor-pointer`}
+                        title="View Note"
+                      >
+                        <i className={`fas ${doc.status === 'rejected' ? 'fa-exclamation-circle' : 'fa-comment-dots'}`} />
+                        Note
+                      </button>
                     )}
 
                     <div className="flex items-center gap-2 rounded-lg bg-white border border-slate-100 p-1 shadow-sm">
@@ -178,7 +220,7 @@ export const AccountantDocumentList = ({
                       >
                         <i className="fas fa-eye text-[10px]" />
                       </button>
-                      {canUpload && (
+                      {canUpload && currentUser?.id && String(doc.uploaded_by?.id ?? doc.uploaded_by) === String(currentUser.id) && (
                         <>
                           <div className="h-4 w-px bg-slate-100" />
                           <button
@@ -223,26 +265,6 @@ export const AccountantDocumentList = ({
                     </div>
                   </div>
                 )}
-
-                {doc.notes && !isRemarking && (
-                  <div className={`mt-4 rounded-lg border p-3 ${
-                    doc.status === 'rejected' 
-                      ? "border-rose-100 bg-rose-50/50" 
-                      : "border-blue-50 bg-blue-50/30"
-                  }`}>
-                    <p className={`text-[10px] font-bold uppercase tracking-wider mb-1 ${
-                      doc.status === 'rejected' ? "text-rose-700" : "text-blue-800"
-                    }`}>
-                       <i className={`fas ${doc.status === 'rejected' ? 'fa-exclamation-circle' : 'fa-info-circle'} mr-2`} />
-                       {doc.status === 'rejected' ? "Correction Required" : "Admin Note"}
-                    </p>
-                    <p className={`text-[11px] font-medium leading-relaxed ${
-                      doc.status === 'rejected' ? "text-rose-900" : "text-blue-900"
-                    }`}>
-                      {doc.notes}
-                    </p>
-                  </div>
-                )}
               </div>
             );
           })
@@ -255,6 +277,35 @@ export const AccountantDocumentList = ({
           </div>
         )}
       </div>
+
+      <ImageLightbox
+        open={lightboxIndex >= 0}
+        index={lightboxIndex >= 0 ? lightboxIndex : 0}
+        slides={imageGallery.map((item) => item.slide)}
+        onClose={() => setLightboxIndex(-1)}
+      />
+
+      <ChatNoteModal
+        isOpen={viewingNoteDoc !== null}
+        onClose={() => setViewingNoteDoc(null)}
+        noteText={viewingNoteDoc?.notes}
+        contextName={
+          viewingNoteDoc?.document_name || 
+          (viewingNoteDoc?.document_category ? (viewingNoteDoc.document_category.charAt(0).toUpperCase() + viewingNoteDoc.document_category.slice(1)) : null) || 
+          viewingNoteDoc?.file_name || 
+          "Document"
+        }
+        userType="accountant"
+        onSubmitNote={async (note: string) => {
+          if (!viewingNoteDoc || !onUpdateStatus) return;
+          const roleName = currentUser?.role === "super_admin" ? "Admin" : "Accountant";
+          const senderName = currentUser?.name;
+          const formattedNote = senderName ? `${roleName} (${senderName}): ${note}` : `${roleName}: ${note}`;
+          const newNoteText = viewingNoteDoc.notes ? `${viewingNoteDoc.notes}\n\n${formattedNote}` : formattedNote;
+          await onUpdateStatus(viewingNoteDoc, viewingNoteDoc.status, newNoteText);
+          setViewingNoteDoc({ ...viewingNoteDoc, notes: newNoteText });
+        }}
+      />
     </div>
   );
 };

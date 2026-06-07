@@ -1,451 +1,553 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import {
+  ArrowUpDown,
+  BriefcaseBusiness,
+  LayoutList,
+  Layers3,
+  PencilLine,
+  Plus,
+  Search,
+  SlidersHorizontal,
+  Trash2,
+  Wallet,
+} from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
-import { fetchAdminCategories, fetchAdminServices } from "@/lib/features/admin/admin-slice";
+import {
+  fetchAdminCategories,
+  fetchAdminServices,
+} from "@/lib/features/admin/admin-slice";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { AuthGuard } from "@/components/auth/auth-guard";
 import { toast } from "react-hot-toast";
 import { useConfirm } from "@/hooks/use-confirm";
 import { apiClient } from "@/lib/api/client";
+import { TableViewSkeleton } from "@/components/ui/skeletons/table-view-skeleton";
+import { CategoryIcon } from "@/components/ui/category-icon";
+import { SearchSelect } from "@/components/ui/core/search-select";
 
 function parseServicePrice(value: unknown): number | null {
-    if (value === null || value === undefined) {
-        return null;
-    }
+  if (value === null || value === undefined) {
+    return null;
+  }
 
-    if (typeof value === "string" && value.trim() === "") {
-        return null;
-    }
+  if (typeof value === "string" && value.trim() === "") {
+    return null;
+  }
 
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function formatServicePrice(value: unknown): string | null {
-    const price = parseServicePrice(value);
+  const price = parseServicePrice(value);
 
-    if (price === null) {
-        return null;
-    }
+  if (price === null) {
+    return null;
+  }
 
-    return `\u20B9${Math.round(price).toLocaleString("en-IN")}`;
+  return `\u20B9${Math.round(price).toLocaleString("en-IN")}`;
+}
+
+function getServiceCategoryId(service: any) {
+  return (
+    service?.service_category_id ??
+    service?.serviceCategoryId ??
+    service?.category?.id ??
+    service?.categoryId ??
+    null
+  );
+}
+
+function getServiceCategoryRecord(
+  service: any,
+  categoryLookup: Map<string, any>,
+) {
+  const serviceCategoryId = getServiceCategoryId(service);
+
+  const matchedCategory =
+    serviceCategoryId === null || serviceCategoryId === undefined
+      ? null
+      : categoryLookup.get(String(serviceCategoryId));
+
+  if (service?.category && typeof service.category === "object") {
+    return {
+      ...matchedCategory,
+      ...service.category,
+      id: service.category.id ?? matchedCategory?.id ?? serviceCategoryId ?? null,
+    };
+  }
+
+  return matchedCategory;
 }
 
 export function ServiceManagementView() {
-    const dispatch = useAppDispatch();
-    const router = useRouter();
-    const { services, categories, catalogLoading: loading } = useAppSelector((state) => state.admin);
-    const { confirm, ConfirmDialog } = useConfirm();
+  const dispatch = useAppDispatch();
+  const { services, categories, catalogLoading: loading } = useAppSelector(
+    (state) => state.admin,
+  );
+  const { confirm, ConfirmDialog } = useConfirm();
 
-    const [search, setSearch] = useState("");
-    const [filterCategory, setFilterCategory] = useState("");
-    const [sortBy, setSortBy] = useState("created_at");
-    const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
-    const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [search, setSearch] = useState("");
+  const [filterCategory, setFilterCategory] = useState("");
+  const [sortBy, setSortBy] = useState("created_at");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
-    useEffect(() => {
-        dispatch(fetchAdminCategories());
-        dispatch(fetchAdminServices());
-    }, [dispatch]);
+  useEffect(() => {
+    dispatch(fetchAdminCategories());
+    dispatch(fetchAdminServices());
+  }, [dispatch]);
 
-    const handleDelete = async (id: string | number, name: string) => {
-        const ok = await confirm({
-            title: "Delete Service",
-            message: `Are you sure you want to delete "${name}"? This action cannot be undone.`,
-            confirmLabel: "Delete",
-            variant: "danger",
-        });
-        
-        if (!ok) return;
+  const handleDelete = async (id: string | number, name: string) => {
+    const ok = await confirm({
+      title: "Delete Service",
+      message: `Are you sure you want to delete "${name}"? This action cannot be undone.`,
+      confirmLabel: "Delete",
+      variant: "danger",
+    });
 
-        try {
-            await apiClient.delete(`/admin/services/${id}`);
-            toast.success("Service deleted successfully");
-            dispatch(fetchAdminServices());
-        } catch (error: any) {
-            toast.error(error.response?.data?.message || "Failed to delete service");
-        }
-    };
-
-    const filteredAndSorted = useMemo(() => {
-        const result = services.filter((s: any) => {
-            const matchesSearch = 
-                s.name?.toLowerCase().includes(search.toLowerCase()) ||
-                s.short_description?.toLowerCase().includes(search.toLowerCase());
-            const matchesCat = filterCategory ? String(s.service_category_id) === String(filterCategory) : true;
-            return matchesSearch && matchesCat;
-        });
-
-        return result.sort((a: any, b: any) => {
-            if (sortBy === "name") {
-                return sortOrder === "asc" 
-                    ? a.name.localeCompare(b.name) 
-                    : b.name.localeCompare(a.name);
-            } else if (sortBy === "price") {
-                const priceA = parseServicePrice(a.price);
-                const priceB = parseServicePrice(b.price);
-
-                if (priceA === null && priceB === null) {
-                    return 0;
-                }
-
-                if (priceA === null) {
-                    return 1;
-                }
-
-                if (priceB === null) {
-                    return -1;
-                }
-
-                return sortOrder === "asc" ? priceA - priceB : priceB - priceA;
-            } else {
-                const dateA = new Date(a.created_at || 0).getTime();
-                const dateB = new Date(b.created_at || 0).getTime();
-                return sortOrder === "asc" ? dateA - dateB : dateB - dateA;
-            }
-        });
-    }, [services, search, filterCategory, sortBy, sortOrder]);
-
-    const stats = useMemo(() => {
-        const pricedServices = services
-            .map((service: any) => parseServicePrice(service.price))
-            .filter((price): price is number => price !== null);
-        const totalValue = pricedServices.reduce((sum, price) => sum + price, 0);
-        const avgPrice = pricedServices.length > 0 ? totalValue / pricedServices.length : null;
-
-        return {
-            total: services.length,
-            categories: categories.length,
-            avgPrice: avgPrice === null ? null : Math.round(avgPrice),
-        };
-    }, [services, categories]);
-
-    if (loading) {
-        return (
-            <AdminLayout>
-                <div className="flex items-center justify-center h-96">
-                    <div className="flex flex-col items-center gap-6">
-                        <div className="h-16 w-16 animate-spin rounded-full border-4 border-blue-600 border-t-transparent shadow-xl"></div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 animate-pulse">Synchronizing Catalog...</p>
-                    </div>
-                </div>
-            </AdminLayout>
-        );
+    if (!ok) {
+      return;
     }
 
-    return (
-        <AuthGuard allowedRoles={["super_admin"]}>
-            <AdminLayout>
-                <div className="max-w-7xl mx-auto space-y-10 pb-24">
-                    {/* Header */}
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-                        <div>
-                            <h1 className="text-4xl font-black text-slate-900 tracking-tight">Service Catalog</h1>
-                            <p className="text-sm text-slate-500 font-bold mt-2 uppercase tracking-widest opacity-60">
-                                {stats.total} Active Services • {stats.categories} Verticals
-                            </p>
-                        </div>
-                        <div className="flex flex-wrap gap-3">
-                            <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-2xl border border-slate-200/50">
-                                <button 
-                                    onClick={() => setViewMode("grid")}
-                                    className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${viewMode === "grid" ? "bg-white text-blue-600 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}
-                                >
-                                    <i className="fas fa-th-large"></i>
-                                </button>
-                                <button 
-                                    onClick={() => setViewMode("list")}
-                                    className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${viewMode === "list" ? "bg-white text-blue-600 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}
-                                >
-                                    <i className="fas fa-list"></i>
-                                </button>
-                            </div>
-                            <Link 
-                                href="/admin/services/create"
-                                className="h-14 px-8 bg-blue-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl shadow-blue-600/20 hover:bg-blue-700 transition-all flex items-center gap-3 active:scale-95"
-                            >
-                                <i className="fas fa-plus-circle"></i>
-                                Add New Service
-                            </Link>
-                        </div>
-                    </div>
+    try {
+      await apiClient.delete(`/admin/services/${id}`);
+      toast.success("Service deleted successfully");
+      dispatch(fetchAdminServices());
+    } catch (error: any) {
+      toast.error(
+        error.response?.data?.message || "Failed to delete service",
+      );
+    }
+  };
 
-                    {/* Quick Stats */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        <StatCard 
-                            label="Catalog Volume" 
-                            value={stats.total} 
-                            icon="fa-briefcase" 
-                            gradient="from-blue-500 to-indigo-600"
-                            bg="bg-blue-50"
-                        />
-                        <StatCard 
-                            label="Service Verticals" 
-                            value={stats.categories} 
-                            icon="fa-layer-group" 
-                            gradient="from-emerald-500 to-teal-600"
-                            bg="bg-emerald-50"
-                        />
-                        <StatCard 
-                            label="Mean Price Point" 
-                            value={formatServicePrice(stats.avgPrice) ?? "Not Set"} 
-                            icon="fa-tag" 
-                            gradient="from-amber-500 to-orange-600"
-                            bg="bg-amber-50"
-                        />
-                    </div>
+  const filteredAndSorted = useMemo(() => {
+    const result = services.filter((service: any) => {
+      const searchValue = search.trim().toLowerCase();
+      const matchesSearch =
+        !searchValue ||
+        service.name?.toLowerCase().includes(searchValue) ||
+        service.short_description?.toLowerCase().includes(searchValue);
+      const matchesCategory = filterCategory
+        ? String(getServiceCategoryId(service)) === String(filterCategory)
+        : true;
 
-                    {/* Filter & Toolbar */}
-                    <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden p-8">
-                        <div className="flex flex-col lg:flex-row gap-6">
-                            <div className="flex-1 relative group">
-                                <i className="fas fa-search absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-colors"></i>
-                                <input 
-                                    type="text" 
-                                    placeholder="Search by name or description..."
-                                    value={search}
-                                    onChange={(e) => setSearch(e.target.value)}
-                                    className="w-full pl-14 pr-6 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all"
-                                />
-                            </div>
-                            <div className="flex flex-wrap gap-4">
-                                <div className="relative min-w-[200px]">
-                                    <i className="fas fa-filter absolute left-5 top-1/2 -translate-y-1/2 text-slate-300"></i>
-                                    <select 
-                                        value={filterCategory}
-                                        onChange={(e) => setFilterCategory(e.target.value)}
-                                        className="w-full pl-12 pr-10 py-4 bg-slate-50 border-none rounded-2xl text-[11px] font-black uppercase tracking-widest text-slate-600 focus:outline-none focus:ring-4 focus:ring-blue-500/10 appearance-none transition-all"
-                                    >
-                                        <option value="">All Categories</option>
-                                        {categories.map((cat: any) => (
-                                            <option key={cat.id} value={cat.id}>{cat.name}</option>
-                                        ))}
-                                    </select>
-                                    <i className="fas fa-chevron-down absolute right-5 top-1/2 -translate-y-1/2 text-[10px] text-slate-300 pointer-events-none"></i>
-                                </div>
-                                <div className="flex gap-2 p-1 bg-slate-50 rounded-2xl">
-                                    <select 
-                                        value={sortBy}
-                                        onChange={(e) => setSortBy(e.target.value)}
-                                        className="bg-transparent border-none py-2 px-4 text-[10px] font-black uppercase tracking-widest text-slate-500 focus:ring-0 outline-none"
-                                    >
-                                        <option value="created_at">Sort: Recent</option>
-                                        <option value="name">Sort: Alpha</option>
-                                        <option value="price">Sort: Price</option>
-                                    </select>
-                                    <button 
-                                        onClick={() => setSortOrder(prev => prev === "asc" ? "desc" : "asc")}
-                                        className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-slate-400 hover:text-blue-600 shadow-sm transition-all"
-                                    >
-                                        <i className={`fas fa-sort-amount-${sortOrder === "asc" ? "down" : "up"}`}></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+      return matchesSearch && matchesCategory;
+    });
 
-                    {/* Content Display */}
-                    {filteredAndSorted.length === 0 ? (
-                        <div className="bg-white rounded-[4rem] border border-slate-100 p-24 text-center shadow-sm">
-                            <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-8 border border-slate-100 shadow-inner">
-                                <i className="fas fa-search text-3xl text-slate-200"></i>
-                            </div>
-                            <h3 className="text-2xl font-black text-slate-900 tracking-tight mb-2">No matches found</h3>
-                            <p className="text-sm text-slate-400 font-bold uppercase tracking-widest opacity-60">Adjust your search or filter parameters</p>
-                        </div>
-                    ) : viewMode === "grid" ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-                            {filteredAndSorted.map((service: any) => (
-                                <ServiceCard 
-                                    key={service.id} 
-                                    service={service} 
-                                    onDelete={() => handleDelete(service.id, service.name)} 
-                                />
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden">
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left">
-                                    <thead>
-                                        <tr className="bg-slate-50/50">
-                                            <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Service Profile</th>
-                                            <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Vertical</th>
-                                            <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Price Point</th>
-                                            <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Architecture</th>
-                                            <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-50">
-                                        {filteredAndSorted.map((service: any) => {
-                                            const priceLabel = formatServicePrice(service.price);
+    return [...result].sort((left: any, right: any) => {
+      if (sortBy === "name") {
+        const leftName = String(left?.name ?? "");
+        const rightName = String(right?.name ?? "");
 
-                                            return (
-                                                <tr key={service.id} className="group hover:bg-slate-50/50 transition-all">
-                                                    <td className="px-10 py-8">
-                                                        <div className="flex items-center gap-5">
-                                                            <div className="h-14 w-14 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center text-xl group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
-                                                                <i className={`fas ${service.category?.icon || 'fa-briefcase'}`}></i>
-                                                            </div>
-                                                            <div>
-                                                                <h4 className="text-sm font-black text-slate-900 mb-1 group-hover:text-blue-600 transition-colors">{service.name}</h4>
-                                                                <p className="text-[10px] font-bold text-slate-400 line-clamp-1 max-w-[240px] uppercase tracking-wider">{service.short_description || 'Global Service Solution'}</p>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-10 py-8">
-                                                        <span className="px-4 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-[9px] font-black uppercase tracking-widest border border-blue-100 shadow-sm">
-                                                            {service.category?.name || 'General'}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-10 py-8">
-                                                        <div className="text-right">
-                                                            {priceLabel ? (
-                                                                <>
-                                                                    <p className="text-lg font-black text-slate-900 tracking-tight">{priceLabel}</p>
-                                                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Base Rate</p>
-                                                                </>
-                                                            ) : (
-                                                                <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Not Set</p>
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-10 py-8">
-                                                        <div className="flex gap-4">
-                                                            <MetaIcon value={service.pricing_plans?.length || 0} icon="fa-tags" color="text-indigo-400" />
-                                                            <MetaIcon value={service.required_documents_list?.length || 0} icon="fa-file-alt" color="text-emerald-400" />
-                                                            <MetaIcon value={service.faqs?.length || 0} icon="fa-question-circle" color="text-amber-400" />
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-10 py-8 text-right">
-                                                        <div className="flex items-center justify-end gap-2">
-                                                            <button 
-                                                                onClick={() => router.push(`/admin/services/edit/${service.id}`)}
-                                                                className="h-10 px-6 bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-blue-600 transition-all shadow-sm"
-                                                            >
-                                                                Modify
-                                                            </button>
-                                                            <button 
-                                                                onClick={() => handleDelete(service.id, service.name)}
-                                                                className="h-10 w-10 bg-rose-50 text-rose-500 rounded-xl hover:bg-rose-600 hover:text-white transition-all flex items-center justify-center border border-rose-100"
-                                                            >
-                                                                <i className="fas fa-trash-alt text-[11px]"></i>
-                                                            </button>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    )}
-                </div>
-                <ConfirmDialog />
-            </AdminLayout>
-        </AuthGuard>
-    );
-}
+        return sortOrder === "asc"
+          ? leftName.localeCompare(rightName)
+          : rightName.localeCompare(leftName);
+      }
 
-function ServiceCard({ service, onDelete }: { service: any, onDelete: () => void }) {
-    const router = useRouter();
-    const priceLabel = formatServicePrice(service.price);
+      if (sortBy === "price") {
+        const leftPrice = parseServicePrice(left?.price);
+        const rightPrice = parseServicePrice(right?.price);
 
-    return (
-        <div className="group bg-white border border-slate-100 rounded-[3rem] overflow-hidden hover:shadow-2xl hover:shadow-slate-200/50 transition-all duration-500 flex flex-col h-full">
-            <div className="p-8 flex-1">
-                <div className="flex items-start justify-between mb-8">
-                    <div className="h-16 w-16 rounded-[1.5rem] bg-blue-50 text-blue-600 flex items-center justify-center text-2xl group-hover:bg-blue-600 group-hover:text-white transition-all duration-500 shadow-sm border border-blue-100/50">
-                        <i className={`fas ${service.category?.icon || 'fa-briefcase'}`}></i>
-                    </div>
-                    {priceLabel ? (
-                        <div className="text-right">
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Starting At</span>
-                            <span className="text-2xl font-black text-slate-900 tracking-tight">{priceLabel}</span>
-                        </div>
-                    ) : null}
-                </div>
-                
-                <span className="px-3 py-1 bg-slate-100 text-slate-500 rounded-lg text-[8px] font-black uppercase tracking-widest mb-3 inline-block">
-                    {service.category?.name || 'General'}
-                </span>
-                
-                <h3 className="text-xl font-black text-slate-900 tracking-tight mb-3 group-hover:text-blue-600 transition-colors line-clamp-2 min-h-[56px] leading-tight">
-                    {service.name}
-                </h3>
-                
-                <p className="text-sm text-slate-500 font-medium leading-relaxed line-clamp-3 mb-8 opacity-70">
-                    {service.short_description || 'Premium service offering designed for efficiency and compliance excellence.'}
-                </p>
+        if (leftPrice === null && rightPrice === null) {
+          return 0;
+        }
 
-                <div className="flex items-center gap-6 pt-6 border-t border-slate-50">
-                    <DetailedMeta icon="fa-tags" value={service.pricing_plans?.length || 0} label="Plans" color="blue" />
-                    <DetailedMeta icon="fa-file-alt" value={service.required_documents_list?.length || 0} label="Docs" color="emerald" />
-                    <DetailedMeta icon="fa-question-circle" value={service.faqs?.length || 0} label="FAQs" color="amber" />
-                </div>
-            </div>
-            
-            <div className="p-8 pt-0 flex gap-3">
-                <button 
-                    onClick={() => router.push(`/admin/services/edit/${service.id}`)}
-                    className="flex-1 h-14 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 transition-all flex items-center justify-center gap-3 active:scale-95"
-                >
-                    <i className="fas fa-pencil-alt"></i>
-                    Modify Service
-                </button>
-                <button 
-                    onClick={onDelete}
-                    className="h-14 w-14 bg-rose-50 text-rose-500 rounded-2xl hover:bg-rose-600 hover:text-white transition-all flex items-center justify-center border border-rose-100 active:scale-95 shadow-sm"
-                >
-                    <i className="fas fa-trash-alt text-lg"></i>
-                </button>
-            </div>
-        </div>
-    );
-}
+        if (leftPrice === null) {
+          return 1;
+        }
 
-function DetailedMeta({ icon, value, label, color }: any) {
-    const colors: any = {
-        blue: "bg-blue-50 text-blue-600",
-        emerald: "bg-emerald-50 text-emerald-600",
-        amber: "bg-amber-50 text-amber-600",
+        if (rightPrice === null) {
+          return -1;
+        }
+
+        return sortOrder === "asc"
+          ? leftPrice - rightPrice
+          : rightPrice - leftPrice;
+      }
+
+      const leftDate = new Date(
+        left?.updated_at ?? left?.created_at ?? 0,
+      ).getTime();
+      const rightDate = new Date(
+        right?.updated_at ?? right?.created_at ?? 0,
+      ).getTime();
+
+      return sortOrder === "asc" ? leftDate - rightDate : rightDate - leftDate;
+    });
+  }, [filterCategory, search, services, sortBy, sortOrder]);
+
+  const stats = useMemo(() => {
+    const pricedServices = services
+      .map((service: any) => parseServicePrice(service?.price))
+      .filter((price): price is number => price !== null);
+    const totalValue = pricedServices.reduce((sum, price) => sum + price, 0);
+    const avgPrice =
+      pricedServices.length > 0 ? totalValue / pricedServices.length : null;
+
+    return {
+      total: services.length,
+      categories: categories.length,
+      avgPrice: avgPrice === null ? null : Math.round(avgPrice),
+      pricedCount: pricedServices.length,
     };
+  }, [categories.length, services]);
+
+  const categoryLookup = useMemo(
+    () =>
+      new Map(
+        categories.map((category: any) => [String(category.id), category]),
+      ),
+    [categories],
+  );
+
+  const activeFilterCount =
+    Number(Boolean(search.trim())) +
+    Number(Boolean(filterCategory)) +
+    Number(sortBy !== "created_at" || sortOrder !== "desc");
+
+  if (loading) {
     return (
-        <div className="flex items-center gap-2">
-            <div className={`h-8 w-8 rounded-lg ${colors[color]} flex items-center justify-center text-[10px] shadow-inner`}>
-                <i className={`fas ${icon}`}></i>
-            </div>
-            <div>
-                <span className="block text-xs font-black text-slate-900 leading-none mb-0.5">{value}</span>
-                <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">{label}</span>
-            </div>
-        </div>
+      <AuthGuard allowedRoles={["super_admin"]}>
+        <AdminLayout>
+          <TableViewSkeleton />
+        </AdminLayout>
+      </AuthGuard>
     );
+  }
+
+  return (
+    <AuthGuard allowedRoles={["super_admin"]}>
+      <AdminLayout>
+        <div className="max-w-7xl mx-auto space-y-5 py-6 px-4 sm:px-6 lg:px-8">
+          {/* Header + Stats Row */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h1 className="text-2xl font-black tracking-tight text-slate-950">
+                Services
+              </h1>
+              <p className="text-xs font-medium text-slate-500 mt-0.5">
+                Manage catalog services, pricing, and documentation requirements.
+              </p>
+            </div>
+            <Link
+              href="/admin/services/create"
+              className="admin-btn h-9 rounded-xl px-4 text-xs flex items-center justify-center gap-1.5 shrink-0"
+            >
+              <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+              Add Service
+            </Link>
+          </div>
+
+          {/* Compact Stats Bar */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-slate-800 dark:bg-slate-900/50">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400">
+                <BriefcaseBusiness className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total</p>
+                <p className="text-xl font-black text-slate-950 dark:text-slate-50 leading-tight">{stats.total}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-slate-800 dark:bg-slate-900/50">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-950/50 dark:text-indigo-400">
+                <Layers3 className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Categories</p>
+                <p className="text-xl font-black text-slate-950 dark:text-slate-50 leading-tight">{stats.categories}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-slate-800 dark:bg-slate-900/50">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400">
+                <Wallet className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Avg. Price</p>
+                <p className="text-xl font-black text-slate-950 dark:text-slate-50 leading-tight">{formatServicePrice(stats.avgPrice) ?? "—"}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Search & Filters Panel */}
+          <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/50">
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-2">
+                <SlidersHorizontal className="h-3.5 w-3.5 text-blue-600" />
+                <h2 className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-500 dark:text-slate-400">
+                  Filters & Search
+                </h2>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_220px_180px_auto] items-end">
+                {/* Search */}
+                <div className="relative">
+                  <Search
+                    className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400"
+                    aria-hidden="true"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Search by name or description..."
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                    className="w-full h-9 pl-9 pr-3 text-sm rounded-lg border border-slate-200 bg-slate-50/50 text-slate-900 placeholder-slate-400 outline-none transition-all focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/10 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100"
+                  />
+                </div>
+
+                {/* Category Dropdown */}
+                <SearchSelect
+                  options={[
+                    { value: "", label: "All Categories" },
+                    ...categories.map((category: any) => ({
+                      value: String(category.id),
+                      label: String(category.name ?? ""),
+                    })),
+                  ]}
+                  value={filterCategory}
+                  onChange={setFilterCategory}
+                  searchable={categories.length > 6}
+                  triggerClassName="w-full"
+                />
+
+                {/* Sort By */}
+                <SearchSelect
+                  options={[
+                    { value: "created_at", label: "Date Created" },
+                    { value: "name", label: "Service Name" },
+                    { value: "price", label: "Pricing" },
+                  ]}
+                  value={sortBy}
+                  onChange={setSortBy}
+                  triggerClassName="w-full"
+                />
+
+                {/* Filter Actions */}
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSortOrder((current) =>
+                        current === "asc" ? "desc" : "asc",
+                      )
+                    }
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-slate-50/50 text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                    title={`Switch to ${sortOrder === "asc" ? "descending" : "ascending"} order`}
+                    aria-label={`Switch to ${sortOrder === "asc" ? "descending" : "ascending"} order`}
+                  >
+                    <ArrowUpDown className="h-3.5 w-3.5" aria-hidden="true" />
+                  </button>
+
+                  {activeFilterCount > 0 ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearch("");
+                        setFilterCategory("");
+                        setSortBy("created_at");
+                        setSortOrder("desc");
+                      }}
+                      className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400"
+                    >
+                      Clear
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Services Table List */}
+          {filteredAndSorted.length === 0 ? (
+            <div className="rounded-2xl border border-slate-200 bg-white px-6 py-20 text-center dark:border-slate-800 dark:bg-slate-900/50">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-400 dark:border-slate-800 dark:bg-slate-900">
+                <Search className="h-6 w-6 text-slate-400" aria-hidden="true" />
+              </div>
+              <h2 className="mt-5 text-lg font-bold text-slate-900 dark:text-slate-100">
+                No services match your criteria
+              </h2>
+              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                Try modifying your search queries or category filters.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-4 lg:hidden">
+                {filteredAndSorted.map((service: any) => (
+                  <ServiceMobileRow
+                    key={service.id}
+                    categoryLookup={categoryLookup}
+                    service={service}
+                    onDelete={() => handleDelete(service.id, service.name)}
+                  />
+                ))}
+              </div>
+
+              <div className="hidden lg:block overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/50">
+                <div className="flex items-center justify-between border-b border-slate-200 px-8 py-5 dark:border-slate-850">
+                  <div className="flex items-center gap-3">
+                    <span className="h-2 w-2 rounded-full bg-blue-600 animate-pulse" />
+                    <p className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                      Catalog Services ({filteredAndSorted.length})
+                    </p>
+                  </div>
+                  <span className="inline-flex rounded-full bg-slate-50 border border-slate-100 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:bg-slate-850 dark:border-slate-800 dark:text-slate-400">
+                    {activeFilterCount > 0 ? "Filtered Catalog" : "Full Access"}
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-100 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:border-slate-850 dark:text-slate-500">
+                        <th className="px-8 py-4 font-black">Service Name</th>
+                        <th className="px-6 py-4 font-black">Category Label</th>
+                        <th className="px-6 py-4 font-black">Standard Price</th>
+                        <th className="px-8 py-4 font-black text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50 dark:divide-slate-850">
+                      {filteredAndSorted.map((service: any) => (
+                        <ServiceTableRow
+                          key={service.id}
+                          categoryLookup={categoryLookup}
+                          service={service}
+                          onDelete={() => handleDelete(service.id, service.name)}
+                        />
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        <ConfirmDialog />
+      </AdminLayout>
+    </AuthGuard>
+  );
 }
 
-function MetaIcon({ value, icon, color }: any) {
-    return (
-        <div className="flex items-center gap-2">
-            <i className={`fas ${icon} ${color} text-xs`}></i>
-            <span className="text-xs font-black text-slate-700">{value}</span>
+const getCategoryColor = (categoryId: string | number) => {
+  const colors = [
+    { bg: "bg-blue-50 dark:bg-blue-950/30", text: "text-blue-600 dark:text-blue-400", border: "border-blue-100 dark:border-blue-900/50" },
+    { bg: "bg-indigo-50 dark:bg-indigo-950/30", text: "text-indigo-600 dark:text-indigo-400", border: "border-indigo-100 dark:border-indigo-900/50" },
+    { bg: "bg-purple-50 dark:bg-purple-950/30", text: "text-purple-600 dark:text-purple-400", border: "border-purple-100 dark:border-purple-900/50" },
+    { bg: "bg-emerald-50 dark:bg-emerald-950/30", text: "text-emerald-600 dark:text-emerald-400", border: "border-emerald-100 dark:border-emerald-900/50" },
+    { bg: "bg-amber-50 dark:bg-amber-950/30", text: "text-amber-600 dark:text-amber-400", border: "border-amber-100 dark:border-amber-900/50" },
+    { bg: "bg-rose-50 dark:bg-rose-950/30", text: "text-rose-600 dark:text-rose-400", border: "border-rose-100 dark:border-rose-900/50" },
+    { bg: "bg-cyan-50 dark:bg-cyan-950/30", text: "text-cyan-600 dark:text-cyan-400", border: "border-cyan-100 dark:border-cyan-900/50" },
+  ];
+  const index = Math.abs(Number(categoryId) || 0) % colors.length;
+  return colors[index];
+};
+
+function ServiceTableRow({
+  service,
+  categoryLookup,
+  onDelete,
+}: {
+  service: any;
+  categoryLookup: Map<string, any>;
+  onDelete: () => void;
+}) {
+  const categoryRecord = getServiceCategoryRecord(service, categoryLookup);
+  const serviceName = service?.name || "Untitled service";
+  const categoryName = categoryRecord?.name || "General";
+  const priceLabel = formatServicePrice(service?.price) ?? "-";
+  const catColor = getCategoryColor(categoryRecord?.id ?? 0);
+
+  return (
+    <tr className="transition-colors hover:bg-slate-50/80">
+      <td className="px-8 py-4 align-middle">
+        <p className="text-sm font-bold text-slate-950">{serviceName}</p>
+      </td>
+      <td className="px-6 py-4 align-middle">
+        <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${catColor.bg} ${catColor.border} ${catColor.text}`}>
+          <span className="h-1 w-1 rounded-full bg-current" />
+          {categoryName}
+        </span>
+      </td>
+      <td className="whitespace-nowrap px-6 py-4 align-middle">
+        <p className="text-sm font-bold text-slate-950">{priceLabel}</p>
+      </td>
+      <td className="px-8 py-4 align-middle">
+        <div className="flex items-center justify-end gap-2">
+          <Link
+            href={`/admin/services/edit/${service.id}`}
+            className="admin-icon-btn-muted rounded-xl"
+            title="Edit service"
+            aria-label={`Edit ${serviceName}`}
+          >
+            <PencilLine className="h-4 w-4" aria-hidden="true" />
+          </Link>
+          <button
+            type="button"
+            onClick={onDelete}
+            title="Delete service"
+            aria-label={`Delete ${serviceName}`}
+            className="flex h-[2.35rem] w-[2.35rem] items-center justify-center rounded-xl border border-rose-200 bg-rose-50 text-rose-600 transition hover:bg-rose-600 hover:text-white"
+          >
+            <Trash2 className="h-4 w-4" aria-hidden="true" />
+          </button>
         </div>
-    );
+      </td>
+    </tr>
+  );
 }
 
-function StatCard({ label, value, icon, gradient, bg }: any) {
-    return (
-        <div className="bg-white border border-slate-100 rounded-[2.5rem] p-8 flex items-center gap-6 shadow-sm group hover:border-blue-100 transition-all duration-500">
-            <div className={`h-16 w-16 rounded-[1.5rem] ${bg} flex items-center justify-center text-2xl group-hover:scale-110 transition-transform duration-500`}>
-                <i className={`fas ${icon} bg-gradient-to-br ${gradient} bg-clip-text text-transparent`}></i>
-            </div>
-            <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{label}</p>
-                <p className="text-3xl font-black text-slate-900 tracking-tight">{value}</p>
-            </div>
+function ServiceMobileRow({
+  service,
+  categoryLookup,
+  onDelete,
+}: {
+  service: any;
+  categoryLookup: Map<string, any>;
+  onDelete: () => void;
+}) {
+  const categoryRecord = getServiceCategoryRecord(service, categoryLookup);
+  const serviceName = service?.name || "Untitled service";
+  const categoryName = categoryRecord?.name || "General";
+  const priceLabel = formatServicePrice(service?.price) ?? "-";
+  const catColor = getCategoryColor(categoryRecord?.id ?? 0);
+
+  return (
+    <div className="panel-card p-5">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0 space-y-2">
+          <p className="text-sm font-bold text-slate-950">{serviceName}</p>
+          <div>
+            <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${catColor.bg} ${catColor.border} ${catColor.text}`}>
+              <span className="h-1 w-1 rounded-full bg-current" />
+              {categoryName}
+            </span>
+          </div>
         </div>
-    );
+
+        <p className="shrink-0 text-sm font-bold text-slate-950">{priceLabel}</p>
+      </div>
+
+      <div className="mt-5 flex items-center gap-3">
+        <Link
+          href={`/admin/services/edit/${service.id}`}
+          className="admin-btn-muted h-11 flex-1 rounded-2xl px-4 text-xs"
+        >
+          <PencilLine className="h-4 w-4" aria-hidden="true" />
+          Edit
+        </Link>
+        <button
+          type="button"
+          onClick={onDelete}
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 text-rose-600 transition hover:bg-rose-600 hover:text-white"
+          aria-label={`Delete ${serviceName}`}
+        >
+          <Trash2 className="h-4 w-4" aria-hidden="true" />
+        </button>
+      </div>
+    </div>
+  );
 }

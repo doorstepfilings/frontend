@@ -89,30 +89,30 @@ export function RequestDetailModal({ request, isOpen, onClose, onUpdate }: Reque
                                         </div>
                                     </div>
                                     <div className="flex items-center space-x-1">
-                                        <a 
-                                            href={`http://localhost:4000/storage/${doc.filePath}`} 
-                                            target="_blank" 
+                                        <a
+                                            href={`http://localhost:4000/storage/${doc.filePath}`}
+                                            target="_blank"
                                             rel="noreferrer"
                                             className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "h-8 w-8 text-blue-500")}
                                         >
                                             <ExternalLink size={16} />
                                         </a>
-                                        <Button 
-                                            size="icon" 
-                                            variant="ghost" 
+                                        <Button
+                                            size="icon"
+                                            variant="ghost"
                                             className="h-8 w-8 text-emerald-600"
                                             disabled={submitting || doc.status === 'verified'}
                                             onClick={() => handleVerifyDoc(doc.id, 'verified')}
                                         >
                                             <CheckCircle size={16} />
                                         </Button>
-                                        <Button 
-                                            size="icon" 
-                                            variant="ghost" 
+                                        <Button
+                                            size="icon"
+                                            variant="ghost"
                                             className="h-8 w-8 text-rose-500"
                                             disabled={submitting || doc.status === 'rejected'}
                                             onClick={() => {
-                                                const reason = prompt('Reason for rejection:');
+                                                const reason = prompt('Reason for correction:');
                                                 if (reason) handleVerifyDoc(doc.id, 'rejected', reason);
                                             }}
                                         >
@@ -144,18 +144,6 @@ export function RequestDetailModal({ request, isOpen, onClose, onUpdate }: Reque
                                 {request.status === 'in_progress' && (
                                     <Button onClick={() => handleStatusTransition('submitted_to_ca')} disabled={submitting}>
                                         Submit to CA
-                                    </Button>
-                                )}
-                                {request.status === 'submitted_to_ca' && (
-                                    <Button 
-                                        className="bg-emerald-600 hover:bg-emerald-700" 
-                                        onClick={() => {
-                                            const url = prompt('Enter Certificate URL:');
-                                            if (url) handleStatusTransition('approved');
-                                        }} 
-                                        disabled={submitting}
-                                    >
-                                        Approve & Upload Certificate
                                     </Button>
                                 )}
                             </div>

@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { PaymentSuccessView } from "@/components/payments/payment-success-view";
 import {
   buildDashboardDocumentsUrl,
@@ -17,8 +18,11 @@ function readFirst(
 }
 
 export default async function PaymentSuccessPage(
-  props: PageProps<"/payment-success">,
+  props: {
+    searchParams: Promise<Record<string, string | string[] | undefined>>;
+  },
 ) {
+  await connection();
   const searchParams = await props.searchParams;
 
   const status = readFirst(searchParams.status, "success");

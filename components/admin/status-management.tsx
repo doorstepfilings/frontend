@@ -72,22 +72,8 @@ export const StatusManagement = ({ application }: StatusManagementProps) => {
       updateApplicationStatus({ id: application.id, ...statusForm })
     );
     if (updateApplicationStatus.fulfilled.match(resultAction)) {
-      toast.success("Workflow recalibrated successfully");
+      toast.success("Service status updated successfully");
       setShowStatusModal(false);
-      dispatch(fetchAdminApplicationDetail(application.id));
-    } else {
-      toast.error(parseApiError(resultAction.payload));
-    }
-  };
-
-  const handleOverrideStatus = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const resultAction = await dispatch(
-      overrideApplicationStatus({ id: application.id, ...overrideForm })
-    );
-    if (overrideApplicationStatus.fulfilled.match(resultAction)) {
-      toast.success("Lifecycle override applied");
-      setShowOverrideModal(false);
       dispatch(fetchAdminApplicationDetail(application.id));
     } else {
       toast.error(parseApiError(resultAction.payload));
@@ -182,13 +168,6 @@ export const StatusManagement = ({ application }: StatusManagementProps) => {
             <i className="fas fa-sync-alt"></i>
             Update Status
           </button>
-          <button 
-            onClick={() => setShowOverrideModal(true)}
-            className="w-full h-10 bg-slate-800 text-slate-400 hover:text-white rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 border border-slate-700/50"
-          >
-            <i className="fas fa-shield-alt"></i>
-            Manual Override
-          </button>
         </div>
       </div>
 
@@ -196,20 +175,21 @@ export const StatusManagement = ({ application }: StatusManagementProps) => {
       <ConfirmDialog />
 
       {/* Update Status Modal */}
-      <Modal isOpen={showStatusModal} onClose={() => setShowStatusModal(false)} title="Update Status">
+      <Modal size="lg" isOpen={showStatusModal} onClose={() => setShowStatusModal(false)} title="Update Status">
         <form onSubmit={handleStatusUpdate} className="space-y-6">
           <FormSelect
             label="Target Status"
             value={statusForm.status}
             onChange={(e) => setStatusForm({ ...statusForm, status: e.target.value })}
             options={[
-              { value: "pending", label: "Initial Submission" },
+              { value: "applied", label: "Initial Submission" },
+              { value: "document_collection", label: "Collect Documents" },
               { value: "under_review", label: "Verification Stage" },
-              { value: "in_progress", label: "Processing Stage" },
-              { value: "applied", label: "Department Submission" },
-              { value: "approved", label: "Final Approval" },
               { value: "update_required", label: "Request Correction" },
+              { value: "in_progress", label: "Processing / Dept Submission" },
+              { value: "completed", label: "Workflow Finalized" },
               { value: "rejected", label: "Reject Filing" },
+              { value: "cancelled", label: "Cancel Application" },
             ]}
           />
           {statusForm.status === "update_required" && (
@@ -243,32 +223,7 @@ export const StatusManagement = ({ application }: StatusManagementProps) => {
         </form>
       </Modal>
 
-      {/* Override Modal */}
-      <Modal isOpen={showOverrideModal} onClose={() => setShowOverrideModal(false)} title="Manual Override">
-        <form onSubmit={handleOverrideStatus} className="space-y-6">
-          <FormSelect
-            label="Select Status"
-            value={overrideForm.status}
-            onChange={(e) => setOverrideForm({ ...overrideForm, status: e.target.value })}
-            options={[
-              { value: "in_cart", label: "In Cart" },
-              { value: "pending", label: "Pending Review" },
-              { value: "under_review", label: "Under Review" },
-              { value: "update_required", label: "Update Required" },
-              { value: "approved", label: "Approved" },
-              { value: "rejected", label: "Rejected" },
-              { value: "cancelled", label: "Cancelled" },
-              { value: "completed", label: "Completed" },
-              { value: "applied", label: "Applied" },
-              { value: "in_progress", label: "In Progress" },
-            ]}
-          />
-          <div className="flex gap-3 pt-2">
-            <Button type="button" variant="outline" className="flex-1 rounded-xl h-11" onClick={() => setShowOverrideModal(false)}>Cancel</Button>
-            <Button type="submit" className="flex-1 rounded-xl h-11 bg-slate-900 shadow-lg" loading={actionLoading}>Force Update</Button>
-          </div>
-        </form>
-      </Modal>
+      {/* Manual Override Removed */}
 
       {/* Document Upload Modal */}
       <Modal isOpen={showUploadModal} onClose={() => setShowUploadModal(false)} title="Upload Document">

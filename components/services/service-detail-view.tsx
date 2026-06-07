@@ -9,6 +9,7 @@ import { apiClient } from "@/lib/api/client";
 import { useStoredUser } from "@/lib/auth/hooks";
 import { formatPrice } from "@/lib/utils/pricing";
 import { ApplyServiceModal } from "./apply-service-modal";
+import { PageLogoLoader } from "@/components/ui/logo-loader";
 
 type ServiceDetailResponse = {
   data?: ServiceDetail;
@@ -52,6 +53,7 @@ export function ServiceDetailView({ slug }: { slug: string }) {
   const [error, setError] = useState("");
   const [showModal, setShowModal] = useState(false);
   const user = useStoredUser();
+  const canApply = !user || user.role === "user";
 
   useEffect(() => {
     let isMounted = true;
@@ -93,12 +95,11 @@ export function ServiceDetailView({ slug }: { slug: string }) {
   if (status === "loading") {
     return (
       <PublicShell>
-        <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-          <div className="text-center">
-            <div className="w-12 h-12 border-4 border-blue-900 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-slate-600 font-bold uppercase tracking-widest text-xs">Loading service intelligence...</p>
-          </div>
-        </div>
+        <PageLogoLoader
+          className="min-h-screen bg-slate-50"
+          label="Loading service intelligence..."
+          size={64}
+        />
       </PublicShell>
     );
   }
@@ -126,25 +127,24 @@ export function ServiceDetailView({ slug }: { slug: string }) {
     <>
       <PublicShell>
         <div className="bg-slate-50 min-h-screen font-sans">
-          {/* Laravel-Style Hero Section */}
-          <div className="bg-blue-900 text-white py-24 relative overflow-hidden">
-            <div className="absolute inset-0 opacity-10">
-              <div className="absolute top-0 right-0 w-96 h-96 bg-amber-400 rounded-full blur-[120px] transform translate-x-1/2 -translate-y-1/2"></div>
-              <div className="absolute bottom-0 left-0 w-72 h-72 bg-blue-400 rounded-full blur-[100px] transform -translate-x-1/2 translate-y-1/2"></div>
-            </div>
+          {/* Laravel-Style Hero Section with Common Service Banner Background */}
+          <div
+            className="py-24 relative overflow-hidden bg-slate-50 border-b border-slate-100 bg-cover bg-center bg-no-repeat"
+            style={{ backgroundImage: `url('/assets/images/service-banner.png?v=3')` }}
+          >
             <div className="container mx-auto px-4 relative z-10 text-center">
-              <p className="text-amber-400 font-black uppercase tracking-[0.3em] text-[10px] mb-4">
+              <p className="text-amber-600 font-black uppercase tracking-[0.3em] text-[10px] mb-4">
                 {service.category?.name || 'Compliance Service'}
               </p>
-              <h1 className="text-4xl md:text-6xl font-black mb-6 tracking-tight">{service.name}</h1>
-              <p className="text-lg md:text-xl text-blue-100/80 max-w-2xl mx-auto leading-relaxed">
+              <h1 className="text-4xl md:text-6xl font-black mb-6 tracking-tight text-slate-900">{service.name}</h1>
+              <p className="text-lg md:text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed font-semibold">
                 {service.short_description || `Professional handling of your ${service.name} needs with precision and care.`}
               </p>
             </div>
           </div>
 
           {/* Breadcrumb */}
-          <div className="bg-white border-b border-slate-100">
+          <div className="bg-slate-100">
             <div className="container mx-auto px-4 py-4">
               <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
                 <Link href="/" className="hover:text-amber-600 transition-colors">Home</Link>
@@ -190,8 +190,8 @@ export function ServiceDetailView({ slug }: { slug: string }) {
                       {service.pricing_plans.map((plan, idx) => (
                         <div key={idx} className="bg-white rounded-[2rem] border border-slate-100 overflow-hidden flex flex-col hover:shadow-xl transition-all hover:-translate-y-1 group">
                           <div className="p-8 bg-blue-900 text-white text-center">
-                            <h4 className="font-bold text-sm uppercase tracking-widest opacity-70 mb-2">{plan.name}</h4>
-                            <div className="text-3xl font-black text-amber-400">
+                            <h4 className="font-bold text-sm uppercase tracking-widest mb-2">{plan.name}</h4>
+                            <div className="text-3xl font-black text-white-200">
                               {`₹${formatPrice(plan.price)}`}
                             </div>
                           </div>
@@ -204,12 +204,14 @@ export function ServiceDetailView({ slug }: { slug: string }) {
                                 </li>
                               ))}
                             </ul>
-                            <button
-                              onClick={() => handleApplyNow(plan.name)}
-                              className="w-full py-4 bg-slate-50 text-blue-900 font-black uppercase tracking-widest text-[10px] rounded-xl group-hover:bg-blue-600 group-hover:text-white transition-all"
-                            >
-                              Select Plan
-                            </button>
+                            {canApply && (
+                              <button
+                                onClick={() => handleApplyNow(plan.name)}
+                                className="w-full py-4 bg-slate-50 text-blue-900 font-black uppercase tracking-widest text-[10px] rounded-xl group-hover:bg-orange-500 group-hover:text-white transition-all"
+                              >
+                                Select Plan
+                              </button>
+                            )}
                           </div>
                         </div>
                       ))}
@@ -279,79 +281,72 @@ export function ServiceDetailView({ slug }: { slug: string }) {
               </div>
 
               {/* Right Column: Sidebar */}
-              <div className="lg:w-1/3 space-y-8">
+              <div className="lg:w-1/3 space-y-6">
 
                 {/* Application Card */}
-                <div className="bg-white rounded-[2.5rem] shadow-xl shadow-blue-900/5 p-8 border-t-[6px] border-amber-500 sticky top-24">
-                  {service.price && (
-                    <div className="mb-8 text-center bg-slate-50 rounded-2xl py-6">
-                      <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Service Fee Starting At</p>
-                      <p className="text-4xl font-black text-blue-900">₹{formatPrice(service.price)}</p>
-                      <p className="text-[10px] text-slate-400 font-bold mt-2 uppercase tracking-tighter">+ GST | GOVT. FEE EXTRA</p>
-                    </div>
-                  )}
-                  <h3 className="text-xl font-black text-slate-900 mb-3 tracking-tight">Apply for Service</h3>
-                  <p className="text-slate-500 mb-8 text-sm font-medium leading-relaxed">
-                    Start your {service.name.toLowerCase()} application today with professional assistance.
-                  </p>
-
-                  <div className="space-y-4">
-                    <button
-                      onClick={() => handleApplyNow()}
-                      className="w-full bg-amber-500 text-white font-black uppercase tracking-widest text-xs py-5 rounded-2xl hover:bg-amber-600 transition-all shadow-lg shadow-amber-500/20 flex items-center justify-center gap-3"
-                    >
-                      <i className="fas fa-rocket text-sm"></i>
-                      Apply Now
-                    </button>
-                    <Link
-                      href="/contact"
-                      className="w-full block text-center px-4 py-5 border-2 border-blue-900 text-blue-900 font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-blue-900 hover:text-white transition-all"
-                    >
-                      <i className="fas fa-phone-alt mr-2"></i>
-                      Get Consultation
-                    </Link>
-                  </div>
-
-                  <div className="mt-8 pt-8 border-t border-slate-100 space-y-4">
-                    {[
-                      { icon: 'fa-shield-halved', text: 'Secure Data Transmission', color: 'text-emerald-500' },
-                      { icon: 'fa-clock', text: 'Guaranteed Timely Filing', color: 'text-blue-500' },
-                      { icon: 'fa-headset', text: '24/7 Expert Support', color: 'text-amber-500' }
-                    ].map((item, i) => (
-                      <div key={i} className="flex items-center gap-4 text-xs font-bold text-slate-600">
-                        <div className={`w-6 h-6 rounded-lg bg-slate-50 flex items-center justify-center ${item.color}`}>
-                          <i className={`fas ${item.icon}`}></i>
+                <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-200 overflow-hidden sticky top-24 z-20">
+                  <div className="p-6 md:p-8">
+                    {service.price && (
+                      <div className="flex flex-col gap-1 mb-8">
+                        <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">Starting at</p>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-4xl md:text-5xl font-black text-blue-900 tracking-tight">₹{formatPrice(service.price)}</span>
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">+ GST</span>
                         </div>
-                        {item.text}
                       </div>
-                    ))}
+                    )}
+
+                    {canApply && (
+                      <button
+                        onClick={() => handleApplyNow()}
+                        className="w-full h-14 bg-amber-500 text-white font-black uppercase tracking-widest text-[11px] rounded-2xl hover:bg-amber-600 hover:-translate-y-0.5 transition-all duration-300 shadow-[0_8px_20px_rgb(245,158,11,0.25)] flex items-center justify-center gap-3"
+                      >
+                        <i className="fas fa-rocket text-sm"></i>
+                        Apply Now
+                      </button>
+                    )}
                   </div>
                 </div>
 
                 {/* Need Help Card */}
-                <div className="bg-gradient-to-br from-blue-900 to-indigo-900 rounded-[2.5rem] shadow-lg p-8 text-white">
-                  <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center mb-6">
-                    <i className="fas fa-headset text-xl text-amber-400"></i>
-                  </div>
-                  <h3 className="text-xl font-black mb-3 tracking-tight">Need Expert Help?</h3>
-                  <p className="text-blue-100/70 text-sm mb-6 leading-relaxed font-medium">
-                    Our experts are available to clarify your doubts and guide you through the compliance journey.
-                  </p>
-                  <a
-                    href="tel:+918401626032"
-                    className="flex items-center gap-4 bg-white/10 rounded-2xl p-4 hover:bg-white/20 transition-all border border-white/5"
-                  >
-                    <div className="w-10 h-10 rounded-xl bg-amber-400 text-blue-900 flex items-center justify-center shadow-lg">
-                      <i className="fas fa-phone-alt text-sm"></i>
+                <div className="bg-[#0f172a] rounded-3xl shadow-xl p-6 md:p-8 text-white relative overflow-hidden">
+                  <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 rounded-full bg-blue-600/20 blur-2xl pointer-events-none"></div>
+                  <div className="absolute bottom-0 left-0 -ml-8 -mb-8 w-32 h-32 rounded-full bg-indigo-600/20 blur-2xl pointer-events-none"></div>
+
+                  <div className="relative z-10">
+                    <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center mb-5 border border-white/10 backdrop-blur-sm">
+                      <i className="fas fa-headset text-xl text-amber-400"></i>
                     </div>
-                    <span className="font-black text-base">+91 84016 26032</span>
-                  </a>
+                    <h3 className="text-xl font-black mb-3 tracking-tight">Need Expert Help?</h3>
+                    <p className="text-slate-300 text-sm mb-8 leading-relaxed font-medium">
+                      Our experts are available to clarify your doubts and guide you through the compliance journey.
+                    </p>
+                    <div className="flex flex-col gap-3">
+                      <a
+                        href="tel:+919898196396"
+                        className="flex items-center gap-4 bg-white/5 rounded-2xl p-4 hover:bg-white/10 transition-all border border-white/10 group"
+                      >
+                        <div className="w-10 h-10 rounded-xl bg-amber-400 text-slate-900 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform duration-300">
+                          <i className="fas fa-phone-alt text-sm"></i>
+                        </div>
+                        <span className="font-black text-base tracking-wide">+91 9898 196 396</span>
+                      </a>
+                      <Link
+                        href="/contact"
+                        className="flex items-center justify-center h-14 bg-transparent border-2 border-white/20 text-white font-bold text-sm rounded-2xl hover:bg-white/10 hover:border-white/30 transition-all"
+                      >
+                        Get Consultation
+                      </Link>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Key Benefits Card */}
-                <div className="bg-white rounded-[2.5rem] shadow-sm p-8 border border-slate-100">
-                  <h3 className="text-lg font-black text-slate-900 mb-6 flex items-center gap-3">
-                    <i className="fas fa-award text-amber-500"></i>
+                <div className="bg-white rounded-3xl shadow-sm p-6 md:p-8 border border-slate-200">
+                  <h3 className="text-base font-black text-slate-900 mb-6 flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-500 flex items-center justify-center">
+                      <i className="fas fa-award text-sm"></i>
+                    </div>
                     Key Benefits
                   </h3>
                   <ul className="space-y-4">
@@ -359,10 +354,11 @@ export function ServiceDetailView({ slug }: { slug: string }) {
                       "Maximize Tax Savings",
                       "Eliminate Compliance Risks",
                       "Professional Documentation",
-                      "End-to-End Assistance"
+                      "End-to-End Assistance",
+                      "Secure Data Transmission"
                     ]).map((benefit, i) => (
-                      <li key={i} className="flex items-center gap-3 text-xs font-bold text-slate-600">
-                        <div className="w-1.5 h-1.5 rounded-full bg-amber-400"></div>
+                      <li key={i} className="flex items-start gap-3 text-xs font-bold text-slate-600 leading-relaxed">
+                        <div className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0 mt-1.5"></div>
                         {benefit}
                       </li>
                     ))}

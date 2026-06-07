@@ -103,7 +103,7 @@ export function ServiceCatalog({ compact = false }: ServiceCatalogProps) {
                     </p>
                   </div>
                   {service.price ? (
-                    <span className="rounded-full bg-amber-100 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-amber-700">
+                    <span className="rounded-full bg-blue-50 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-blue-900">
                       INR {Math.ceil(Number(service.price))}
                     </span>
                   ) : null}

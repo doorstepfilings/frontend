@@ -5,6 +5,8 @@ import { AdminLayout } from "@/components/layout/AdminLayout";
 import { AuthGuard } from "@/components/auth/auth-guard";
 import { toast } from "react-hot-toast";
 import { rmApi } from "@/lib/api/rm-api";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { LogoLoader } from "@/components/ui/logo-loader";
 
 export function RMAssignedUsersView() {
     const [users, setUsers] = useState<any[]>([]);
@@ -28,6 +30,7 @@ export function RMAssignedUsersView() {
     };
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         void fetchData();
     }, []);
 
@@ -79,7 +82,7 @@ export function RMAssignedUsersView() {
                                     {loading ? (
                                         <tr>
                                             <td colSpan={4} className="px-8 py-32 text-center">
-                                                <div className="h-10 w-10 animate-spin rounded-full border-2 border-blue-600 border-t-transparent mx-auto"></div>
+                                                <LogoLoader size={48} label="Loading Users..." />
                                             </td>
                                         </tr>
                                     ) : users.length === 0 ? (
@@ -106,7 +109,7 @@ export function RMAssignedUsersView() {
                                                 <span className="text-[10px] font-bold text-slate-400">{user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}</span>
                                             </td>
                                             <td className="px-8 py-6 text-right">
-                                                <select
+                                                <SearchableSelect
                                                     value={user.accountant_id || ""}
                                                     onChange={(e) =>
                                                         void handleAssignAccountant(
@@ -115,20 +118,14 @@ export function RMAssignedUsersView() {
                                                         )
                                                     }
                                                     disabled={assigningUserId === user.id}
-                                                    className="h-11 min-w-[220px] rounded-xl border border-slate-200 bg-white px-4 text-[10px] font-black uppercase tracking-widest text-slate-600 outline-none transition-all focus:ring-4 focus:ring-blue-500/10 disabled:opacity-60"
-                                                >
-                                                    <option value="">
-                                                        Awaiting Mapping
-                                                    </option>
-                                                    {accountants.map((accountant: any) => (
-                                                        <option
-                                                            key={accountant.id}
-                                                            value={accountant.id}
-                                                        >
-                                                            {accountant.name}
-                                                        </option>
-                                                    ))}
-                                                </select>
+                                                    options={accountants.map((acc: any) => ({
+                                                        value: String(acc.id),
+                                                        label: acc.name,
+                                                    }))}
+                                                    placeholder="Awaiting Mapping"
+                                                    size="sm"
+                                                    className="inline-block min-w-[220px]"
+                                                />
                                             </td>
                                         </tr>
                                     ))}

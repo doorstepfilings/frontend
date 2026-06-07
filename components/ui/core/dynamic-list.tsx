@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { cn } from "@/lib/utils";
 
 interface DynamicListProps<T> {
   title: string;
@@ -10,6 +11,8 @@ interface DynamicListProps<T> {
   renderItem: (item: T, index: number) => React.ReactNode;
   addLabel?: string;
   emptyMessage?: string;
+  className?: string;
+  showCount?: boolean;
 }
 
 export function DynamicList<T>({
@@ -20,12 +23,14 @@ export function DynamicList<T>({
   renderItem,
   addLabel = "Add Item",
   emptyMessage = "No items added yet.",
+  className,
+  showCount = false,
 }: DynamicListProps<T>) {
   return (
-    <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm p-10 space-y-10">
+    <div className={cn("bg-white rounded-2xl border border-slate-200 shadow-sm p-8 space-y-8", className)}>
       <div className="flex items-center justify-between px-2">
         <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-          {title}
+          {title} {showCount && items.length > 0 && `(${items.length})`}
         </label>
         <button
           type="button"
@@ -44,7 +49,7 @@ export function DynamicList<T>({
               <button
                 type="button"
                 onClick={() => onRemove(index)}
-                className="absolute top-6 right-6 h-10 w-10 bg-white text-rose-400 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-rose-500 hover:text-white shadow-md border border-slate-100"
+                className="absolute top-6 right-6 h-10 w-10 bg-white text-rose-400 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-rose-500 hover:text-white shadow-md border border-slate-250"
               >
                 <i className="fas fa-times"></i>
               </button>
@@ -52,7 +57,7 @@ export function DynamicList<T>({
           ))}
         </div>
       ) : (
-        <div className="py-12 text-center border-2 border-dashed border-slate-50 rounded-[2.5rem]">
+        <div className="py-12 text-center border-2 border-dashed border-slate-100 rounded-xl">
           <p className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.2em]">
             {emptyMessage}
           </p>

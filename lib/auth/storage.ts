@@ -61,7 +61,7 @@ function readUserOverride() {
 
 export function mergeAuthUsers(baseUser: AuthUser | null, overrideUser: AuthUser | null) {
   if (!baseUser) {
-    return overrideUser;
+    return null;
   }
 
   if (!overrideUser) {

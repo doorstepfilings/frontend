@@ -1,10 +1,14 @@
 "use client";
 
-import { isAxiosError } from "axios";
 import { FormEvent, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { apiClient } from "@/lib/api/client";
+import {
+  AUTH_ERROR_MESSAGES,
+  getFriendlyAuthErrorMessage,
+  logAuthError,
+} from "@/lib/auth/error-helper";
 
 interface ResetPasswordViewProps {
   token: string;
@@ -34,23 +38,19 @@ export function ResetPasswordView({ token }: ResetPasswordViewProps) {
     setLoading(true);
 
     try {
-      const response = await apiClient.post<{ message?: string }>("/user/reset-password", {
+      await apiClient.post<{ message?: string }>("/user/reset-password", {
         token,
         email,
         password,
         password_confirmation: passwordConfirmation,
       });
 
-      setMessage(response.data?.message || "Password reset successful. You can now login.");
+      setMessage("Password reset successful. You can now login.");
       setPassword("");
       setPasswordConfirmation("");
     } catch (requestError) {
-      const errorMessage = isAxiosError(requestError)
-        ? (requestError.response?.data?.message ?? requestError.message)
-        : requestError instanceof Error
-          ? requestError.message
-          : "Failed to reset password.";
-      setError(errorMessage);
+      logAuthError("Reset password request failed", requestError);
+      setError(getFriendlyAuthErrorMessage(requestError, AUTH_ERROR_MESSAGES.GENERIC));
     } finally {
       setLoading(false);
     }

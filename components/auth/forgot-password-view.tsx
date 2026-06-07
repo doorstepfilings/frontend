@@ -1,9 +1,13 @@
 "use client";
 
-import { isAxiosError } from "axios";
 import { FormEvent, useState } from "react";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { apiClient } from "@/lib/api/client";
+import {
+  AUTH_ERROR_MESSAGES,
+  getFriendlyAuthErrorMessage,
+  logAuthError,
+} from "@/lib/auth/error-helper";
 
 export function ForgotPasswordView() {
   const [email, setEmail] = useState("");
@@ -18,18 +22,14 @@ export function ForgotPasswordView() {
     setMessage("");
 
     try {
-      const response = await apiClient.post<{ message?: string }>("/user/forgot-password", {
+      await apiClient.post<{ message?: string }>("/user/forgot-password", {
         email,
       });
 
-      setMessage(response.data?.message || "If your email is registered, a reset link has been sent.");
+      setMessage("If your email is registered, a reset link has been sent.");
     } catch (requestError) {
-      const errorMessage = isAxiosError(requestError)
-        ? (requestError.response?.data?.message ?? requestError.message)
-        : requestError instanceof Error
-          ? requestError.message
-          : "Unable to process request right now.";
-      setError(errorMessage);
+      logAuthError("Forgot password request failed", requestError);
+      setError(getFriendlyAuthErrorMessage(requestError, AUTH_ERROR_MESSAGES.GENERIC));
     } finally {
       setLoading(false);
     }

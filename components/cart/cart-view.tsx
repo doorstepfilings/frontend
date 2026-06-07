@@ -16,6 +16,7 @@ import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
 import { buildDashboardDocumentsUrl } from "@/lib/utils/payment-navigation";
 import { formatCurrencyFixed, formatPrice } from "@/lib/utils/pricing";
 import { loadRazorpay } from "@/lib/utils/razorpay";
+import { PageLogoLoader } from "@/components/ui/logo-loader";
 
 export function CartView() {
   const dispatch = useAppDispatch();
@@ -136,11 +137,7 @@ export function CartView() {
   const total = Math.round(subtotal + gst);
 
   if (cartLoading && cart.length === 0) {
-    return (
-      <div className="flex h-96 items-center justify-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-2 border-blue-900 border-t-transparent" />
-      </div>
-    );
+    return <PageLogoLoader label="Loading your cart..." />;
   }
 
   return (

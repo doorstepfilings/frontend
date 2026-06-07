@@ -9,27 +9,15 @@ import { AuthGuard } from "@/components/auth/auth-guard";
 import { format } from "date-fns";
 import { toast } from "react-hot-toast";
 import { buildCollectionKey } from "@/lib/utils/list-keys";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { LogoLoader } from "@/components/ui/logo-loader";
 
-const STATUS_CONFIG: any = {
-    draft: { label: 'Draft', color: 'bg-slate-100 text-slate-600', icon: 'fa-file-edit' },
-    pending: { label: 'Reviewing', color: 'bg-amber-50 text-amber-700 border-amber-100', icon: 'fa-search' },
-    update_required: { label: 'Action Needed', color: 'bg-rose-50 text-rose-700 border-rose-100', icon: 'fa-exclamation-circle' },
-    approved: { label: 'Completed', color: 'bg-emerald-50 text-emerald-700 border-emerald-100', icon: 'fa-check-double' },
-    rejected: { label: 'Rejected', color: 'bg-rose-50 text-rose-700 border-rose-100', icon: 'fa-times-circle' },
-    cancelled: { label: 'Cancelled', color: 'bg-slate-50 text-slate-500 border-slate-100', icon: 'fa-ban' },
-    in_progress: { label: 'Processing', color: 'bg-blue-50 text-blue-700 border-blue-100', icon: 'fa-spinner' },
-    paid: { label: 'Payment Verified', color: 'bg-emerald-50 text-emerald-700 border-emerald-100', icon: 'fa-wallet' },
-    completed: { label: 'Success', color: 'bg-emerald-50 text-emerald-700 border-emerald-100', icon: 'fa-flag-checkered' },
-    applied: { label: 'New Arrival', color: 'bg-indigo-50 text-indigo-700 border-indigo-100', icon: 'fa-sparkles' },
-    submitted_to_ca: { label: 'Sent to CA', color: 'bg-cyan-50 text-cyan-700 border-cyan-100', icon: 'fa-paper-plane' },
-    under_review: { label: 'Verifying', color: 'bg-purple-50 text-purple-700 border-purple-100', icon: 'fa-user-check' },
-    document_collection: { label: 'Docs Needed', color: 'bg-orange-50 text-orange-700 border-orange-100', icon: 'fa-folder-open' },
-};
+import { getStatusConfig } from "@/lib/utils/status-helpers";
 
 const TABS = [
-    { id: 'active', label: 'Active Pipeline', icon: 'fa-stream', statuses: ['draft', 'pending', 'update_required', 'in_progress', 'paid', 'submitted_to_ca', 'under_review', 'document_collection', 'applied'] },
-    { id: 'completed', label: 'Success Board', icon: 'fa-check-circle', statuses: ['approved', 'completed'] },
-    { id: 'cancelled', label: 'Archived', icon: 'fa-archive', statuses: ['rejected', 'cancelled', 'refunded', 'failed'] },
+    { id: 'active', label: 'Active Pipeline', icon: 'fa-stream', statuses: ['applied', 'document_collection', 'under_review', 'update_required', 'in_progress', 'payment_pending', 'paid'] },
+    { id: 'completed', label: 'Success Board', icon: 'fa-check-circle', statuses: ['completed'] },
+    { id: 'cancelled', label: 'Archived', icon: 'fa-archive', statuses: ['rejected', 'cancelled'] },
 ];
 
 export function ApplicationManagementView() {
@@ -176,11 +164,8 @@ export function ApplicationManagementView() {
                                 <tbody className="divide-y divide-slate-100">
                                     {loading ? (
                                         <tr>
-                                            <td colSpan={5} className="px-6 py-20 text-center">
-                                                <div className="flex flex-col items-center gap-3">
-                                                    <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
-                                                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Updating Board...</p>
-                                                </div>
+                                            <td colSpan={5} className="px-6 py-16 text-center">
+                                                <LogoLoader size={48} label="Updating Board..." />
                                             </td>
                                         </tr>
                                     ) : filteredApplications.length === 0 ? (
@@ -191,7 +176,7 @@ export function ApplicationManagementView() {
                                             </td>
                                         </tr>
                                     ) : filteredApplications.map((app: any) => {
-                                        const config = STATUS_CONFIG[app.status] || { label: app.status, color: 'bg-slate-100 text-slate-600', icon: 'fa-info-circle' };
+                                        const config = getStatusConfig(app.status);
                                         return (
                                             <tr key={app.id} className="hover:bg-blue-50/20 transition-all group">
                                                 <td className="px-6 py-6">
@@ -225,16 +210,17 @@ export function ApplicationManagementView() {
                                                                 <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Assigning...</span>
                                                             </div>
                                                         ) : (
-                                                            <select 
+                                                            <SearchableSelect 
                                                                 value={app.accountant?.id || ""}
                                                                 onChange={(e) => handleAssign(app.id, e.target.value)}
-                                                                className={`h-10 px-4 rounded-xl text-[10px] font-bold uppercase tracking-widest outline-none transition-all cursor-pointer border shadow-sm ${app.accountant ? 'bg-emerald-50/60 border-emerald-100 text-emerald-700' : 'bg-blue-50 border-blue-100 text-blue-600'}`}
-                                                            >
-                                                                <option value="">— Unassigned —</option>
-                                                                {accountants.map((acc: any) => (
-                                                                    <option key={acc.id} value={acc.id}>{acc.name}</option>
-                                                                ))}
-                                                            </select>
+                                                                options={accountants.map((acc: any) => ({
+                                                                    value: String(acc.id),
+                                                                    label: acc.name,
+                                                                }))}
+                                                                placeholder="Unassigned"
+                                                                size="sm"
+                                                                className="min-w-[160px]"
+                                                            />
                                                         )}
                                                     </div>
                                                 </td>

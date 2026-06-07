@@ -6,6 +6,10 @@ import { updateProfile, changePassword, searchRM, connectRM } from "@/lib/featur
 import { usePincodeLookup } from "@/lib/hooks/use-pincode-lookup";
 import { toast } from "react-hot-toast";
 import { useStoredUser } from "@/lib/auth/hooks";
+import {
+    AUTH_ERROR_MESSAGES,
+    getFriendlyAuthErrorMessage,
+} from "@/lib/auth/error-helper";
 
 function createProfileData(
     user: {
@@ -71,7 +75,7 @@ export function AccountSettingsView() {
             await dispatch(updateProfile(profileData)).unwrap();
             toast.success("Profile updated successfully!");
         } catch (err: any) {
-            toast.error(err || "Failed to update profile");
+            toast.error(getFriendlyAuthErrorMessage(err, AUTH_ERROR_MESSAGES.GENERIC));
         }
     };
 
@@ -86,7 +90,7 @@ export function AccountSettingsView() {
             setPasswordData({ current_password: "", new_password: "", new_password_confirmation: "" });
             toast.success("Password updated successfully!");
         } catch (err: any) {
-            toast.error(err || "Failed to update password");
+            toast.error(getFriendlyAuthErrorMessage(err, AUTH_ERROR_MESSAGES.GENERIC));
         }
     };
 
@@ -98,7 +102,7 @@ export function AccountSettingsView() {
             const result = await dispatch(searchRM(rmSearchId)).unwrap();
             setRmSearchResult(result);
         } catch (err: any) {
-            toast.error(err || "RM not found");
+            toast.error(getFriendlyAuthErrorMessage(err, AUTH_ERROR_MESSAGES.ACCOUNT_NOT_FOUND));
             setRmSearchResult(null);
         } finally {
             setIsSearching(false);
@@ -114,7 +118,7 @@ export function AccountSettingsView() {
             setRmSearchResult(null);
             setRmSearchId("");
         } catch (err: any) {
-            toast.error(err || "Connection failed");
+            toast.error(getFriendlyAuthErrorMessage(err, AUTH_ERROR_MESSAGES.GENERIC));
         } finally {
             setIsConnecting(false);
         }

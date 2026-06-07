@@ -4,8 +4,13 @@ import { useCallback, useEffect, useState } from "react";
 import { apiClient } from "@/lib/api/client";
 import { setStoredUser, type AuthUser } from "@/lib/auth/storage";
 import { usePincodeLookup } from "@/lib/hooks/use-pincode-lookup";
-import { parseApiError } from "@/lib/utils/error-parser";
+import {
+  AUTH_ERROR_MESSAGES,
+  getFriendlyAuthErrorMessage,
+  logAuthError,
+} from "@/lib/auth/error-helper";
 import { FormField } from "@/components/ui/core/form-field";
+import { PageLogoLoader } from "@/components/ui/logo-loader";
 
 type ProfileResponse = {
   data?: AuthUser;
@@ -85,7 +90,11 @@ export function AccountView() {
         if (!isMounted) {
           return;
         }
-        setMessage({ type: "error", text: parseApiError(requestError) });
+        logAuthError("Account details load failed", requestError);
+        setMessage({
+          type: "error",
+          text: getFriendlyAuthErrorMessage(requestError, AUTH_ERROR_MESSAGES.GENERIC),
+        });
       } finally {
         if (isMounted) {
           setLoading(false);
@@ -117,9 +126,10 @@ export function AccountView() {
         setUser(resolvedUser);
       }
 
-      showMessage("success", response.data?.message ?? "Profile updated successfully.");
+      showMessage("success", "Profile updated successfully.");
     } catch (requestError) {
-      showMessage("error", parseApiError(requestError));
+      logAuthError("Account profile update failed", requestError);
+      showMessage("error", getFriendlyAuthErrorMessage(requestError, AUTH_ERROR_MESSAGES.GENERIC));
     } finally {
       setSavingProfile(false);
     }
@@ -135,15 +145,16 @@ export function AccountView() {
     setMessage(null);
 
     try {
-      const response = await apiClient.post<ProfileResponse>("/user/change-password", passwordData);
+      await apiClient.post<ProfileResponse>("/user/change-password", passwordData);
       setPasswordData({
         current_password: "",
         new_password: "",
         new_password_confirmation: "",
       });
-      showMessage("success", response.data?.message ?? "Password changed successfully.");
+      showMessage("success", "Password changed successfully.");
     } catch (requestError) {
-      showMessage("error", parseApiError(requestError));
+      logAuthError("Account password change failed", requestError);
+      showMessage("error", getFriendlyAuthErrorMessage(requestError, AUTH_ERROR_MESSAGES.GENERIC));
     } finally {
       setSavingPassword(false);
     }
@@ -165,10 +176,11 @@ export function AccountView() {
         },
       });
       setRmResult(response.data?.data ?? null);
-      showMessage("success", response.data?.message ?? "Regional Manager found.");
+      showMessage("success", "Regional Manager found.");
     } catch (requestError) {
       setRmResult(null);
-      showMessage("error", parseApiError(requestError));
+      logAuthError("Account relationship manager search failed", requestError);
+      showMessage("error", getFriendlyAuthErrorMessage(requestError, AUTH_ERROR_MESSAGES.ACCOUNT_NOT_FOUND));
     } finally {
       setSearchingRm(false);
     }
@@ -195,9 +207,10 @@ export function AccountView() {
 
       setRmSearchId("");
       setRmResult(null);
-      showMessage("success", response.data?.message ?? "Connected to Regional Manager successfully.");
+      showMessage("success", "Connected to Regional Manager successfully.");
     } catch (requestError) {
-      showMessage("error", parseApiError(requestError));
+      logAuthError("Account relationship manager connection failed", requestError);
+      showMessage("error", getFriendlyAuthErrorMessage(requestError, AUTH_ERROR_MESSAGES.GENERIC));
     } finally {
       setConnectingRm(false);
     }
@@ -206,20 +219,7 @@ export function AccountView() {
   return (
     <>
       {loading ? (
-        <div className="flex h-96 items-center justify-center">
-          <div className="text-center">
-            <div className="mx-auto mb-4 flex items-end justify-center gap-2">
-              {[0, 1, 2, 3, 4].map((index) => (
-                <span
-                  key={index}
-                  className="h-8 w-2 animate-loading-bar rounded-sm bg-blue-900"
-                  style={{ animationDelay: `${index * 100}ms` }}
-                />
-              ))}
-            </div>
-            <p className="text-gray-500">Loading your account...</p>
-          </div>
-        </div>
+        <PageLogoLoader label="Loading your account..." />
       ) : (
         <div className="mx-auto max-w-5xl space-y-6">
           <div className="mb-8">
@@ -302,8 +302,8 @@ export function AccountView() {
                       placeholder="+91 00000 00000"
                     />
                   </FormField>
-                  <FormField 
-                    label="Pincode" 
+                  <FormField
+                    label="Pincode"
                     error={pincodeLoading ? "Locating..." : undefined}
                   >
                     <FieldInput

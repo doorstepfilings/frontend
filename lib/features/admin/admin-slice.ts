@@ -147,8 +147,7 @@ function normalizeApplicationRecord(application: any) {
       application.rejection_reason ?? application.rejectionReason ?? null,
     certificate_url:
       application.certificate_url ?? application.certificateUrl ?? null,
-    submitted_to_ca_at:
-      application.submitted_to_ca_at ?? application.submittedToCaAt ?? null,
+
     created_at: application.created_at ?? application.createdAt ?? null,
     updated_at: application.updated_at ?? application.updatedAt ?? null,
   };
@@ -177,14 +176,11 @@ function isPendingApplicationStatus(status: unknown) {
   }
 
   return [
-    "pending",
     "applied",
-    "paid",
+    "document_collection",
     "under_review",
     "update_required",
     "in_progress",
-    "submitted_to_ca",
-    "processing",
   ].includes(status);
 }
 
@@ -233,7 +229,13 @@ export const fetchAdminStats = createAsyncThunk(
         applications: {
           total: applications.length,
           pending: applications.filter((item: any) =>
-            isPendingApplicationStatus(item?.status),
+            isPendingApplicationStatus(item?.status)
+          ).length,
+          approved: applications.filter(
+            (item: any) => item?.status === "completed"
+          ).length,
+          rejected: applications.filter(
+            (item: any) => item?.status === "rejected" || item?.status === "cancelled"
           ).length,
         },
       };

@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { DocumentUpload } from "@/components/ui/document-upload";
 import { toast } from "react-hot-toast";
 import { apiClient } from "@/lib/api/client";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 interface AccountantUploadFormProps {
   requestId: string | number;
@@ -102,15 +103,16 @@ export const AccountantUploadForm = ({
           Visibility
         </label>
         <div className="relative">
-          <select
+          <SearchableSelect
             value={row.document_type}
             onChange={(e) => updateRow(index, "document_type", e.target.value)}
-            className="w-full h-11 bg-white border border-slate-200 rounded-xl px-4 text-xs font-semibold text-slate-700 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none appearance-none transition-all"
-          >
-            <option value="internal">Internal Only</option>
-            <option value="client">Visible to Client</option>
-          </select>
-          <i className="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-[10px] text-slate-300 pointer-events-none" />
+            options={[
+              { value: "internal", label: "Internal Only" },
+              { value: "client", label: "Visible to Client" }
+            ]}
+            placeholder="Select Visibility"
+            size="sm"
+          />
         </div>
       </div>
 
@@ -120,17 +122,17 @@ export const AccountantUploadForm = ({
             Category
           </label>
           <div className="relative">
-            <select
+            <SearchableSelect
               value={row.document_category}
               onChange={(e) => updateRow(index, "document_category", e.target.value)}
-              className="w-full h-11 bg-white border border-slate-200 rounded-xl px-4 text-xs font-semibold text-slate-700 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none appearance-none transition-all"
-            >
-              <option value="">Select Purpose...</option>
-              <option value="certificate">Final Certificate</option>
-              <option value="report">Operational Report</option>
-              <option value="other">Other Asset</option>
-            </select>
-            <i className="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-[10px] text-slate-300 pointer-events-none" />
+              options={[
+                { value: "certificate", label: "Final Certificate" },
+                { value: "report", label: "Operational Report" },
+                { value: "other", label: "Other Asset" }
+              ]}
+              placeholder="Select Purpose..."
+              size="sm"
+            />
           </div>
         </div>
       )}

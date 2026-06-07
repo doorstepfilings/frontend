@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { adminApi } from '@/lib/api/admin-api';
 
 interface ServiceModalProps {
@@ -31,6 +31,7 @@ export function ServiceModal({ service, categories, isOpen, onClose, onSave }: S
 
     useEffect(() => {
         if (service) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setFormData({
                 name: service.name || '',
                 slug: service.slug || '',
@@ -103,19 +104,16 @@ export function ServiceModal({ service, categories, isOpen, onClose, onSave }: S
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label className="text-right text-xs">Category</Label>
                         <div className="col-span-3">
-                            <Select 
+                            <SearchableSelect 
                                 value={formData.serviceCategoryId} 
-                                onValueChange={(val) => setFormData((p: any) => ({ ...p, serviceCategoryId: val }))}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select a category" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {categories.map((cat) => (
-                                        <SelectItem key={cat.id} value={String(cat.id)}>{cat.name}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                                onChange={(e) => setFormData((p: any) => ({ ...p, serviceCategoryId: e.target.value }))}
+                                options={categories.map((cat) => ({
+                                    value: String(cat.id),
+                                    label: cat.name,
+                                }))}
+                                placeholder="Select a category"
+                                size="sm"
+                            />
                         </div>
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">

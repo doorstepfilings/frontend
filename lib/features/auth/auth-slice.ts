@@ -10,6 +10,11 @@ import {
   signInWithMobileOtp,
   signInWithPassword,
 } from "@/lib/auth/auth-client";
+import {
+  AUTH_ERROR_MESSAGES,
+  getFriendlyAuthErrorMessage,
+  logAuthError,
+} from "@/lib/auth/error-helper";
 
 const initialState: AuthState = {
   user: null,
@@ -28,7 +33,7 @@ export const login = createAsyncThunk<
     return await signInWithPassword(credentials);
   } catch (error: any) {
     return rejectWithValue(
-      error?.message || "Login failed. Please check your credentials."
+      getFriendlyAuthErrorMessage(error)
     );
   }
 });
@@ -42,7 +47,7 @@ export const loginWithMobile = createAsyncThunk<
     return await signInWithMobileOtp(data);
   } catch (error: any) {
     return rejectWithValue(
-      error?.message || "OTP verification failed."
+      getFriendlyAuthErrorMessage(error)
     );
   }
 });
@@ -56,7 +61,7 @@ export const register = createAsyncThunk<
     return await registerAndSignIn(userData);
   } catch (error: any) {
     return rejectWithValue(
-      error.response?.data?.message || error?.message || "Registration failed. Please try again."
+      getFriendlyAuthErrorMessage(error)
     );
   }
 });
@@ -85,8 +90,9 @@ export const updateProfile = createAsyncThunk<
     const updatedUser = response.data.data || response.data;
     setStoredUser(updatedUser);
     return updatedUser;
-  } catch (error: any) {
-    return rejectWithValue(error.response?.data?.message || "Failed to update profile.");
+  } catch (error: unknown) {
+    logAuthError("Profile update failed", error);
+    return rejectWithValue(getFriendlyAuthErrorMessage(error, AUTH_ERROR_MESSAGES.GENERIC));
   }
 });
 
@@ -97,8 +103,9 @@ export const changePassword = createAsyncThunk<
 >("auth/changePassword", async (data, { rejectWithValue }) => {
   try {
     await apiClient.post("/user/change-password", data);
-  } catch (error: any) {
-    return rejectWithValue(error.response?.data?.message || "Failed to change password.");
+  } catch (error: unknown) {
+    logAuthError("Password change failed", error);
+    return rejectWithValue(getFriendlyAuthErrorMessage(error, AUTH_ERROR_MESSAGES.GENERIC));
   }
 });
 
@@ -112,8 +119,11 @@ export const searchRM = createAsyncThunk<
         params: { rm_unique_id: rmUniqueId }
     });
     return response.data.data;
-  } catch (error: any) {
-    return rejectWithValue(error.response?.data?.message || "Regional Manager not found.");
+  } catch (error: unknown) {
+    logAuthError("Relationship manager search failed", error);
+    return rejectWithValue(
+      getFriendlyAuthErrorMessage(error, AUTH_ERROR_MESSAGES.ACCOUNT_NOT_FOUND),
+    );
   }
 });
 
@@ -127,8 +137,9 @@ export const connectRM = createAsyncThunk<
     const updatedUser = response.data.data;
     setStoredUser(updatedUser);
     return updatedUser;
-  } catch (error: any) {
-    return rejectWithValue(error.response?.data?.message || "Failed to connect to Regional Manager.");
+  } catch (error: unknown) {
+    logAuthError("Relationship manager connection failed", error);
+    return rejectWithValue(getFriendlyAuthErrorMessage(error, AUTH_ERROR_MESSAGES.GENERIC));
   }
 });
 

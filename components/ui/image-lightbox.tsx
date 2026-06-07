@@ -46,6 +46,7 @@ export function ImageLightbox({
 
     useEffect(() => {
         if (open) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setActiveIndex(clampIndex(index, slides.length));
         }
     }, [index, open, slides.length]);

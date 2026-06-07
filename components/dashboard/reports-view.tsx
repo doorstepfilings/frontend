@@ -7,6 +7,8 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { buildCollectionKey } from "@/lib/utils/list-keys";
 
+import { PageLogoLoader } from "@/components/ui/logo-loader";
+
 export function ReportsView() {
     const dispatch = useAppDispatch();
     const { myServices, loading } = useAppSelector((state) => state.services);
@@ -41,9 +43,7 @@ export function ReportsView() {
             </div>
 
             {loading ? (
-                <div className="flex items-center justify-center h-64">
-                    <div className="h-10 w-10 animate-spin rounded-full border-2 border-blue-900 border-t-transparent"></div>
-                </div>
+                <PageLogoLoader label="Loading reports..." />
             ) : reports.length === 0 ? (
                 <div className="bg-white rounded-[3rem] border-2 border-dashed border-slate-100 p-24 text-center shadow-sm">
                     <div className="h-20 w-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-200">

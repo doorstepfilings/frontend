@@ -13,6 +13,7 @@ interface ModalProps {
   closeOnEscape?: boolean;
   showCloseButton?: boolean;
   className?: string;
+  noPadding?: boolean;
 }
 
 export const Modal = ({
@@ -25,6 +26,7 @@ export const Modal = ({
   closeOnEscape = true,
   showCloseButton = true,
   className = "",
+  noPadding = false,
   ...props
 }: ModalProps) => {
   useEffect(() => {
@@ -66,11 +68,11 @@ export const Modal = ({
 
         {/* Modal Panel - Simplified & Clean */}
         <div
-          className={`relative z-10 transform overflow-hidden rounded-[2.5rem] bg-white text-left shadow-[0_32px_64px_-12px_rgba(0,0,0,0.14)] transition-all animate-in zoom-in-95 duration-300 ${sizeClasses[size]} ${className}`}
+          className={`relative z-10 transform overflow-visible rounded-[2.5rem] bg-white text-left shadow-[0_32px_64px_-12px_rgba(0,0,0,0.14)] transition-all animate-in zoom-in-95 duration-300 ${sizeClasses[size]} ${className}`}
           {...props}
         >
           {/* Header - No Border, Clean Title */}
-          {(title || showCloseButton) && (
+          {!noPadding && (title || showCloseButton) && (
             <div className="flex items-center justify-between px-10 pt-10 pb-2">
               {title && (
                 <h3 className="text-2xl font-black text-slate-900 tracking-tight leading-none">{title}</h3>
@@ -86,8 +88,12 @@ export const Modal = ({
             </div>
           )}
 
-          {/* Content - Spacious Padding */}
-          <div className="px-10 pb-10 pt-6">{children}</div>
+          {/* Content */}
+          {noPadding ? (
+            children
+          ) : (
+            <div className="px-10 pb-10 pt-6">{children}</div>
+          )}
         </div>
       </div>
     </div>

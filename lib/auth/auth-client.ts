@@ -5,6 +5,12 @@ import { apiClient } from "@/lib/api/client";
 import type { AuthUser } from "@/lib/auth/types";
 import type { User } from "@/lib/features/auth/types";
 import { clearStoredUserOverride } from "@/lib/auth/storage";
+import {
+  AUTH_ERROR_CODES,
+  AUTH_ERROR_MESSAGES,
+  getFriendlyAuthErrorMessage,
+  logAuthError,
+} from "./error-helper";
 
 type AuthResult = {
   token: string;
@@ -68,7 +74,7 @@ async function resolveSessionAfterSignIn() {
   const token = session?.accessToken;
 
   if (!user || !token) {
-    throw new Error("Unable to establish a signed-in session.");
+    throw new Error(AUTH_ERROR_CODES.LOGIN_FAILED);
   }
 
   clearStoredUserOverride();
@@ -77,6 +83,10 @@ async function resolveSessionAfterSignIn() {
 }
 
 function getCredentialErrorMessage(result: { error?: string; code?: string } | undefined, fallback: string) {
+  if (result?.code && result.code !== "credentials") {
+    return result.code;
+  }
+
   if (result?.code === "credentials" || result?.error === "CredentialsSignin") {
     return fallback;
   }
@@ -101,20 +111,24 @@ export async function signInWithPassword({
   password,
   redirectTo,
 }: PasswordLoginInput): Promise<AuthResult> {
-  const result = await signIn("credentials", {
-    email,
-    password,
-    redirect: false,
-    redirectTo: redirectTo ?? undefined,
-  });
+  try {
+    const result = await signIn("credentials", {
+      email,
+      password,
+      redirect: false,
+      redirectTo: redirectTo ?? undefined,
+    });
 
-  if (!result?.ok) {
-    throw new Error(
-      getCredentialErrorMessage(result, "Invalid email or password. Please try again."),
-    );
+    if (!result?.ok) {
+      const rawError = getCredentialErrorMessage(result, "INVALID_CREDENTIALS");
+      throw new Error(rawError);
+    }
+
+    return await resolveSessionAfterSignIn();
+  } catch (error: unknown) {
+    logAuthError("Password sign-in failed", error);
+    throw new Error(getFriendlyAuthErrorMessage(error, AUTH_ERROR_MESSAGES.LOGIN_FAILED));
   }
-
-  return resolveSessionAfterSignIn();
 }
 
 export async function signInWithMobileOtp({
@@ -122,26 +136,35 @@ export async function signInWithMobileOtp({
   otp,
   redirectTo,
 }: MobileOtpLoginInput): Promise<AuthResult> {
-  const result = await signIn("mobile-otp", {
-    mobile_number,
-    otp,
-    redirect: false,
-    redirectTo: redirectTo ?? undefined,
-  });
+  try {
+    const result = await signIn("mobile-otp", {
+      mobile_number,
+      otp,
+      redirect: false,
+      redirectTo: redirectTo ?? undefined,
+    });
 
-  if (!result?.ok) {
-    throw new Error(
-      getCredentialErrorMessage(result, "Invalid mobile number or OTP. Please try again."),
-    );
+    if (!result?.ok) {
+      const rawError = getCredentialErrorMessage(result, "INVALID_CREDENTIALS");
+      throw new Error(rawError);
+    }
+
+    return await resolveSessionAfterSignIn();
+  } catch (error: unknown) {
+    logAuthError("Mobile sign-in failed", error);
+    throw new Error(getFriendlyAuthErrorMessage(error, AUTH_ERROR_MESSAGES.LOGIN_FAILED));
   }
-
-  return resolveSessionAfterSignIn();
 }
 
 export async function registerAndSignIn(data: RegisterInput) {
   const payload = buildRegisterPayload(data);
 
-  await apiClient.post("/user/register", payload);
+  try {
+    await apiClient.post("/user/register", payload);
+  } catch (error: unknown) {
+    logAuthError("Registration request failed", error);
+    throw new Error(getFriendlyAuthErrorMessage(error, AUTH_ERROR_MESSAGES.GENERIC));
+  }
 
   return signInWithPassword({
     email: payload.email,

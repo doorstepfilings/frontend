@@ -220,7 +220,7 @@ export const ensureDocumentAccessible = async (url: string | null) => {
   return resolvedUrl;
 };
 
-export const openDocumentInNewTab = async (
+export const openDocumentInNewTab = (
   url: string | null,
   fileName?: string | null,
 ) => {
@@ -233,27 +233,25 @@ export const openDocumentInNewTab = async (
     return resolvedUrl;
   }
 
-  const popup = window.open("", "_blank");
-  if (!popup) {
-    throw new Error("Please allow pop-ups to view this document.");
-  }
-
   try {
-    popup.opener = null;
-
-    if (!/^https?:\/\//i.test(resolvedUrl)) {
-      popup.document.title = fileName || "Opening document";
-      popup.document.body.innerHTML =
-        '<p style="font-family:Arial,sans-serif;padding:16px">Opening document...</p>';
-      await verifyDocumentAccess(resolvedUrl);
-    }
-
-    popup.location.href = resolvedUrl;
-    return resolvedUrl;
+    const link = document.createElement("a");
+    link.href = resolvedUrl;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   } catch (error) {
-    popup.close();
-    throw error;
+    // Fallback to window.open if the programmatic click fails for any reason
+    const popup = window.open(resolvedUrl, "_blank", "noopener,noreferrer");
+    if (!popup) {
+      throw new Error(
+        "Your browser blocked the document window. Please allow pop-ups for this site, then try opening the document again.",
+      );
+    }
   }
+
+  return resolvedUrl;
 };
 
 export const formatFileSize = (bytes: number) => {

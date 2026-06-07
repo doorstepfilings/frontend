@@ -13,6 +13,7 @@ import {
 import { adminApi } from "@/lib/api/admin-api";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { AuthGuard } from "@/components/auth/auth-guard";
+import { LogoLoader } from "@/components/ui/logo-loader";
 import { normalizeRole } from "@/lib/auth/redirects";
 import {
   type AdminRecord,
@@ -574,7 +575,7 @@ export function UserManagementView({
     setActiveActionKey(`role-${userId}`);
 
     try {
-      await adminApi.updateRole(userId, nextRole);
+      await adminApi.updateRole(userId, { role: nextRole });
       toast.success(`Role changed to ${getRoleLabel(nextRole)}`);
       await refreshData();
     } catch (error) {
@@ -617,11 +618,10 @@ export function UserManagementView({
                     <Link
                       key={type}
                       href={routeMeta[type].href}
-                      className={`rounded-xl px-4 py-2 text-xs font-black uppercase tracking-widest transition-colors ${
-                        currentType === type
-                          ? "bg-blue-900 text-white"
-                          : "border border-gray-200 bg-white text-gray-600 hover:border-blue-200 hover:text-blue-700"
-                      }`}
+                      className={`rounded-xl px-4 py-2 text-xs font-black uppercase tracking-widest transition-colors ${currentType === type
+                        ? "bg-blue-900 text-white"
+                        : "border border-gray-200 bg-white text-gray-600 hover:border-blue-200 hover:text-blue-700"
+                        }`}
                     >
                       {routeMeta[type].countLabel} ({count})
                     </Link>
@@ -875,11 +875,10 @@ export function UserManagementView({
                                     }
                                   }}
                                   disabled={isProtectedRole || isRowBusy}
-                                  className={`w-full min-w-0 rounded-lg px-3 py-2 text-[10px] font-black uppercase tracking-widest ${
-                                    isProtectedRole
-                                      ? "cursor-not-allowed border-0 bg-indigo-50 text-indigo-700"
-                                      : "border-0 bg-blue-50 text-blue-700 hover:bg-blue-100"
-                                  }`}
+                                  className={`w-full min-w-0 rounded-lg px-3 py-2 text-[10px] font-black uppercase tracking-widest ${isProtectedRole
+                                    ? "cursor-not-allowed border-0 bg-indigo-50 text-indigo-700"
+                                    : "border-0 bg-blue-50 text-blue-700 hover:bg-blue-100"
+                                    }`}
                                 >
                                   <option value="user">User</option>
                                   <option value="admin">Admin</option>
@@ -955,11 +954,10 @@ export function UserManagementView({
                                   disabled={isProtectedRole || isRowBusy}
                                   title="Delete user"
                                   aria-label="Delete user"
-                                  className={`h-10 w-10 rounded-xl shadow-sm transition-all ${
-                                    isProtectedRole
-                                      ? "cursor-not-allowed bg-gray-100 text-gray-400"
-                                      : "bg-rose-50 text-rose-500 hover:bg-rose-600 hover:text-white"
-                                  }`}
+                                  className={`h-10 w-10 rounded-xl shadow-sm transition-all ${isProtectedRole
+                                    ? "cursor-not-allowed bg-gray-100 text-gray-400"
+                                    : "bg-rose-50 text-rose-500 hover:bg-rose-600 hover:text-white"
+                                    }`}
                                 >
                                   {activeActionKey === `delete-${item.id}` ? "..." : <i className="fas fa-trash-alt text-xs" />}
                                 </button>
@@ -1067,11 +1065,10 @@ export function UserManagementView({
                                   disabled={assignedUsersCount > 0 || isRowBusy}
                                   title="Delete manager"
                                   aria-label="Delete manager"
-                                  className={`h-10 w-10 rounded-xl shadow-sm transition-all ${
-                                    assignedUsersCount > 0
-                                      ? "cursor-not-allowed bg-gray-100 text-gray-400"
-                                      : "bg-rose-50 text-rose-500 hover:bg-rose-600 hover:text-white"
-                                  }`}
+                                  className={`h-10 w-10 rounded-xl shadow-sm transition-all ${assignedUsersCount > 0
+                                    ? "cursor-not-allowed bg-gray-100 text-gray-400"
+                                    : "bg-rose-50 text-rose-500 hover:bg-rose-600 hover:text-white"
+                                    }`}
                                 >
                                   {activeActionKey === `delete-${item.id}` ? "..." : <i className="fas fa-trash-alt text-xs" />}
                                 </button>
@@ -1099,9 +1096,6 @@ export function UserManagementView({
                       <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">
                         Clients
                       </th>
-                      <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">
-                        Portfolio Preview
-                      </th>
                       <th className="px-6 py-4 text-right text-[10px] font-black uppercase tracking-widest text-gray-400">
                         Actions
                       </th>
@@ -1123,7 +1117,7 @@ export function UserManagementView({
                     ) : (
                       currentData.map((item) => {
                         const assignedUsersCount = getAssignedUsersCount(item);
-                        const previewUsers = getAssignedAccountantUsers(item).slice(0, 3);
+
                         const isRowBusy =
                           activeActionKey !== null &&
                           activeActionKey.endsWith(`-${String(item.id ?? "")}`);
@@ -1156,39 +1150,15 @@ export function UserManagementView({
                             </td>
                             <td className="px-6 py-4">
                               <span
-                                className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${
-                                  assignedUsersCount >= 6
-                                    ? "border border-amber-100 bg-amber-50 text-amber-700"
-                                    : assignedUsersCount >= 1
-                                      ? "border border-blue-100 bg-blue-50 text-blue-700"
-                                      : "border border-gray-100 bg-gray-50 text-gray-600"
-                                }`}
+                                className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${assignedUsersCount >= 6
+                                  ? "border border-amber-100 bg-amber-50 text-amber-700"
+                                  : assignedUsersCount >= 1
+                                    ? "border border-blue-100 bg-blue-50 text-blue-700"
+                                    : "border border-gray-100 bg-gray-50 text-gray-600"
+                                  }`}
                               >
                                 {assignedUsersCount} clients
                               </span>
-                            </td>
-                            <td className="px-6 py-4">
-                              {previewUsers.length > 0 ? (
-                                <div className="flex flex-wrap gap-1.5">
-                                  {previewUsers.map((user) => (
-                                    <span
-                                      key={String(user.id)}
-                                      className="rounded-md border border-gray-100 bg-gray-50 px-2 py-1 text-[11px] font-semibold text-gray-600"
-                                    >
-                                      {String(user.name ?? "Client")}
-                                    </span>
-                                  ))}
-                                  {getAssignedAccountantUsers(item).length > 3 && (
-                                    <span className="rounded-md border border-blue-100 bg-blue-50 px-2 py-1 text-[11px] font-semibold text-blue-600">
-                                      +{getAssignedAccountantUsers(item).length - 3}
-                                    </span>
-                                  )}
-                                </div>
-                              ) : (
-                                <span className="text-xs font-semibold text-gray-400">
-                                  No assigned clients
-                                </span>
-                              )}
                             </td>
                             <td className="px-6 py-4">
                               <div className="flex justify-end gap-2">
@@ -1205,11 +1175,10 @@ export function UserManagementView({
                                   disabled={assignedUsersCount > 0 || isRowBusy}
                                   title="Delete accountant"
                                   aria-label="Delete accountant"
-                                  className={`h-10 w-10 rounded-xl shadow-sm transition-all ${
-                                    assignedUsersCount > 0
-                                      ? "cursor-not-allowed bg-gray-100 text-gray-400"
-                                      : "bg-rose-50 text-rose-500 hover:bg-rose-600 hover:text-white"
-                                  }`}
+                                  className={`h-10 w-10 rounded-xl shadow-sm transition-all ${assignedUsersCount > 0
+                                    ? "cursor-not-allowed bg-gray-100 text-gray-400"
+                                    : "bg-rose-50 text-rose-500 hover:bg-rose-600 hover:text-white"
+                                    }`}
                                 >
                                   {activeActionKey === `delete-${item.id}` ? "..." : <i className="fas fa-trash-alt text-xs" />}
                                 </button>
@@ -1238,9 +1207,9 @@ export function UserManagementView({
                   ? `Users: ${userRoleStats.users} | Admins: ${userRoleStats.admins} | Super Admins: ${userRoleStats.superAdmins}`
                   : currentType === "rms"
                     ? `Total assigned clients: ${rms.reduce(
-                        (sum: number, item: AdminRecord) => sum + getAssignedUsersCount(item),
-                        0,
-                      )}`
+                      (sum: number, item: AdminRecord) => sum + getAssignedUsersCount(item),
+                      0,
+                    )}`
                     : `Active portfolios: ${accountantStats.totalClients}`}
               </p>
             </div>
@@ -1408,8 +1377,8 @@ function SummaryCard({
 function LoadingState({ label }: { label: string }) {
   return (
     <div className="flex flex-col items-center gap-4">
-      <div className="h-10 w-10 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
-      <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+      <LogoLoader size={48} label={label} />
+      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
         {label}
       </p>
     </div>

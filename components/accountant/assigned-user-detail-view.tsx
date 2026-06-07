@@ -8,6 +8,7 @@ import { AuthGuard } from "@/components/auth/auth-guard";
 import { toast } from "react-hot-toast";
 import Link from "next/link";
 import { format } from "date-fns";
+import { PageLogoLoader } from "@/components/ui/logo-loader";
 
 export function AccountantAssignedUserDetailView() {
     const { id } = useParams();
@@ -27,9 +28,7 @@ export function AccountantAssignedUserDetailView() {
         return (
             <AuthGuard allowedRoles={["accountant"]}>
                 <AdminLayout>
-                    <div className="flex items-center justify-center min-h-[60vh]">
-                        <div className="h-12 w-12 animate-spin rounded-full border-4 border-slate-200 border-t-slate-900"></div>
-                    </div>
+                    <PageLogoLoader label="Loading client details..." />
                 </AdminLayout>
             </AuthGuard>
         );

@@ -31,50 +31,43 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const portalMeta = getRolePortalMeta(normalizedRole);
 
   return (
-    <div className="admin-theme flex min-h-screen overflow-x-hidden bg-gray-50">
+    <div className="admin-theme flex min-h-screen overflow-x-hidden">
       <AdminSidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
 
-      <div className="w-full flex-1 transition-all duration-300 lg:ml-64">
-        <header className="sticky top-0 z-30 border-b border-slate-200/60 bg-white/80 backdrop-blur-md">
-          <div className="flex items-center justify-between px-6 py-4 lg:px-10">
-            <div className="flex items-center gap-4">
+      <div className="w-full flex-1 transition-all duration-300 lg:ml-[17rem]">
+        <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/88 backdrop-blur-md">
+          <div className="flex items-center justify-between gap-3 px-3 py-3 sm:px-5 lg:px-8">
+            <div className="flex min-w-0 items-center gap-3 sm:gap-4">
               <button
                 onClick={() => setIsSidebarOpen(true)}
-                className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-500 transition-colors hover:bg-slate-100 lg:hidden"
+                className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-50 lg:hidden"
                 aria-label="Open sidebar"
               >
                 <i className="fas fa-bars" />
               </button>
-              <div>
-                <h1 className="text-base font-bold tracking-tight text-slate-900">
-                  {activeItem?.label ?? "Management Hub"}
-                </h1>
-                <p className="hidden text-[10px] font-bold uppercase tracking-widest text-slate-400 sm:block mt-0.5">
+              <div className="min-w-0">
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-blue-600">
                   {portalMeta.sectionLabel}
                 </p>
+                <h1 className="truncate text-base font-black tracking-tight text-slate-900 sm:text-lg">
+                  {activeItem?.label ?? "Management Hub"}
+                </h1>
               </div>
             </div>
 
-            <div className="flex items-center gap-6">
-              <div className="hidden text-right md:block">
-                <p className="text-xs font-bold text-slate-900 tracking-tight">
-                  {user?.name ?? "Portal User"}
-                </p>
-                <p className="mt-1 text-[9px] font-bold uppercase tracking-[0.15em] text-slate-400">
-                  {portalMeta.headerLabel}
-                </p>
-              </div>
-              
+            <div className="flex shrink-0 items-center gap-3 sm:gap-6">
               {portalMeta.actionHref && portalMeta.actionLabel ? (
                 <Link
                   href={portalMeta.actionHref}
-                  className="h-10 px-6 bg-slate-900 text-white rounded-xl text-[11px] font-bold uppercase tracking-wide flex items-center gap-2 shadow-sm"
+                  className="admin-btn h-10 rounded-2xl px-3 text-[10px] tracking-[0.14em] sm:px-5"
                 >
                   <i className="fas fa-plus text-[10px]" />
-                  <span>{portalMeta.actionLabel}</span>
+                  <span className="hidden sm:inline">
+                    {portalMeta.actionLabel}
+                  </span>
                 </Link>
               ) : (
-                <div className="h-10 px-5 flex items-center justify-center rounded-xl bg-slate-100 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                <div className="panel-chip px-3 sm:px-4">
                   {portalMeta.roleTag}
                 </div>
               )}
@@ -82,7 +75,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <main className="p-4 lg:p-8">{children}</main>
+        <main className="px-3 py-4 sm:px-4 lg:px-8 lg:py-6">{children}</main>
       </div>
     </div>
   );

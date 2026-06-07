@@ -1,11 +1,19 @@
 import React from "react";
+import { SearchableSelect } from "./searchable-select";
 
-interface FormSelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
+interface FormSelectProps {
   label?: string;
+  name?: string;
+  value?: string | number | (string | number)[] | null;
+  onChange?: (event: React.ChangeEvent<HTMLSelectElement>) => void;
+  onBlur?: React.FocusEventHandler<HTMLSelectElement>;
   error?: string;
   helpText?: string | null;
   placeholder?: string;
   options: { value: string | number; label: string }[];
+  disabled?: boolean;
+  required?: boolean;
+  className?: string;
 }
 
 export const FormSelect = ({
@@ -23,17 +31,6 @@ export const FormSelect = ({
   helpText = null,
   ...props
 }: FormSelectProps) => {
-  const selectClasses = `
-        w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 appearance-none bg-white
-        ${error ? "border-red-500 ring-1 ring-red-200" : ""}
-        ${
-          disabled
-            ? "bg-gray-50 text-gray-500 cursor-not-allowed"
-            : "bg-white hover:border-gray-300"
-        }
-        ${className}
-    `;
-
   return (
     <div className="space-y-2">
       {label && (
@@ -47,27 +44,19 @@ export const FormSelect = ({
       )}
 
       <div className="relative">
-        <select
+        <SearchableSelect
           id={name}
           name={name}
           value={value}
           onChange={onChange}
-          onBlur={onBlur}
+          onBlur={onBlur as any}
           disabled={disabled}
-          className={selectClasses}
+          placeholder={placeholder}
+          options={options}
+          error={!!error}
+          className={className}
           {...props}
-        >
-          <option value="">{placeholder}</option>
-          {options.map((option, index) => (
-            <option key={index} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-
-        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-          <i className="fas fa-chevron-down text-sm text-gray-400"></i>
-        </div>
+        />
       </div>
 
       {error && (
@@ -81,6 +70,7 @@ export const FormSelect = ({
     </div>
   );
 };
+
 
 interface FormTextareaProps
   extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {

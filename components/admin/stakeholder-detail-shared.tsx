@@ -66,15 +66,15 @@ export function getLocationDisplay(record: AdminRecord | null | undefined) {
   return "Not set";
 }
 
+import { LogoLoader } from "@/components/ui/logo-loader";
+
 export function LoadingState({ label }: { label: string }) {
   return (
-    <div className="flex min-h-[24rem] items-center justify-center">
-      <div className="flex flex-col items-center gap-4">
-        <div className="h-12 w-12 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
-        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">
-          {label}
-        </p>
-      </div>
+    <div className="flex min-h-[24rem] items-center justify-center flex-col gap-4">
+      <LogoLoader size={48} label={label} />
+      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+        {label}
+      </p>
     </div>
   );
 }

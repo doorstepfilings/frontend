@@ -1,12 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { format, isValid } from "date-fns";
 import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
 import { fetchAdminStats, fetchRecentActivity } from "@/lib/features/admin/admin-slice";
 import { AuthGuard } from "@/components/auth/auth-guard";
 import { AdminLayout } from "@/components/layout/AdminLayout";
+import { InsightBarChart } from "@/components/dashboard/insight-bar-chart";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { PageLogoLoader } from "@/components/ui/logo-loader";
 
 type ActivityItem = {
   id?: number | string;
@@ -159,18 +162,13 @@ function getActivityKey(item: ActivityItem, index: number) {
 function getStatusColor(status?: string | null) {
   switch ((status ?? "").toLowerCase()) {
     case "pending":
-    case "applied":
       return "bg-amber-100 text-amber-700 border-amber-200";
-    case "paid":
-    case "responded":
-    case "under_review":
+    case "applied":
+    case "document_collection":
       return "bg-blue-100 text-blue-700 border-blue-200";
-    case "processing":
     case "in_progress":
-    case "submitted_to_ca":
       return "bg-cyan-100 text-cyan-700 border-cyan-200";
     case "completed":
-    case "approved":
       return "bg-emerald-100 text-emerald-700 border-emerald-200";
     case "refunded":
     case "rejected":
@@ -332,23 +330,69 @@ export function AdminDashboardView() {
     },
   ];
 
+  const activityChartData = useMemo(() => {
+    const counts = {
+      application: 0,
+      enquiry: 0,
+      user: 0,
+      activity: 0,
+    };
+
+    recentActivity.forEach((item) => {
+      const activityType = getActivityType(item);
+      if (activityType === "application") {
+        counts.application += 1;
+        return;
+      }
+
+      if (activityType === "enquiry") {
+        counts.enquiry += 1;
+        return;
+      }
+
+      if (activityType === "user") {
+        counts.user += 1;
+        return;
+      }
+
+      counts.activity += 1;
+    });
+
+    return [
+      {
+        label: "Applications",
+        value: counts.application,
+        tone: "blue" as const,
+        helper: "Service requests created",
+      },
+      {
+        label: "Enquiries",
+        value: counts.enquiry,
+        tone: "emerald" as const,
+        helper: "Client conversations",
+      },
+      {
+        label: "Users",
+        value: counts.user,
+        tone: "indigo" as const,
+        helper: "Registration activity",
+      },
+      {
+        label: "Other Events",
+        value: counts.activity,
+        tone: "slate" as const,
+        helper: "System and unmatched events",
+      },
+    ];
+  }, [recentActivity]);
+
   const isInitialLoading = statsLoading && activityLoading && !stats && recentActivity.length === 0;
 
   if (isInitialLoading) {
     return (
       <AuthGuard allowedRoles={["super_admin"]}>
         <AdminLayout>
-          <div className="flex h-96 items-center justify-center">
-            <div className="flex flex-col items-center">
-              <div className="relative h-20 w-20">
-                <div className="absolute left-0 top-0 h-full w-full rounded-full border-4 border-blue-100" />
-                <div className="absolute left-0 top-0 h-full w-full animate-spin rounded-full border-4 border-blue-900 border-t-transparent" />
-              </div>
-              <p className="mt-6 animate-pulse text-[10px] font-bold uppercase tracking-widest text-gray-400">
-                Initializing Dashboard...
-              </p>
-            </div>
-          </div>
+          <PageLogoLoader label="Initializing Dashboard..." />
         </AdminLayout>
       </AuthGuard>
     );
@@ -372,15 +416,18 @@ export function AdminDashboardView() {
                 <span className="px-3 text-[10px] font-black uppercase tracking-widest text-gray-400">
                   Period
                 </span>
-                <select
+                <SearchableSelect
                   value={timeRange}
                   onChange={(event) => setTimeRange(event.target.value)}
-                  className="rounded-xl border-0 bg-gray-50 px-3 py-2 text-[10px] font-black text-gray-600 outline-none ring-0"
-                >
-                  <option value="today">Today</option>
-                  <option value="week">This Week</option>
-                  <option value="month">This Month</option>
-                </select>
+                  options={[
+                    { value: "today", label: "Today" },
+                    { value: "week", label: "This Week" },
+                    { value: "month", label: "This Month" }
+                  ]}
+                  placeholder="Period"
+                  size="sm"
+                  className="min-w-[120px]"
+                />
               </div>
               <button
                 onClick={() => loadData()}
@@ -464,16 +511,8 @@ export function AdminDashboardView() {
                   <tbody className="divide-y divide-gray-50">
                     {activityLoading && recentActivity.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="px-8 py-20 text-center">
-                          <div className="flex flex-col items-center">
-                            <div className="relative h-16 w-16">
-                              <div className="absolute left-0 top-0 h-full w-full rounded-full bg-gray-100" />
-                              <div className="absolute left-0 top-0 h-full w-full animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
-                            </div>
-                            <p className="mt-4 text-[10px] font-black uppercase tracking-widest text-gray-400">
-                              Fetching Activity...
-                            </p>
-                          </div>
+                        <td colSpan={5} className="px-8 py-16 text-center">
+                          <PageLogoLoader label="Fetching Activity..." />
                         </td>
                       </tr>
                     ) : recentActivity.length === 0 ? (
@@ -591,25 +630,6 @@ export function AdminDashboardView() {
                     barClassName="bg-gradient-to-r from-emerald-400 to-emerald-500 shadow-lg shadow-emerald-400/30"
                     footerLabel="Response Rate"
                   />
-                </div>
-              </div>
-
-              <div className="pt-8">
-                <div className="grid grid-cols-2 gap-4">
-                  <Link
-                    href="/admin/service-applications"
-                    className="group flex w-full items-center justify-center gap-2 rounded-2xl border border-white/20 bg-white/10 py-4 text-[10px] font-black uppercase tracking-widest transition-all hover:bg-white/20"
-                  >
-                    <i className="fas fa-file-invoice text-[10px] transition-transform group-hover:scale-110" />
-                    <span>Review Applications</span>
-                  </Link>
-                  <Link
-                    href="/admin/enquiries"
-                    className="group flex w-full items-center justify-center gap-2 rounded-2xl border border-white/20 bg-white/10 py-4 text-[10px] font-black uppercase tracking-widest transition-all hover:bg-white/20"
-                  >
-                    <i className="fas fa-envelope text-[10px] transition-transform group-hover:scale-110" />
-                    <span>Handle Enquiries</span>
-                  </Link>
                 </div>
               </div>
             </div>

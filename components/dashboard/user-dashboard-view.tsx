@@ -1,5 +1,6 @@
 "use client";
 
+import { PageLogoLoader } from "@/components/ui/logo-loader";
 import Link from "next/link";
 import { useEffect, useMemo } from "react";
 import { fetchMyServices } from "@/lib/features/services/services-slice";
@@ -7,7 +8,7 @@ import { useStoredUser } from "@/lib/auth/hooks";
 import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
 import { formatDateWithPattern } from "@/lib/utils/formatters";
 import { buildCollectionKey } from "@/lib/utils/list-keys";
-import { getStatusLabel } from "@/lib/utils/status-helpers";
+import { getStatusLabel, getStatusColorClass } from "@/lib/utils/status-helpers";
 
 export function UserDashboardView() {
   const dispatch = useAppDispatch();
@@ -25,43 +26,23 @@ export function UserDashboardView() {
         myServices?.filter((service) => service.status === "applied").length || 0,
       inProgress:
         myServices?.filter((service) =>
-          ["in_progress", "under_review", "submitted_to_ca"].includes(
+          ["in_progress", "under_review", "document_collection", "update_required"].includes(
             service.status,
           ),
         ).length || 0,
       completed:
-        myServices?.filter((service) =>
-          ["completed", "approved"].includes(service.status),
-        ).length || 0,
+        myServices?.filter((service) => service.status === "completed").length || 0,
     }),
     [myServices],
   );
 
   const recentServices = useMemo(() => (myServices || []).slice(0, 5), [myServices]);
 
-  const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      applied: "bg-blue-100 text-blue-700",
-      in_progress: "bg-amber-100 text-amber-700",
-      under_review: "bg-cyan-100 text-cyan-700",
-      submitted_to_ca: "bg-indigo-100 text-indigo-700",
-      completed: "bg-green-100 text-green-700",
-      approved: "bg-green-100 text-green-700",
-      cancelled: "bg-red-100 text-red-700",
-      rejected: "bg-red-100 text-red-700",
-    };
 
-    return colors[status] || "bg-gray-100 text-gray-700";
-  };
 
   if (loading) {
     return (
-      <div className="flex h-96 items-center justify-center">
-        <div className="text-center">
-          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-blue-900 border-t-transparent" />
-          <p className="text-gray-600">Loading dashboard...</p>
-        </div>
-      </div>
+      <PageLogoLoader label="Loading dashboard..." />
     );
   }
 
@@ -175,7 +156,7 @@ export function UserDashboardView() {
                     </div>
                     <div className="flex items-center gap-4">
                       <span
-                        className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider ${getStatusColor(
+                        className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider ${getStatusColorClass(
                           service.status,
                         )}`}
                       >

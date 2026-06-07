@@ -7,6 +7,7 @@ import { format } from "date-fns";
 import { toast } from "react-hot-toast";
 import Link from "next/link";
 import { buildCollectionKey } from "@/lib/utils/list-keys";
+import { PageLogoLoader } from "@/components/ui/logo-loader";
 
 export function MyOrdersView() {
     const dispatch = useAppDispatch();
@@ -26,22 +27,28 @@ export function MyOrdersView() {
         const status = getOrderStatus(order);
 
         if (status === "paid") {
-            return "Verified Payment";
+            return "Payment Successful";
         }
 
         if (status === "refunded") {
             return "Refunded";
         }
 
-        if (status === "failed") {
-            return "Payment Failed";
+        return "Pending Payment";
+    };
+
+    const getStatusColor = (order: any) => {
+        const status = getOrderStatus(order);
+
+        if (status === "paid") {
+            return "bg-green-50 text-green-700 border-green-100";
         }
 
-        if (status === "cancelled") {
-            return "Payment Cancelled";
+        if (status === "refunded") {
+            return "bg-amber-50 text-amber-700 border-amber-100";
         }
 
-        return String(order.status || order.payment_status || "UNKNOWN").toUpperCase();
+        return "bg-blue-50 text-blue-700 border-blue-100";
     };
 
     useEffect(() => {
@@ -49,8 +56,8 @@ export function MyOrdersView() {
     }, [dispatch]);
 
     const handleDownload = async (orderId: string) => {
-        setDownloadingId(orderId);
         try {
+            setDownloadingId(orderId);
             const blob = await dispatch(downloadInvoice(orderId)).unwrap();
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement("a");
@@ -75,9 +82,7 @@ export function MyOrdersView() {
             </div>
 
             {ordersLoading ? (
-                <div className="flex items-center justify-center h-64">
-                    <div className="h-10 w-10 animate-spin rounded-full border-2 border-blue-900 border-t-transparent"></div>
-                </div>
+                <PageLogoLoader label="Loading orders..." />
             ) : myOrders.length === 0 ? (
                 <div className="bg-white rounded-[3rem] border-2 border-dashed border-slate-100 p-20 text-center">
                     <div className="h-20 w-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-200">

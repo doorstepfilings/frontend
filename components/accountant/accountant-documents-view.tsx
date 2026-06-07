@@ -10,6 +10,7 @@ import { splitDocumentsByOwner } from "@/lib/utils/document-helpers";
 import { AccountantDocumentList } from "./accountant-document-list";
 import { apiClient } from "@/lib/api/client";
 import { toast } from "react-hot-toast";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 export function AccountantDocumentsView() {
     const dispatch = useAppDispatch();
@@ -137,27 +138,29 @@ export function AccountantDocumentsView() {
                                 </div>
 
                                 <div className="flex flex-wrap items-center gap-4 w-full lg:w-auto">
-                                    <select 
+                                    <SearchableSelect 
                                         value={serviceFilter}
                                         onChange={(e) => setServiceFilter(e.target.value)}
-                                        className="h-12 px-6 bg-white border border-slate-200 rounded-xl text-[11px] font-bold uppercase tracking-wide text-slate-600 focus:outline-none focus:border-slate-300 appearance-none min-w-[180px] shadow-sm"
-                                    >
-                                        <option value="all">All Service Tracks</option>
-                                        {uniqueServices.map(service => (
-                                            <option key={service.id} value={service.id}>{service.name}</option>
-                                        ))}
-                                    </select>
+                                        options={[
+                                            { value: "all", label: "All Service Tracks" },
+                                            ...uniqueServices.map(service => ({ value: String(service.id), label: service.name }))
+                                        ]}
+                                        className="min-w-[180px]"
+                                        isClearable={false}
+                                    />
 
-                                    <select 
+                                    <SearchableSelect 
                                         value={statusFilter}
                                         onChange={(e) => setStatusFilter(e.target.value)}
-                                        className="h-12 px-6 bg-white border border-slate-200 rounded-xl text-[11px] font-bold uppercase tracking-wide text-slate-600 focus:outline-none focus:border-slate-300 appearance-none shadow-sm"
-                                    >
-                                        <option value="all">Lifecycle Status</option>
-                                        <option value="pending">Review Pending</option>
-                                        <option value="verified">Verified</option>
-                                        <option value="rejected">Rejected</option>
-                                    </select>
+                                        options={[
+                                            { value: "all", label: "Lifecycle Status" },
+                                            { value: "pending", label: "Review Pending" },
+                                            { value: "verified", label: "Verified" },
+                                            { value: "rejected", label: "Rejected" }
+                                        ]}
+                                        className="min-w-[180px]"
+                                        isClearable={false}
+                                    />
                                 </div>
                             </div>
 

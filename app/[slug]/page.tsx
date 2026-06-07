@@ -1,5 +1,6 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { PublicPlaceholder } from "@/components/migration/public-placeholder";
+import { appConfig } from "@/lib/config";
 
 const routeMap: Record<
   string,
@@ -133,6 +134,24 @@ const routeMap: Record<
   },
 };
 
+async function serviceSlugExists(slug: string) {
+  try {
+    const response = await fetch(
+      `${appConfig.backendUrl}/api/service/${encodeURIComponent(slug)}`,
+      {
+        headers: {
+          Accept: "application/json",
+        },
+        cache: "no-store",
+      },
+    );
+
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 export default async function GenericPublicRoute({
   params,
 }: {
@@ -142,6 +161,10 @@ export default async function GenericPublicRoute({
   const config = routeMap[slug];
 
   if (!config) {
+    if (await serviceSlugExists(slug)) {
+      redirect(`/service/${slug}`);
+    }
+
     notFound();
   }
 

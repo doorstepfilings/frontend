@@ -9,32 +9,36 @@ import { StatusIndicator } from "@/components/ui/status-indicator";
 import { apiClient } from "@/lib/api/client";
 import { toast } from "react-hot-toast";
 import { splitDocumentsByOwner } from "@/lib/utils/document-helpers";
+import { format } from "date-fns";
+import { getMilestoneState } from "@/lib/utils/status-helpers";
 import { AccountantDocumentList } from "./accountant-document-list";
 import { AccountantUploadForm } from "./accountant-upload-form";
 import { FormDataRenderer } from "@/components/ui/form-data-renderer";
 import { Modal } from "@/components/ui/modal";
 import { FormSelect, FormTextarea } from "@/components/ui/form-controls";
 import { Button } from "@/components/ui/button";
+import { ChatNoteModal } from "@/components/ui/chat-note-modal";
+import { useStoredUser } from "@/lib/auth/hooks";
+import { useConfirm } from "@/hooks/use-confirm";
 
-const STEPS = ["applied", "under_review", "in_progress", "submitted_to_ca", "completed"];
-const STATUS_LABELS: any = {
-  applied: "New Application",
-  under_review: "Verifying Documents",
-  in_progress: "Processing Task",
-  submitted_to_ca: "Pending CA Approval",
-  approved: "Completed",
-  completed: "Completed",
-  rejected: "Rejected",
-  update_required: "Information Required",
-  cancelled: "Cancelled",
-  pending: "Submitted",
-};
+import { PageLogoLoader } from "@/components/ui/logo-loader";
+
+const MILESTONES = [
+  { id: 1, label: "Submission" },
+  { id: 2, label: "Payment" },
+  { id: 3, label: "Verification" },
+  { id: 4, label: "Processing" },
+  { id: 5, label: "Completion" },
+];
 
 export function AccountantRequestDetailView() {
   const params = useParams();
   const router = useRouter();
   const id = params?.id as string;
-  
+
+  const currentUser = useStoredUser();
+  const { confirm, ConfirmDialog } = useConfirm();
+
   const [req, setReq] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
@@ -46,7 +50,13 @@ export function AccountantRequestDetailView() {
     rejection_reason: "",
   });
   const [activeDocTab, setActiveDocTab] = useState<"client" | "internal">("client");
-  const [revisionNotes, setRevisionNotes] = useState("");
+  const [viewingNoteService, setViewingNoteService] = useState(false);
+
+  const noteCount = useMemo(() => {
+    const notes = req?.update_note || req?.revision_notes || "";
+    if (!notes) return 0;
+    return notes.split("\n\n").filter((n: string) => n.trim() !== "").length;
+  }, [req?.update_note, req?.revision_notes]);
 
   const fetchData = async () => {
     try {
@@ -62,22 +72,19 @@ export function AccountantRequestDetailView() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (id) fetchData();
   }, [id]);
 
-  const stepIndex = useMemo(() => {
-    if (!req?.status) return 0;
-    if (req.status === "update_required" || req.status === "rejected") return 0;
-    if (req.status === "approved" || req.status === "completed") return 4;
-    const idx = STEPS.indexOf(req.status);
-    return idx >= 0 ? idx : 0;
+  const { currentStep, isWarning } = useMemo(() => {
+    return getMilestoneState(req?.status);
   }, [req?.status]);
 
-  const progress = Math.round(((stepIndex + 1) / STEPS.length) * 100);
+  const progress = Math.round(((currentStep) / MILESTONES.length) * 100);
 
-  const handleUpdateStatus = async (eOrData?: React.FormEvent | { status: string }) => {
+  const handleUpdateStatus = async (eOrData?: React.FormEvent | { status: string; update_note?: string; ca_notes?: string; rejection_reason?: string }) => {
     let data: any = statusForm;
-    
+
     // Check if it's a direct data object or a form event
     if (eOrData && typeof eOrData === 'object' && 'status' in eOrData) {
       data = eOrData;
@@ -86,7 +93,16 @@ export function AccountantRequestDetailView() {
     }
 
     if (!data.status) return toast.error("Please select a target status");
-    
+
+    // Explicit confirmation when finalizing
+    if (data.status === "completed") {
+      const isConfirmed = await confirm({
+        title: "Finalize Service",
+        message: "Are you absolutely sure you want to mark this service as Completed? Please double-check that ALL related filings, documents, and tasks have been finished. Once finalized, completion notifications will be sent to the client.",
+      });
+      if (!isConfirmed) return;
+    }
+
     setUpdating(true);
     try {
       await apiClient.patch(`/accountant/service-requests/${id}/status`, data);
@@ -100,20 +116,6 @@ export function AccountantRequestDetailView() {
     }
   };
 
-  const handleRevisionSubmit = async () => {
-    if (!revisionNotes.trim()) return toast.error("Description of updates is mandatory");
-    setUpdating(true);
-    try {
-      await apiClient.post(`/accountant/service-requests/${id}/revision`, { notes: revisionNotes });
-      toast.success("Revision committed to review");
-      setRevisionNotes("");
-      fetchData();
-    } catch (error: any) {
-      toast.error("Revision commit failed");
-    } finally {
-      setUpdating(false);
-    }
-  };
 
   const handleDeleteDoc = async (docId: string | number) => {
     try {
@@ -138,18 +140,12 @@ export function AccountantRequestDetailView() {
   if (loading || !req) {
     return (
       <AdminLayout>
-        <div className="h-96 flex items-center justify-center">
-          <div className="flex flex-col items-center gap-6">
-            <div className="h-16 w-16 animate-spin rounded-full border-4 border-blue-600 border-t-transparent shadow-xl"></div>
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 animate-pulse">Accessing Work Order...</p>
-          </div>
-        </div>
+        <PageLogoLoader label="Accessing work order..." />
       </AdminLayout>
     );
   }
 
   const { clientDocs, internalDocs } = splitDocumentsByOwner(req.request_documents || [], req.user?.id);
-  const canRevise = req.status === "update_required";
   const canUpload = req.status !== "cancelled" && req.status !== "approved";
 
   return (
@@ -159,7 +155,7 @@ export function AccountantRequestDetailView() {
           {/* Professional Navigation Header */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pt-4">
             <div className="flex items-center gap-5">
-              <Link 
+              <Link
                 href="/accountant/service-requests"
                 className="h-10 w-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-900 transition-all shadow-sm"
               >
@@ -176,158 +172,222 @@ export function AccountantRequestDetailView() {
               </div>
             </div>
             <div className="flex gap-2">
-               <button className="h-10 px-5 bg-white border border-slate-200 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-50 transition-all flex items-center gap-2">
+              <button
+                onClick={() => setViewingNoteService(true)}
+                className="h-10 px-5 bg-blue-50 border border-blue-200 text-blue-700 rounded-xl text-xs font-bold hover:bg-blue-100 transition-all flex items-center gap-2 shadow-sm"
+              >
+                <i className="fas fa-comment-dots text-blue-500"></i> Service Notes
+                {noteCount > 0 && (
+                  <span className="ml-1 bg-blue-600 text-white rounded-full px-2.5 py-0.5 text-[10px] font-bold">
+                    {noteCount}
+                  </span>
+                )}
+              </button>
+              <button className="h-10 px-5 bg-white border border-slate-200 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-50 transition-all flex items-center gap-2">
                 <i className="fas fa-print opacity-50"></i> Export Dossier
-               </button>
+              </button>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-            <div className="lg:col-span-2 space-y-10">
-              {/* Refined Progress Tracker */}
-              <div className="bg-white rounded-3xl border border-slate-200/60 shadow-sm p-10">
-                <div className="flex items-center justify-between mb-10">
-                  <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Processing Roadmap</h3>
-                  <div className="px-3 py-1 bg-slate-900 text-white rounded-lg text-[10px] font-bold">
-                    Stage {stepIndex + 1} of {STEPS.length}
-                  </div>
-                </div>
-
-                <div className="relative px-2">
-                  <div className="absolute top-[1.125rem] left-10 right-10 h-0.5 bg-slate-100" />
-                  <div
-                    className="absolute top-[1.125rem] left-10 h-0.5 bg-slate-900 transition-all duration-1000"
-                    style={{ width: `calc((100% - 5rem) * ${stepIndex / (STEPS.length - 1)})` }}
-                  />
-
-                  <div className="relative z-10 flex justify-between">
-                    {STEPS.map((step, i) => (
-                      <div key={step} className="flex flex-col items-center gap-4">
-                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold border-2 transition-all duration-500 ${
-                          i <= stepIndex ? "bg-white border-slate-900 text-slate-900 shadow-sm" : "bg-white border-slate-100 text-slate-200"
-                        }`}>
-                          {i < stepIndex ? <i className="fas fa-check text-[10px]" /> : i + 1}
-                        </div>
-                        <span className={`text-[10px] font-bold uppercase tracking-wide text-center max-w-[80px] ${i <= stepIndex ? "text-slate-900" : "text-slate-300"}`}>
-                          {STATUS_LABELS[step]}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
+          <div className="bg-white rounded-[2rem] border border-slate-100 p-6 md:p-10 shadow-sm space-y-8">
+            {/* 1. Refined Progress Tracker */}
+            <div className="relative">
+              <div className="flex items-center justify-between mb-8">
+                <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Processing Roadmap</h3>
+                <div className={`px-3 py-1 text-white rounded-lg text-[10px] font-bold ${
+                  req.status === "completed" || req.status === "approved"
+                    ? "bg-emerald-600"
+                    : (isWarning ? (req.status === "update_required" ? "bg-red-500" : "bg-amber-500") : "bg-slate-900")
+                }`}>
+                  {req.status === "completed" || req.status === "approved" ? "Completed" : `Stage ${currentStep} of ${MILESTONES.length}`} {isWarning && req.status !== "completed" && (req.status === "update_required" ? "- Correction Required" : "- Action Needed")}
                 </div>
               </div>
 
-              {/* Information Provided */}
-              <FormDataRenderer 
-                formData={req.form_data} 
-                title="Application Artifacts" 
-                icon="fa-id-card" 
-              />
-
-              {/* Instructions Section */}
-              {req.ca_notes && (
-                <div className="p-8 bg-slate-50 rounded-3xl border border-slate-100">
-                  <div className="flex items-center gap-3 mb-4">
-                    <i className="fas fa-info-circle text-slate-400" />
-                    <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Internal Directives</h3>
-                  </div>
-                  <p className="text-sm font-medium text-slate-700 leading-relaxed">
-                    {req.ca_notes}
-                  </p>
-                </div>
-              )}
-
-              {/* Revision Action Area */}
-              {canRevise && (
-                <div className="p-8 bg-rose-50 rounded-3xl border border-rose-100">
-                  <div className="flex items-start gap-4 mb-8">
-                    <div className="w-12 h-12 bg-white text-rose-500 rounded-2xl flex items-center justify-center shadow-sm border border-rose-100 shrink-0">
-                      <i className="fas fa-exclamation-triangle" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-bold text-rose-900 tracking-tight">Correction Required</h3>
-                      <p className="text-sm text-rose-700/70 mt-1 font-medium">{req.update_note || req.revision_notes || "Client needs to address specific discrepancies."}</p>
-                    </div>
-                  </div>
-                  <div className="space-y-4">
-                    <textarea
-                      rows={4}
-                      value={revisionNotes}
-                      onChange={(e) => setRevisionNotes(e.target.value)}
-                      placeholder="Specify the corrections performed..."
-                      className="w-full bg-white border border-rose-200 rounded-2xl p-5 text-sm font-medium focus:ring-0 outline-none transition-all shadow-sm"
-                    />
-                    <button
-                      onClick={handleRevisionSubmit}
-                      disabled={updating || !revisionNotes.trim()}
-                      className="w-full h-12 bg-rose-600 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-rose-700 transition-all shadow-md disabled:opacity-30"
-                    >
-                      {updating ? <i className="fas fa-spinner fa-spin" /> : "Commit Corrections"}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Document Repository */}
-              <div className="space-y-8">
-                {canUpload && (
-                  <AccountantUploadForm 
-                    requestId={id} 
-                    onSuccess={fetchData} 
-                    showFinalToggle={req.status === "in_progress"}
+              <div className="overflow-x-auto pb-4 hide-scrollbar">
+                <div className="relative px-2 min-w-[500px]">
+                  <div className="absolute top-[1.125rem] left-10 right-10 h-0.5 bg-slate-100" />
+                  <div
+                    className={`absolute top-[1.125rem] left-10 h-0.5 transition-all duration-1000 ${
+                      req.status === "completed" || req.status === "approved"
+                        ? "bg-emerald-500"
+                        : (isWarning ? (req.status === "update_required" ? "bg-red-500" : "bg-amber-500") : "bg-slate-900")
+                    }`}
+                    style={{ width: `calc((100% - 5rem) * ${(currentStep - 1) / (MILESTONES.length - 1)})` }}
                   />
-                )}
 
-                {/* Repository Filter */}
-                <div className="flex p-1.5 bg-slate-100/80 rounded-2xl">
-                  <button 
-                    onClick={() => setActiveDocTab("client")}
-                    className={`flex-1 py-3 rounded-xl text-[11px] font-bold uppercase tracking-wide transition-all ${activeDocTab === "client" ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}
-                  >
-                    Client Submissions ({clientDocs.length})
-                  </button>
-                  <button 
-                    onClick={() => setActiveDocTab("internal")}
-                    className={`flex-1 py-3 rounded-xl text-[11px] font-bold uppercase tracking-wide transition-all ${activeDocTab === "internal" ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}
-                  >
-                    Internal Repository ({internalDocs.length})
-                  </button>
-                </div>
+                  <div className="relative z-10 flex justify-between">
+                    {MILESTONES.map((step, i) => {
+                      const isActive = step.id <= currentStep;
+                      const isCurrent = step.id === currentStep;
+                      const isStepCompleted = (isActive && !isCurrent) || (req.status === "completed" || req.status === "approved");
 
-                <div className="animate-in fade-in duration-500">
-                  <AccountantDocumentList 
-                    title={activeDocTab === "client" ? "Client Documents" : "Internal Documents"}
-                    documents={activeDocTab === "client" ? clientDocs : internalDocs}
-                    onDelete={handleDeleteDoc}
-                    onUpdateStatus={activeDocTab === "client" ? handleUpdateDocStatus : undefined}
-                  />
+                      let circleClasses = "bg-white border-slate-100 text-slate-200";
+                      if (isActive) circleClasses = "bg-white border-slate-900 text-slate-900 shadow-sm";
+                      if (isStepCompleted) {
+                        circleClasses = "bg-emerald-50 border-emerald-500 text-emerald-600 shadow-sm shadow-emerald-500/10";
+                      } else if (isCurrent && isWarning) {
+                        circleClasses = req.status === "update_required"
+                          ? "bg-red-50 border-red-500 text-red-600 shadow-sm shadow-red-500/20"
+                          : "bg-amber-50 border-amber-500 text-amber-600 shadow-sm shadow-amber-500/20";
+                      }
+
+                      return (
+                        <div key={step.id} className="flex flex-col items-center gap-4">
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold border-2 transition-all duration-500 ${circleClasses}`}>
+                            {isStepCompleted ? <i className="fas fa-check text-[10px]" /> : step.id}
+                          </div>
+                          <span className={`text-[10px] font-bold uppercase tracking-wide text-center max-w-[80px] ${
+                            isActive 
+                              ? (isCurrent && isWarning 
+                                ? (req.status === "update_required" ? "text-red-600" : "text-amber-600") 
+                                : (isStepCompleted ? "text-emerald-600" : "text-slate-900")) 
+                              : "text-slate-300"
+                          }`}>
+                            {step.label}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Strategic Controls */}
-            <div className="space-y-10">
-              {/* Task Management */}
-              <div className="bg-white rounded-3xl border border-slate-200 p-10 shadow-sm">
-                <h3 className="text-lg font-bold text-slate-900 tracking-tight mb-8">Management</h3>
-                
-                {["completed", "approved", "submitted_to_ca"].includes(req.status) && (
-                  <div className="mb-8">
-                    <div className={`p-4 rounded-2xl border text-center ${req.status === 'submitted_to_ca' ? 'bg-amber-50 border-amber-100 text-amber-700' : 'bg-emerald-50 border-emerald-100 text-emerald-700'}`}>
-                      <p className="text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2">
-                        <i className={`fas ${req.status === 'submitted_to_ca' ? 'fa-hourglass-half' : 'fa-check-circle'}`}></i>
-                        {req.status === 'submitted_to_ca' ? 'Review Pending' : 'Workflow Finalized'}
+            <hr className="border-slate-100" />
+
+            {/* 2. Details Grid (3 columns on desktop) */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {/* Column A: Client Profile */}
+              <div className="space-y-6">
+                <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">
+                  Client Profile
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">
+                      Name
+                    </p>
+                    <p className="text-sm font-black text-slate-900 tracking-tight">
+                      {req.user?.name}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">
+                      Contact
+                    </p>
+                    <p className="text-sm font-black text-slate-900 tracking-tight">
+                      {req.user?.mobile_number || "---"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">
+                      Email Address
+                    </p>
+                    <p className="text-sm font-black text-slate-900 tracking-tight truncate max-w-[200px]" title={req.user?.email}>
+                      {req.user?.email}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Column B: Submission Details */}
+              <div className="space-y-6 border-t border-slate-100 pt-6 md:border-t-0 md:pt-0 md:border-l md:pl-8">
+                <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">
+                  Application Details
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">
+                      Submission Date
+                    </p>
+                    <p className="text-sm font-black text-slate-900 tracking-tight">
+                      {req.created_at ? format(new Date(req.created_at), "MMMM d, yyyy") : "---"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">
+                      Category
+                    </p>
+                    <p className="text-sm font-black text-slate-900 tracking-tight">
+                      {req.service?.category?.name || "General"}
+                    </p>
+                  </div>
+                  {req.form_data?.pricing_plan && (
+                    <div>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">
+                        Selected Plan
+                      </p>
+                      <p className="text-sm font-black text-slate-900 tracking-tight">
+                        {req.form_data.pricing_plan}
                       </p>
                     </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Column C: Appointment Info */}
+              <div className="space-y-6 border-t border-slate-100 pt-6 md:border-t-0 md:pt-0 md:border-l md:pl-8">
+                <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">
+                  Appointment details
+                </h3>
+                {req.form_data?.appointment_request === "yes" ? (
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">
+                        Scheduled Date
+                      </p>
+                      <p className="text-sm font-black text-slate-900 tracking-tight">
+                        {req.form_data.scheduled_date}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">
+                        Scheduled Time
+                      </p>
+                      <p className="text-sm font-black text-slate-900 tracking-tight">
+                        {req.form_data.scheduled_time}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 text-emerald-600 mt-2">
+                      <i className="fas fa-check-circle text-xs"></i>
+                      <span className="text-[10px] font-black uppercase tracking-widest">
+                        Confirmed Slot
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-slate-400 text-xs font-medium italic uppercase tracking-wider">
+                    No appointment requested
                   </div>
                 )}
+              </div>
+            </div>
 
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 gap-3">
+            <hr className="border-slate-100" />
+
+            {/* 3. Task Management controls */}
+            <div className="bg-slate-50 border border-slate-100 rounded-2xl p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div className="space-y-1">
+                <h3 className="text-base font-black tracking-tight text-slate-900">
+                  Process Status Management
+                </h3>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  Perform operations on this request
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 min-w-[280px]">
+                {["completed", "approved"].includes(req.status) ? (
+                  <div className="flex items-center gap-2 text-emerald-600 px-4 py-2 bg-emerald-50 rounded-xl border border-emerald-100 font-bold text-xs uppercase tracking-wider">
+                    <i className="fas fa-check-circle"></i>
+                    Workflow Finalized
+                  </div>
+                ) : (
+                  <>
                     {(req.status === "applied" || req.status === "paid") && (
-                      <button 
+                      <button
                         onClick={() => handleUpdateStatus({ status: "under_review" })}
-                        className="w-full h-12 bg-slate-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-wider hover:bg-slate-800 transition-all shadow-sm"
+                        className="h-11 px-5 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-slate-800 transition-all shadow-md shadow-slate-900/10"
                       >
                         Initiate Review
                       </button>
@@ -335,18 +395,18 @@ export function AccountantRequestDetailView() {
 
                     {req.status === "under_review" && (
                       <>
-                        <button 
+                        <button
                           onClick={() => handleUpdateStatus({ status: "in_progress" } as any)}
-                          className="w-full h-12 bg-slate-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-wider hover:bg-slate-800 transition-all shadow-sm"
+                          className="h-11 px-5 bg-blue-900 text-white rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-blue-800 transition-all shadow-md shadow-blue-900/10"
                         >
                           Approve Docs
                         </button>
-                        <button 
+                        <button
                           onClick={() => {
                             setStatusForm({ ...statusForm, status: "update_required" });
                             setShowStatusModal(true);
                           }}
-                          className="w-full h-12 bg-white border border-slate-200 text-slate-700 rounded-2xl text-[11px] font-bold uppercase tracking-wider hover:bg-slate-50 transition-all"
+                          className="h-11 px-5 bg-white border border-slate-200 text-slate-700 rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-slate-50 transition-all"
                         >
                           Request Updates
                         </button>
@@ -354,62 +414,105 @@ export function AccountantRequestDetailView() {
                     )}
 
                     {req.status === "in_progress" && (
-                      <button 
-                        onClick={() => handleUpdateStatus({ status: "submitted_to_ca" } as any)}
-                        className="w-full h-12 bg-slate-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-wider hover:bg-slate-800 transition-all shadow-sm"
+                      <button
+                        onClick={() => handleUpdateStatus({ status: "completed" } as any)}
+                        className="h-11 px-5 bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-emerald-500 transition-all shadow-md shadow-emerald-600/10"
                       >
-                        Submit Dossier
+                        Complete Service
                       </button>
                     )}
 
                     {req.status === "update_required" && (
-                      <button 
+                      <button
                         onClick={() => handleUpdateStatus({ status: "under_review" } as any)}
-                        className="w-full h-12 bg-slate-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-wider hover:bg-slate-800 transition-all shadow-sm"
+                        className="h-11 px-5 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-slate-800 transition-all shadow-md shadow-slate-900/10"
                       >
                         Restart Review
                       </button>
                     )}
-                  </div>
+                  </>
+                )}
 
-                  <button 
-                    onClick={() => setShowStatusModal(true)}
-                    className="w-full h-10 text-slate-400 hover:text-slate-600 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all border border-slate-100 hover:border-slate-200"
-                  >
-                    Advanced controls
-                  </button>
+                <button
+                  onClick={() => setShowStatusModal(true)}
+                  className="h-11 px-4 text-slate-500 hover:text-slate-700 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border border-slate-200 hover:bg-slate-50"
+                >
+                  Advanced controls
+                </button>
+              </div>
+            </div>
+
+            {/* 4. Internal Directives Section */}
+            {req.ca_notes && (
+              <>
+                <hr className="border-slate-100" />
+                <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                  <div className="flex items-center gap-2 mb-3">
+                    <i className="fas fa-info-circle text-slate-400 text-xs" />
+                    <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Internal Directives</h3>
+                  </div>
+                  <p className="text-sm font-medium text-slate-700 leading-relaxed">
+                    {req.ca_notes}
+                  </p>
                 </div>
+              </>
+            )}
+
+            <hr className="border-slate-100" />
+
+            {/* 5. Information Provided (FormDataRenderer) */}
+            <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white">
+              <FormDataRenderer
+                formData={req.form_data}
+                title="Application Artifacts"
+                icon="fa-id-card"
+              />
+            </div>
+
+            <hr className="border-slate-100" />
+
+            {/* 6. Document Repository */}
+            <div className="space-y-6">
+              <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Document Repository</h3>
+              
+              {canUpload && (
+                <AccountantUploadForm
+                  requestId={id}
+                  onSuccess={fetchData}
+                  showFinalToggle={req.status === "in_progress"}
+                />
+              )}
+
+              {/* Repository Filter */}
+              <div className="flex p-1 bg-slate-100/80 rounded-xl max-w-md">
+                <button
+                  onClick={() => setActiveDocTab("client")}
+                  className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${activeDocTab === "client" ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}
+                >
+                  Client Submissions ({clientDocs.length})
+                </button>
+                <button
+                  onClick={() => setActiveDocTab("internal")}
+                  className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${activeDocTab === "internal" ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}
+                >
+                  Internal Repository ({internalDocs.length})
+                </button>
               </div>
 
-              {/* User Context */}
-              <div className="bg-white rounded-3xl border border-slate-200 p-10 shadow-sm">
-                <h3 className="text-lg font-bold text-slate-900 tracking-tight mb-8">Client Profile</h3>
-                <div className="space-y-8">
-                  <div className="flex items-center gap-5">
-                    <div className="h-14 w-14 rounded-2xl bg-slate-900 text-white flex items-center justify-center font-bold text-lg shadow-sm">
-                      {req.user?.name?.charAt(0)}
-                    </div>
-                    <div>
-                      <h4 className="text-base font-bold text-slate-900 leading-none mb-1.5">{req.user?.name}</h4>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Validated Account</p>
-                    </div>
-                  </div>
-                  <div className="space-y-6 pt-2 border-t border-slate-50">
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Direct Line</p>
-                      <p className="text-sm font-bold text-slate-700">{req.user?.mobile_number || "---"}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Email Base</p>
-                      <p className="text-sm font-bold text-slate-700 truncate">{req.user?.email}</p>
-                    </div>
-                  </div>
-                </div>
+              <div className="animate-in fade-in duration-500">
+                <AccountantDocumentList
+                  title={activeDocTab === "client" ? "Client Documents" : "Internal Documents"}
+                  documents={activeDocTab === "client" ? clientDocs : internalDocs}
+                  onDelete={handleDeleteDoc}
+                  onUpdateStatus={activeDocTab === "client" ? handleUpdateDocStatus : undefined}
+                />
               </div>
             </div>
           </div>
         </div>
       </AdminLayout>
+
+
 
       <Modal isOpen={showStatusModal} onClose={() => setShowStatusModal(false)} title="Workflow Management">
         <form onSubmit={handleUpdateStatus} className="space-y-8">
@@ -421,13 +524,14 @@ export function AccountantRequestDetailView() {
               { value: "applied", label: "Initial Submission" },
               { value: "under_review", label: "Verification Stage" },
               { value: "in_progress", label: "Processing Stage" },
-              { value: "submitted_to_ca", label: "Submit to CA/Admin" },
+
               { value: "update_required", label: "Request Client Correction" },
+              { value: "completed", label: "Success / Completed" },
               { value: "rejected", label: "Reject Filing" },
               { value: "cancelled", label: "Cancel Application" },
             ]}
           />
-          
+
           {statusForm.status === "update_required" && (
             <FormTextarea
               label="Update Directives"
@@ -465,6 +569,25 @@ export function AccountantRequestDetailView() {
           </div>
         </form>
       </Modal>
+
+      <ChatNoteModal
+        isOpen={viewingNoteService}
+        onClose={() => setViewingNoteService(false)}
+        title="Service Notes"
+        contextName={req.service?.name || "Service Application"}
+        noteText={req.update_note || req.revision_notes || ""}
+        userType="accountant"
+        onSubmitNote={async (note: string) => {
+          const roleName = currentUser?.role === "super_admin" ? "Admin" : "Accountant";
+          const senderName = currentUser?.name;
+          const formattedNote = senderName ? `${roleName} (${senderName}): ${note}` : `${roleName}: ${note}`;
+          const currentNotes = req.update_note || req.revision_notes || "";
+          const newNoteText = currentNotes ? `${currentNotes}\n\n${formattedNote}` : formattedNote;
+          await handleUpdateStatus({ status: req.status, update_note: newNoteText });
+          setReq({ ...req, update_note: newNoteText });
+        }}
+      />
+      <ConfirmDialog />
     </AuthGuard>
   );
 }

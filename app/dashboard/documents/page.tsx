@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { DashboardDocumentsView } from "@/components/dashboard/dashboard-documents-view";
 import { normalizePaymentServiceIds } from "@/lib/utils/payment-navigation";
 
@@ -13,8 +14,11 @@ function readFirst(
 }
 
 export default async function DashboardDocumentsPage(
-  props: PageProps<"/dashboard/documents">,
+  props: {
+    searchParams: Promise<Record<string, string | string[] | undefined>>;
+  },
 ) {
+  await connection();
   const searchParams = await props.searchParams;
 
   return (

@@ -10,6 +10,7 @@ import { StatCard } from "@/components/dashboard/stat-card";
 import { StatusIndicator } from "@/components/ui/status-indicator";
 import { buildCollectionKey } from "@/lib/utils/list-keys";
 import { useStoredUser } from "@/lib/auth/hooks";
+import { LogoLoader } from "@/components/ui/logo-loader";
 
 export function AccountantDashboardView() {
     const dispatch = useAppDispatch();
@@ -61,11 +62,8 @@ export function AccountantDashboardView() {
                                         <tbody className="divide-y divide-slate-50">
                                             {loading ? (
                                                 <tr>
-                                                    <td colSpan={3} className="px-8 py-24 text-center">
-                                                        <div className="flex flex-col items-center gap-4">
-                                                            <div className="h-10 w-10 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
-                                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Loading Assignments...</p>
-                                                        </div>
+                                                    <td colSpan={3} className="px-8 py-20 text-center">
+                                                        <LogoLoader size={48} label="Loading Assignments..." />
                                                     </td>
                                                 </tr>
                                             ) : serviceRequests.length === 0 ? (

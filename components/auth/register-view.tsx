@@ -1,25 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { isAxiosError } from "axios";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiClient } from "@/lib/api/client";
+import { AuthShowcasePanel } from "@/components/auth/auth-showcase-panel";
+import { AuthSplitLayout } from "@/components/auth/auth-split-layout";
 import { SocialAuthOptions } from "@/components/auth/social-auth-options";
 import { registerAndSignIn } from "@/lib/auth/auth-client";
-import {
-  getDefaultRedirectPath,
-  type AuthUser,
-} from "@/lib/auth/storage";
+import { getDefaultRedirectPath } from "@/lib/auth/storage";
 import { useStoredUser } from "@/lib/auth/hooks";
-
-type RegisterResponse = {
-  data?: {
-    token?: string;
-    user?: AuthUser;
-  };
-  message?: string;
-};
+import {
+  AUTH_ERROR_MESSAGES,
+  getFriendlyAuthErrorMessage,
+  logAuthError,
+} from "@/lib/auth/error-helper";
 
 type OtpResponse = {
   data?: {
@@ -57,7 +52,7 @@ const COUNTRIES = [
 
 export function RegisterView() {
   const router = useRouter();
-  
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -84,7 +79,7 @@ export function RegisterView() {
 
   const [rmDetails, setRmDetails] = useState<RegionalManagerResult | null>(null);
   const [rmLoading, setRmLoading] = useState(false);
-  
+
   const [loading, setLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -99,7 +94,7 @@ export function RegisterView() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    
+
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
     }
@@ -167,8 +162,11 @@ export function RegisterView() {
       setVerification((prev) => ({ ...prev, emailSent: true, emailOtp: "" }));
       setDevOtp(response.data?.data?.otp ?? "");
     } catch (err) {
-      const message = isAxiosError(err) ? err.response?.data?.message || err.message : "Failed to send OTP";
-      setErrors((prev) => ({ ...prev, email: message }));
+      logAuthError("Registration OTP request failed", err);
+      setErrors((prev) => ({
+        ...prev,
+        email: getFriendlyAuthErrorMessage(err, AUTH_ERROR_MESSAGES.GENERIC),
+      }));
     } finally {
       setVerification((prev) => ({ ...prev, loading: { ...prev.loading, email: false } }));
     }
@@ -185,7 +183,7 @@ export function RegisterView() {
         value: formData.email,
         otp,
       });
-      
+
       if (response.data?.success || response.data?.message === "OTP verified") {
         setVerification((prev) => ({ ...prev, emailVerified: true }));
         setErrors((prev) => {
@@ -195,7 +193,11 @@ export function RegisterView() {
         });
       }
     } catch (err) {
-      setErrors((prev) => ({ ...prev, email: "Invalid OTP" }));
+      logAuthError("Registration OTP verification failed", err);
+      setErrors((prev) => ({
+        ...prev,
+        email: getFriendlyAuthErrorMessage(err, AUTH_ERROR_MESSAGES.INVALID_VERIFICATION_CODE),
+      }));
     } finally {
       setVerification((prev) => ({ ...prev, loading: { ...prev.loading, verify: false } }));
     }
@@ -212,7 +214,11 @@ export function RegisterView() {
       });
       setRmDetails(response.data?.data ?? null);
     } catch (err) {
-      setErrors((prev) => ({ ...prev, rm_id: "Invalid RM ID or not found" }));
+      logAuthError("Relationship manager lookup failed", err);
+      setErrors((prev) => ({
+        ...prev,
+        rm_id: getFriendlyAuthErrorMessage(err, AUTH_ERROR_MESSAGES.ACCOUNT_NOT_FOUND),
+      }));
     } finally {
       setRmLoading(false);
     }
@@ -243,28 +249,17 @@ export function RegisterView() {
       const result = await registerAndSignIn(submissionData);
       router.replace(getDefaultRedirectPath(result.user));
     } catch (err) {
-      const message = isAxiosError(err)
-        ? (err.response?.data?.message ?? err.message)
-        : err instanceof Error
-          ? err.message
-          : "Registration failed. Please try again.";
-      setErrors({ message });
+      setErrors({
+        message: getFriendlyAuthErrorMessage(err, AUTH_ERROR_MESSAGES.GENERIC),
+      });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-900 p-4">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute left-0 top-0 h-full w-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10" />
-        <div className="absolute right-20 top-20 h-72 w-72 rounded-full bg-amber-500/20 blur-3xl" />
-        <div className="absolute bottom-20 left-20 h-96 w-96 rounded-full bg-blue-500/20 blur-3xl" />
-      </div>
-
-      <div className="relative flex w-full max-w-5xl flex-col overflow-hidden rounded-3xl bg-white/95 shadow-2xl backdrop-blur-sm md:flex-row">
-        {/* Left Side - Form */}
+    <AuthSplitLayout accentLayout="mirrored">
+      {/* Left Side - Form */}
         <div className="order-2 p-8 md:order-1 md:w-1/2 md:p-12">
           <div className="mx-auto max-w-sm">
             <div className="mb-8 text-center">
@@ -291,9 +286,8 @@ export function RegisterView() {
                     name="name"
                     value={formData.name}
                     onChange={handleChange}
-                    className={`w-full rounded-xl border py-3.5 pl-12 pr-4 text-slate-900 outline-none transition-all focus:border-transparent focus:bg-white focus:ring-2 focus:ring-blue-900 ${
-                      errors.name ? "border-red-300 bg-red-50" : "border-slate-200 bg-slate-50"
-                    }`}
+                    className={`w-full rounded-xl border py-3.5 pl-12 pr-4 text-slate-900 outline-none transition-all focus:border-transparent focus:bg-white focus:ring-2 focus:ring-blue-900 ${errors.name ? "border-red-300 bg-red-50" : "border-slate-200 bg-slate-50"
+                      }`}
                     placeholder="John Doe"
                   />
                 </div>
@@ -313,9 +307,8 @@ export function RegisterView() {
                       disabled={verification.emailVerified}
                       value={formData.email}
                       onChange={handleChange}
-                      className={`w-full rounded-xl border py-3.5 pl-12 pr-4 text-slate-900 outline-none transition-all focus:border-transparent focus:ring-2 focus:ring-blue-900 ${
-                        errors.email ? "border-red-300 bg-red-50" : "border-slate-200 bg-slate-50"
-                      } ${verification.emailVerified ? "bg-green-50" : "focus:bg-white"}`}
+                      className={`w-full rounded-xl border py-3.5 pl-12 pr-4 text-slate-900 outline-none transition-all focus:border-transparent focus:ring-2 focus:ring-blue-900 ${errors.email ? "border-red-300 bg-red-50" : "border-slate-200 bg-slate-50"
+                        } ${verification.emailVerified ? "bg-green-50" : "focus:bg-white"}`}
                       placeholder="name@company.com"
                     />
                     {verification.emailVerified && (
@@ -406,9 +399,8 @@ export function RegisterView() {
                         name="mobile_number"
                         value={formData.mobile_number}
                         onChange={(e) => setFormData({ ...formData, mobile_number: e.target.value.replace(/[^\d]/g, "") })}
-                        className={`w-full rounded-xl border py-3.5 pl-20 pr-4 text-slate-900 outline-none transition-all focus:border-transparent focus:bg-white focus:ring-2 focus:ring-blue-900 ${
-                          errors.mobile_number ? "border-red-300 bg-red-50" : "border-slate-200 bg-slate-50"
-                        }`}
+                        className={`w-full rounded-xl border py-3.5 pl-20 pr-4 text-slate-900 outline-none transition-all focus:border-transparent focus:bg-white focus:ring-2 focus:ring-blue-900 ${errors.mobile_number ? "border-red-300 bg-red-50" : "border-slate-200 bg-slate-50"
+                          }`}
                         placeholder="Enter mobile number"
                         required
                       />
@@ -429,9 +421,8 @@ export function RegisterView() {
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
-                    className={`w-full rounded-xl border py-3.5 pl-12 pr-12 text-slate-900 outline-none transition-all focus:border-transparent focus:bg-white focus:ring-2 focus:ring-blue-900 ${
-                      errors.password ? "border-red-300 bg-red-50" : "border-slate-200 bg-slate-50"
-                    }`}
+                    className={`w-full rounded-xl border py-3.5 pl-12 pr-12 text-slate-900 outline-none transition-all focus:border-transparent focus:bg-white focus:ring-2 focus:ring-blue-900 ${errors.password ? "border-red-300 bg-red-50" : "border-slate-200 bg-slate-50"
+                      }`}
                     placeholder="Min. 8 characters"
                   />
                   <button
@@ -456,9 +447,8 @@ export function RegisterView() {
                     name="password_confirmation"
                     value={formData.password_confirmation}
                     onChange={handleChange}
-                    className={`w-full rounded-xl border py-3.5 pl-12 pr-12 text-slate-900 outline-none transition-all focus:border-transparent focus:bg-white focus:ring-2 focus:ring-blue-900 ${
-                      errors.password_confirmation ? "border-red-300 bg-red-50" : "border-slate-200 bg-slate-50"
-                    }`}
+                    className={`w-full rounded-xl border py-3.5 pl-12 pr-12 text-slate-900 outline-none transition-all focus:border-transparent focus:bg-white focus:ring-2 focus:ring-blue-900 ${errors.password_confirmation ? "border-red-300 bg-red-50" : "border-slate-200 bg-slate-50"
+                      }`}
                     placeholder="Confirm your password"
                   />
                   <button
@@ -501,9 +491,8 @@ export function RegisterView() {
                         name="rm_id"
                         value={formData.rm_id}
                         onChange={handleChange}
-                        className={`w-full rounded-xl border py-3 pl-12 pr-4 text-slate-900 outline-none transition-all focus:border-transparent focus:bg-white focus:ring-2 focus:ring-blue-900 ${
-                          errors.rm_id ? "border-red-300 bg-red-50" : "border-slate-200 bg-slate-50"
-                        }`}
+                        className={`w-full rounded-xl border py-3 pl-12 pr-4 text-slate-900 outline-none transition-all focus:border-transparent focus:bg-white focus:ring-2 focus:ring-blue-900 ${errors.rm_id ? "border-red-300 bg-red-50" : "border-slate-200 bg-slate-50"
+                          }`}
                         placeholder="RM000001"
                       />
                     </div>
@@ -577,74 +566,48 @@ export function RegisterView() {
           </div>
         </div>
 
-        {/* Right Side - Image & Info */}
-        <div className="relative order-1 flex min-h-[400px] flex-col justify-between overflow-hidden p-12 text-white md:order-2 md:min-h-[600px] md:w-1/2">
-          {/* Background Image */}
-          <div className="absolute inset-0">
-            <img
-              src="https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=1200&auto=format&fit=crop"
-              alt="Business Office Team"
-              className="h-full w-full object-cover"
-            />
-            {/* Dark Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-900/90 via-blue-800/85 to-indigo-900/90" />
-          </div>
-
-          {/* Pattern Overlay */}
-          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10" />
-          
-          <div className="relative z-10">
-            <div className="mb-8 flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20">
-                <i className="fas fa-chart-line text-2xl" />
-              </div>
+      <AuthShowcasePanel
+        className="order-1 md:order-2"
+        imageSrc="https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=1200&auto=format&fit=crop"
+        imageAlt="Business Office Team"
+        title="Start Your Journey!"
+        description="Create an account today and unlock access to our premium financial, taxation, and business advisory services."
+      >
+        <div className="relative z-10 mt-8">
+          <div className="mb-6 rounded-2xl bg-white/10 p-6 backdrop-blur-sm">
+            <div className="mb-4 flex items-center gap-4">
+              <img src="/assets/images/testimonials/Ravishankar_Water_Coat.png" alt="Client" className="h-12 w-12 rounded-full border-2 border-amber-500 object-cover" />
               <div>
-                <h1 className="text-xl font-bold">Doorstepfilings</h1>
+                <p className="font-semibold">Rahul Sharma</p>
+                <p className="text-sm text-blue-200">Business Owner</p>
               </div>
             </div>
-
-            <h2 className="mb-4 text-4xl font-bold">Start Your Journey!</h2>
-            <p className="text-lg leading-relaxed text-blue-100">
-              Create an account today and unlock access to our premium financial, taxation, and business advisory services.
+            <p className="italic text-blue-100">
+              &quot;Doorstepfilings has transformed how I manage my business finances. The expert guidance and seamless service have been invaluable. Highly recommended!&quot;
             </p>
+            <div className="mt-3 flex gap-1">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <i key={star} className="fas fa-star text-sm text-amber-400" />
+              ))}
+            </div>
           </div>
 
-          <div className="relative z-10 mt-8">
-            <div className="mb-6 rounded-2xl bg-white/10 p-6 backdrop-blur-sm">
-              <div className="mb-4 flex items-center gap-4">
-                <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&auto=format&fit=crop" alt="Client" className="h-12 w-12 rounded-full border-2 border-amber-500 object-cover" />
-                <div>
-                  <p className="font-semibold">Rahul Sharma</p>
-                  <p className="text-sm text-blue-200">Business Owner</p>
-                </div>
-              </div>
-              <p className="italic text-blue-100">
-                "Doorstepfilings has transformed how I manage my business finances. The expert guidance and seamless service have been invaluable. Highly recommended!"
-              </p>
-              <div className="mt-3 flex gap-1">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <i key={star} className="fas fa-star text-sm text-amber-400" />
-                ))}
-              </div>
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 text-sm">
+              <i className="fas fa-check-circle text-amber-400" />
+              <span>Free Initial Consultation</span>
             </div>
-
-            <div className="space-y-3">
-              <div className="flex items-center gap-3 text-sm">
-                <i className="fas fa-check-circle text-amber-400" />
-                <span>Free Initial Consultation</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm">
-                <i className="fas fa-check-circle text-amber-400" />
-                <span>Expert CA Guidance</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm">
-                <i className="fas fa-check-circle text-amber-400" />
-                <span>24/7 Online Support</span>
-              </div>
+            <div className="flex items-center gap-3 text-sm">
+              <i className="fas fa-check-circle text-amber-400" />
+              <span>Expert CA Guidance</span>
+            </div>
+            <div className="flex items-center gap-3 text-sm">
+              <i className="fas fa-check-circle text-amber-400" />
+              <span>24/7 Online Support</span>
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </AuthShowcasePanel>
+    </AuthSplitLayout>
   );
 }

@@ -178,7 +178,7 @@ export function PublicFooter() {
               </li>
               <li>
                 <Link
-                  href="/confidentiality-policy"
+                  href="/confidentiality"
                   className="text-gray-400 transition-colors hover:text-white"
                 >
                   Confidentiality Policy
@@ -186,7 +186,7 @@ export function PublicFooter() {
               </li>
               <li>
                 <Link
-                  href="/refund-policy"
+                  href="/refund"
                   className="text-gray-400 transition-colors hover:text-white"
                 >
                   Refund Policy
@@ -194,7 +194,7 @@ export function PublicFooter() {
               </li>
               <li>
                 <Link
-                  href="/disclaimer-policy"
+                  href="/disclaimer"
                   className="text-gray-400 transition-colors hover:text-white"
                 >
                   Disclaimer Policy

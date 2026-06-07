@@ -1,4 +1,5 @@
 "use client";
+import { PageLogoLoader } from "@/components/ui/logo-loader";
 
 import Link from "next/link";
 import { useEffect, useMemo } from "react";
@@ -45,11 +46,7 @@ export function DashboardReportsView() {
   );
 
   if (loading && reports.length === 0) {
-    return (
-      <div className="flex h-96 items-center justify-center">
-        <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-900 border-t-transparent" />
-      </div>
-    );
+    return <PageLogoLoader label="Loading reports..." />;
   }
 
   return (

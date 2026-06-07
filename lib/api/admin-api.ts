@@ -1,5 +1,21 @@
 import { api } from './index';
 
+export type UserLocationInput = {
+    address?: string | null;
+    city?: string | null;
+    pincode?: string | null;
+    state?: string | null;
+};
+
+export type AssignRMInput = UserLocationInput & {
+    user_id: number;
+    rm_id: number | null;
+};
+
+export type UpdateRoleInput = UserLocationInput & {
+    role: string;
+};
+
 export const adminApi = {
     // Users
     getUsers: (role?: string) => api.get('/admin/users', { params: { role } }),
@@ -7,9 +23,9 @@ export const adminApi = {
     getAccountants: () => api.get('/admin/accountants'),
     storeUser: (data: any) => api.post('/admin/users/store', data),
     deleteUser: (id: number) => api.delete(`/admin/users/${id}`),
-    assignRM: (data: { user_id: number; rm_id: number | null }) => api.post('/admin/users/assign-rm', data),
+    assignRM: (data: AssignRMInput) => api.post('/admin/users/assign-rm', data),
     assignAccountant: (data: { user_id: number; accountant_id: number | null }) => api.post('/admin/users/assign-accountant', data),
-    updateRole: (id: number, role: string) => api.post(`/admin/users/update-role/${id}`, { role }),
+    updateRole: (id: number, data: UpdateRoleInput) => api.post(`/admin/users/update-role/${id}`, data),
     
     // Categories
     getCategories: () => api.get('/admin/categories'),

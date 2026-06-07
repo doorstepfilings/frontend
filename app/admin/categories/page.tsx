@@ -1,5 +1,5 @@
-import { CatalogManagementView } from "@/components/admin/catalog-management-view";
+import { CategoryManagementView } from "@/components/admin/category-management-view";
 
 export default function AdminCategoriesPage() {
-  return <CatalogManagementView initialType="categories" />;
+  return <CategoryManagementView />;
 }

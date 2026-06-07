@@ -4,20 +4,17 @@ import React from 'react';
 
 const STATUS_CONFIG: any = {
     in_cart: { bg: 'bg-slate-100', text: 'text-slate-700', border: 'border-slate-200', label: 'In Cart' },
-    draft: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', label: 'Draft' },
-    pending: { bg: 'bg-yellow-50', text: 'text-yellow-700', border: 'border-yellow-200', label: 'Awaiting Review' },
-    under_review: { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200', label: 'Verifying' },
-    update_required: { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200', label: 'Action Required' },
-    approved: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', label: 'Approved' },
-    rejected: { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200', label: 'Rejected' },
-    cancelled: { bg: 'bg-slate-50', text: 'text-slate-700', border: 'border-slate-200', label: 'Cancelled' },
-    completed: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', label: 'Completed' },
-    paid: { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200', label: 'Paid' },
-    applied: { bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-200', label: 'Applied' },
+    draft: { bg: 'bg-slate-50', text: 'text-slate-700', border: 'border-slate-200', label: 'Draft' },
+    applied: { bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-200', label: 'Initial Submission' },
     payment_pending: { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200', label: 'Payment Pending' },
-    in_progress: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', label: 'Processing' },
-    document_collection: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', label: 'Doc Collection' },
-    submitted_to_ca: { bg: 'bg-teal-50', text: 'text-teal-700', border: 'border-teal-200', label: 'Forwarded to CA' },
+    document_collection: { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200', label: 'Docs Needed' },
+    under_review: { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200', label: 'Verifying' },
+    update_required: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', label: 'Correction Required' },
+    in_progress: { bg: 'bg-cyan-50', text: 'text-cyan-700', border: 'border-cyan-200', label: 'Processing' },
+    completed: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', label: 'Completed' },
+    rejected: { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', label: 'Rejected' },
+    cancelled: { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', label: 'Cancelled' },
+
 };
 
 export function StatusIndicator({ status, size = 'sm', className = '' }: { status: string, size?: 'sm' | 'lg', className?: string }) {

@@ -167,18 +167,16 @@ export default function ContactPage() {
 
                   <div className="flex items-start gap-4 rounded-xl bg-white p-6 shadow-sm">
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-purple-100">
-                      <i className="fab fa-whatsapp text-xl text-purple-700"></i>
+                      <i className="fas fa-headset text-xl text-purple-700"></i>
                     </div>
                     <div>
-                      <h3 className="mb-1 font-bold text-gray-900">WhatsApp</h3>
+                      <h3 className="mb-1 font-bold text-gray-900">Support & Help Desk</h3>
                       <p className="text-gray-600">
                         <a
-                          href="https://wa.me/919898196396"
+                          href="mailto:info@doorstepfilings.com"
                           className="hover:text-blue-900"
-                          target="_blank"
-                          rel="noopener noreferrer"
                         >
-                          +91 9898 196 396
+                          info@doorstepfilings.com
                         </a>
                       </p>
                     </div>
@@ -286,8 +284,8 @@ export default function ContactPage() {
                         className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none transition-all focus:border-transparent focus:ring-2 focus:ring-blue-900"
                       >
                         <option value="">Select a service</option>
-                        {dynamicServices.map((service, idx) => (
-                          <option key={idx} value={service}>
+                        {dynamicServices.map((service) => (
+                          <option key={service} value={service}>
                             {service}
                           </option>
                         ))}

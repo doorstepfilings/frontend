@@ -4,8 +4,10 @@ import { useEffect, useState, useMemo } from "react";
 import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
 import { fetchMyServices } from "@/lib/features/services/services-slice";
 import { StatusIndicator } from "@/components/ui/status-indicator";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import Link from "next/link";
 import { format } from "date-fns";
+import { LogoLoader } from "@/components/ui/logo-loader";
 
 export function MyServicesView() {
     const dispatch = useAppDispatch();
@@ -46,17 +48,20 @@ export function MyServicesView() {
                         className="w-full pl-14 pr-6 py-4 bg-white border border-slate-200 rounded-2xl text-sm font-bold focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all"
                     />
                 </div>
-                <select 
+                <SearchableSelect 
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    className="h-14 px-8 bg-white border border-slate-200 rounded-2xl text-xs font-black uppercase tracking-widest outline-none appearance-none cursor-pointer"
-                >
-                    <option value="all">All Stages</option>
-                    <option value="applied">New Applications</option>
-                    <option value="in_progress">In Progress</option>
-                    <option value="under_review">Under Review</option>
-                    <option value="completed">Completed</option>
-                </select>
+                    options={[
+                      { value: "all", label: "All Stages" },
+                      { value: "applied", label: "New Applications" },
+                      { value: "in_progress", label: "In Progress" },
+                      { value: "under_review", label: "Under Review" },
+                      { value: "completed", label: "Completed" }
+                    ]}
+                    placeholder="All Stages"
+                    size="sm"
+                    className="min-w-[200px]"
+                />
             </div>
 
             {/* List */}
@@ -75,7 +80,7 @@ export function MyServicesView() {
                             {loading ? (
                                 <tr>
                                     <td colSpan={4} className="px-10 py-32 text-center">
-                                        <div className="h-10 w-10 animate-spin rounded-full border-2 border-blue-900 border-t-transparent mx-auto"></div>
+                                        <LogoLoader size={56} label="Loading services..." />
                                     </td>
                                 </tr>
                             ) : filteredServices.length === 0 ? (

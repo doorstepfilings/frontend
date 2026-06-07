@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
 import { fetchServices } from "@/lib/features/services/services-slice";
 import { apiClient } from "@/lib/api/client";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
   Dialog,
   DialogContent,
@@ -166,19 +167,17 @@ export function ContactFloatingButton() {
                 <label className="mb-1 block text-xs font-semibold text-gray-700">
                   Service Related to
                 </label>
-                <select
+                <SearchableSelect
                   name="service"
                   value={formData.service}
-                  onChange={handleChange}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none transition-all focus:border-transparent focus:ring-2 focus:ring-blue-900"
-                >
-                  <option value="">Select a service</option>
-                  {allServices.map((service, idx) => (
-                    <option key={idx} value={service.name}>
-                      {service.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={handleChange as any}
+                  options={allServices.map((service) => ({
+                    value: service.name,
+                    label: service.name,
+                  }))}
+                  placeholder="Select a service"
+                  size="sm"
+                />
               </div>
 
               <div>

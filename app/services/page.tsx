@@ -6,6 +6,8 @@ import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
 import { fetchServices } from "@/lib/features/services/services-slice";
 import { Button } from "@/components/ui/button";
 import { PublicShell } from "@/components/layout/public-shell";
+import { PanelLogoLoader } from "@/components/ui/logo-loader";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 const priceFormatter = new Intl.NumberFormat("en-IN");
 
@@ -44,6 +46,7 @@ export default function ServicesDirectoryPage() {
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
   const [sortBy, setSortBy] = useState("featured");
+  const [showFilters, setShowFilters] = useState(false);
   const deferredQuery = useDeferredValue(query);
 
   useEffect(() => {
@@ -75,11 +78,7 @@ export default function ServicesDirectoryPage() {
 
   const matchesQuery = (service: any) => {
     if (!loweredQuery) return true;
-    const haystack = [service.name, service.short_description, service.description, service.categoryName]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase();
-    return haystack.includes(loweredQuery);
+    return service.name.toLowerCase().includes(loweredQuery);
   };
 
   const categoryOptions = useMemo(() => {
@@ -115,24 +114,23 @@ export default function ServicesDirectoryPage() {
   return (
     <PublicShell>
       <div className="min-h-screen bg-slate-50 text-slate-900">
-        {/* Hero Section */}
-        <section className="relative overflow-hidden bg-slate-950 pb-24 pt-16 lg:pb-32 lg:pt-24">
+        {/* Simple Header with Background Image */}
+        <section className="relative overflow-hidden bg-slate-900 py-12 text-white">
+          {/* Background Image */}
           <div className="absolute inset-0">
-            <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950" />
-            <div className="absolute left-[-12rem] top-[-10rem] h-[28rem] w-[28rem] rounded-full bg-blue-600/20 blur-[120px]" />
-            <div className="absolute bottom-[-12rem] right-[-8rem] h-[24rem] w-[24rem] rounded-full bg-amber-500/20 blur-[110px]" />
+            <img
+              src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1600&auto=format&fit=crop"
+              alt="Clean Corporate Building"
+              className="h-full w-full object-cover"
+            />
           </div>
 
-          <div className="container relative mx-auto px-4">
-            <div className="max-w-4xl">
-              <div className="inline-flex items-center gap-2 rounded-full border border-amber-400/20 bg-amber-400/10 px-4 py-2">
-                <span className="h-2 w-2 rounded-full bg-amber-400" />
-                <span className="text-[10px] font-black uppercase tracking-[0.25em] text-amber-300">Explore Services</span>
-              </div>
-              <h1 className="mt-6 text-4xl font-black leading-tight text-white sm:text-5xl lg:text-7xl">
-                Professional Business <br /> <span className="text-blue-400">Filings & Compliance.</span>
+          <div className="container relative z-10 mx-auto px-4 pb-4 text-center">
+            <div className="inline-block rounded-3xl bg-slate-950/75 backdrop-blur-md px-6 py-4 max-w-lg mx-auto border border-white/10 shadow-lg">
+              <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">
+                Our Services
               </h1>
-              <p className="mt-6 max-w-2xl text-lg leading-relaxed text-slate-300">
+              <p className="mt-1.5 text-xs md:text-sm font-medium text-blue-100">
                 Simplify your business operations with our comprehensive range of taxation, registration, and advisory services.
               </p>
             </div>
@@ -140,65 +138,83 @@ export default function ServicesDirectoryPage() {
         </section>
 
         {/* Filter Section */}
-        <section className="container relative z-20 mx-auto -mt-12 px-4">
-          <div className="rounded-3xl border border-white/10 bg-white/80 p-4 shadow-2xl backdrop-blur-xl sm:p-6">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <div className="relative">
+        <section className="sticky top-24 z-30 container mx-auto px-4 max-w-3xl -mt-6">
+          <div className="rounded-2xl border border-slate-100/80 bg-white/95 backdrop-blur-md p-3 shadow-lg space-y-3">
+            {/* Search Input and Toggle Button */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
                 <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Search services..."
-                  className="h-14 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-12 pr-4 text-sm font-bold outline-none transition-all focus:border-blue-900 focus:bg-white"
+                  className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm font-bold outline-none transition-all focus:border-blue-900 focus:bg-white"
                 />
               </div>
-
-              <div className="relative">
-                <select
-                  value={activeCategory}
-                  onChange={(e) => setActiveCategory(e.target.value)}
-                  className="h-14 w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-blue-900"
-                >
-                  <option value="all">All Categories</option>
-                  {categoryOptions.map((cat) => (
-                    <option key={cat.id} value={cat.slug}>{cat.category}</option>
-                  ))}
-                </select>
-                <i className="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-[10px] text-slate-400" />
-              </div>
-
-              <div className="relative">
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="h-14 w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-blue-900"
-                >
-                  <option value="featured">Sort by: Featured</option>
-                  <option value="name_asc">Name: A to Z</option>
-                  <option value="price_low">Price: Low to High</option>
-                  <option value="price_high">Price: High to Low</option>
-                </select>
-                <i className="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-[10px] text-slate-400" />
-              </div>
-
               <button
-                onClick={clearFilters}
-                className="h-14 rounded-2xl bg-blue-900 font-bold text-white transition-all hover:bg-blue-800"
+                type="button"
+                onClick={() => setShowFilters(!showFilters)}
+                className={`h-12 px-5 rounded-xl font-bold flex items-center justify-center gap-2 border transition-all text-sm ${
+                  showFilters
+                    ? "bg-blue-900 border-blue-900 text-white shadow-md shadow-blue-900/20"
+                    : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
+                }`}
               >
-                Reset Filters
+                <i className={`fas ${showFilters ? "fa-times" : "fa-sliders"}`} />
+                {showFilters ? "Hide Filters" : "Show Filters"}
               </button>
             </div>
+
+            {/* Collapsible Filter Options */}
+            {showFilters && (
+              <div className="grid gap-3 md:grid-cols-3 pt-3 border-t border-slate-100 animate-slideDown">
+                <SearchableSelect
+                  value={activeCategory}
+                  onChange={(e) => setActiveCategory(e.target.value)}
+                  options={[
+                    { value: "all", label: "All Categories" },
+                    ...categoryOptions.map((cat) => ({ value: cat.slug || "", label: cat.category }))
+                  ]}
+                  isClearable={false}
+                  size="sm"
+                  placeholder="All Categories"
+                />
+
+                <SearchableSelect
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  options={[
+                    { value: "featured", label: "Sort by: Featured" },
+                    { value: "name_asc", label: "Name: A to Z" },
+                    { value: "price_low", label: "Price: Low to High" },
+                    { value: "price_high", label: "Price: High to Low" }
+                  ]}
+                  isClearable={false}
+                  isSearchable={false}
+                  size="sm"
+                  placeholder="Sort by"
+                />
+
+                <button
+                  onClick={clearFilters}
+                  className="h-11 rounded-xl bg-blue-900 text-xs font-bold text-white transition-all hover:bg-blue-800"
+                >
+                  Reset Filters
+                </button>
+              </div>
+            )}
           </div>
         </section>
 
         {/* Services Grid */}
         <section className="container mx-auto px-4 py-16">
           {loading && serviceIndex.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-24 text-center">
-              <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-900 border-t-transparent" />
-              <p className="mt-4 text-slate-500 font-bold">Loading services...</p>
-            </div>
+            <PanelLogoLoader
+              className="min-h-[18rem] px-0 py-0"
+              label="Loading services..."
+              size={60}
+            />
           ) : filteredServices.length === 0 ? (
             <div className="rounded-3xl border-2 border-dashed border-slate-200 py-32 text-center">
               <h3 className="text-2xl font-bold text-slate-900">No services found</h3>
@@ -206,12 +222,12 @@ export default function ServicesDirectoryPage() {
               <Button variant="outline" onClick={clearFilters} className="mt-6">Clear Filters</Button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {filteredServices.map((service) => (
                 <Link
                   key={service.id}
                   href={service.destination}
-                  className="group relative overflow-hidden rounded-[2.5rem] border border-slate-200 bg-white p-8 transition-all duration-500 hover:-translate-y-2 hover:border-blue-900 hover:shadow-2xl"
+                  className="group relative overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 transition-all duration-500 hover:-translate-y-2 hover:border-blue-900 hover:shadow-2xl"
                 >
                   <div className="absolute right-0 top-0 h-32 w-32 translate-x-12 translate-y-[-12px] rounded-full bg-blue-50/50 transition-transform duration-500 group-hover:scale-150" />
                   
@@ -221,20 +237,20 @@ export default function ServicesDirectoryPage() {
                       {service.categoryName}
                     </div>
                     
-                    <h3 className="mt-6 text-2xl font-black text-slate-900 group-hover:text-blue-900">{service.name}</h3>
-                    <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-slate-500">
+                    <h3 className="mt-4 text-xl font-extrabold text-slate-900 group-hover:text-blue-900 leading-tight">{service.name}</h3>
+                    <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-slate-500">
                       {service.short_description || service.description || "Expert support for your business compliance and filing needs."}
                     </p>
                     
-                    <div className="mt-8 flex items-center justify-between">
+                    <div className="mt-6 flex items-center justify-between">
                       <div>
                         <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Starts From</p>
-                        <p className="mt-1 text-2xl font-black text-amber-600">
+                        <p className="mt-1 text-xl font-extrabold text-blue-900">
                           {service.priceFrom ? `₹${priceFormatter.format(service.priceFrom)}` : "Contact"}
                         </p>
                       </div>
-                      <div className="h-12 w-12 rounded-full bg-slate-900 text-white flex items-center justify-center transition-all duration-300 group-hover:bg-blue-900 group-hover:scale-110">
-                          <i className="fas fa-arrow-right"></i>
+                      <div className="h-10 w-10 rounded-full bg-slate-900 text-white flex items-center justify-center transition-all duration-300 group-hover:bg-blue-900 group-hover:scale-110">
+                          <i className="fas fa-arrow-right text-xs"></i>
                       </div>
                     </div>
                   </div>

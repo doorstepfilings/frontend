@@ -6,14 +6,13 @@ import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { apiClient } from "@/lib/api/client";
 import { OrderSummaryModal } from "@/components/services/order-summary-modal";
-import { ConfirmationModal } from "@/components/ui/confirmation-modal";
 import {
-  deleteMyService,
   fetchMyOrders,
   fetchMyServices,
 } from "@/lib/features/services/services-slice";
 import { useStoredUser } from "@/lib/auth/hooks";
 import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
+import { PageLogoLoader } from "@/components/ui/logo-loader";
 import {
   forceDownload,
   isClientDeliveryDocument,
@@ -23,7 +22,6 @@ import { formatDate } from "@/lib/utils/formatters";
 import { buildDashboardDocumentsUrl } from "@/lib/utils/payment-navigation";
 import { calculateServicePrice, formatPrice } from "@/lib/utils/pricing";
 import {
-  getProgressPercentage,
   getStatusColorClass,
   getStatusIcon,
   getStatusLabel,
@@ -84,26 +82,23 @@ type CreateOrderResponse = {
 
 const ACTIVE_STATUSES = new Set([
   "applied",
-  "in_cart",
-  "paid",
-  "pending",
-  "payment_pending",
+  "document_collection",
   "under_review",
   "update_required",
   "in_progress",
-  "submitted_to_ca",
+  "payment_pending",
+  "paid",
 ]);
 
 const HISTORY_STATUSES = new Set([
-  "approved",
   "completed",
-  "cancelled",
   "rejected",
+  "cancelled",
 ]);
 
 const PAYABLE_STATUSES = new Set([
   "applied",
-  "in_cart",
+  "draft",
   "payment_pending",
 ]);
 
@@ -139,15 +134,11 @@ export function DashboardServicesView() {
     (state) => state.services,
   );
 
-  const [selectedServiceId, setSelectedServiceId] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | "in_progress" | "completed">(
     "all",
   );
-  const [deletingId, setDeletingId] = useState<number | null>(null);
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [orderService, setOrderService] = useState<DashboardService | null>(null);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [serviceToDelete, setServiceToDelete] = useState<DashboardService | null>(null);
   const [paymentLoading, setPaymentLoading] = useState(false);
 
   useEffect(() => {
@@ -158,15 +149,7 @@ export function DashboardServicesView() {
     }
   }, [dispatch]);
 
-  const selectedService = useMemo(
-    () =>
-      selectedServiceId === null
-        ? null
-        : ((myServices as DashboardService[]).find(
-            (service) => String(service.id) === String(selectedServiceId),
-          ) ?? null),
-    [myServices, selectedServiceId],
-  );
+
 
   const filteredServices = useMemo(() => {
     return (myServices as DashboardService[]).filter((service) => {
@@ -196,10 +179,7 @@ export function DashboardServicesView() {
     };
   }, [myServices]);
 
-  const deliveredDocuments = useMemo(
-    () => getDeliveredClientDocuments(selectedService?.request_documents),
-    [selectedService],
-  );
+
 
   const refreshDashboardData = () => {
     void dispatch(fetchMyServices());
@@ -216,39 +196,7 @@ export function DashboardServicesView() {
     setShowOrderModal(true);
   };
 
-  const handleDeleteClick = (service: DashboardService) => {
-    setServiceToDelete(service);
-    setShowDeleteModal(true);
-  };
 
-  const handleConfirmDelete = async () => {
-    if (!serviceToDelete) {
-      return;
-    }
-
-    setDeletingId(serviceToDelete.id);
-
-    try {
-      await dispatch(deleteMyService(serviceToDelete.id)).unwrap();
-      toast.success("Service removed successfully.");
-
-      if (selectedServiceId === serviceToDelete.id) {
-        setSelectedServiceId(null);
-      }
-    } catch (requestError) {
-      const message =
-        requestError instanceof Error
-          ? requestError.message
-          : typeof requestError === "string"
-            ? requestError
-            : "Failed to remove service.";
-      toast.error(message);
-    } finally {
-      setDeletingId(null);
-      setShowDeleteModal(false);
-      setServiceToDelete(null);
-    }
-  };
 
   const handleConfirmPayment = async () => {
     if (!orderService?.id) {
@@ -319,6 +267,7 @@ export function DashboardServicesView() {
             toast.error(
               "Payment verification failed. Please check your dashboard documents.",
             );
+            refreshDashboardData();
           }
         },
         key: order.key_id,
@@ -354,14 +303,7 @@ export function DashboardServicesView() {
   };
 
   if (loading && (myServices as DashboardService[]).length === 0) {
-    return (
-      <div className="flex min-h-[420px] items-center justify-center">
-        <div className="text-center">
-          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-blue-900 border-t-transparent" />
-          <p className="text-gray-600">Loading your services...</p>
-        </div>
-      </div>
-    );
+    return <PageLogoLoader label="Loading your services..." />;
   }
 
   if (error && (myServices as DashboardService[]).length === 0) {
@@ -385,6 +327,9 @@ export function DashboardServicesView() {
     );
   }
 
+  const selectedService = null;
+  const deliveredDocuments: DashboardService["request_documents"] = [];
+
   return (
     <>
       <div className="space-y-6">
@@ -395,12 +340,6 @@ export function DashboardServicesView() {
               Monitor your active services, orders, and payment history.
             </p>
           </div>
-          <Link
-            href="/services"
-            className="inline-flex items-center gap-2 rounded-xl bg-blue-900 px-6 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-blue-800"
-          >
-            <i className="fas fa-plus" /> New Application
-          </Link>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -446,11 +385,10 @@ export function DashboardServicesView() {
                         tab.key as "all" | "in_progress" | "completed",
                       )
                     }
-                    className={`relative px-6 py-4 text-sm font-bold transition-all ${
-                      statusFilter === tab.key
-                        ? "text-blue-900"
-                        : "text-gray-400 hover:text-gray-600"
-                    }`}
+                    className={`relative px-6 py-4 text-sm font-bold transition-all ${statusFilter === tab.key
+                      ? "text-blue-900"
+                      : "text-gray-400 hover:text-gray-600"
+                      }`}
                     type="button"
                   >
                     {tab.label}
@@ -476,10 +414,8 @@ export function DashboardServicesView() {
                     {filteredServices.map((service) => (
                       <div
                         key={service.id}
-                        onClick={() => setSelectedServiceId(service.id)}
-                        className={`group flex cursor-pointer items-center justify-between p-6 transition-all hover:bg-gray-50 ${
-                          selectedService?.id === service.id ? "bg-blue-50/50" : ""
-                        }`}
+                        onClick={() => router.push(`/dashboard/services/${service.id}`)}
+                        className="group flex cursor-pointer items-center justify-between p-6 transition-all hover:bg-gray-50"
                       >
                         <div className="flex items-center gap-4">
                           <div
@@ -538,229 +474,7 @@ export function DashboardServicesView() {
           </div>
 
           <div className="space-y-6">
-            {selectedService ? (
-              <div className="space-y-5 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-                <div className="flex items-center justify-between border-b border-gray-50 pb-4">
-                  <h3 className="font-bold text-gray-900">
-                    Application {getTrackingId(selectedService)}
-                  </h3>
-                  <button
-                    onClick={() => setSelectedServiceId(null)}
-                    className="text-gray-400 transition-colors hover:text-gray-900"
-                    type="button"
-                  >
-                    <i className="fas fa-times" />
-                  </button>
-                </div>
 
-                <div className="rounded-xl bg-gray-50 p-4">
-                  <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-gray-400">
-                    Status
-                  </p>
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className="text-sm font-bold text-gray-800">
-                      {getStatusLabel(selectedService.status)}
-                    </span>
-                    <span className="text-xs font-bold text-blue-900">
-                      {getProgressPercentage(selectedService.status)}%
-                    </span>
-                  </div>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-gray-200">
-                    <div
-                      className="h-full rounded-full bg-blue-900 transition-all duration-500"
-                      style={{
-                        width: `${getProgressPercentage(selectedService.status)}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {selectedService.accountant ? (
-                  <div className="flex items-center gap-3 rounded-xl border border-emerald-100 bg-emerald-50 p-4">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-200">
-                      <span className="text-xs font-black text-emerald-800">
-                        {selectedService.accountant.name?.charAt(0) || "A"}
-                      </span>
-                    </div>
-                    <div>
-                      <p className="text-[9px] font-black uppercase tracking-widest text-emerald-600">
-                        Your Accountant
-                      </p>
-                      <p className="text-sm font-black text-gray-900">
-                        {selectedService.accountant.name}
-                      </p>
-                      <p className="text-[10px] text-gray-500">
-                        {selectedService.accountant.email}
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-3 rounded-xl border border-orange-100 bg-orange-50 p-4">
-                    <i className="fas fa-user-clock text-xl text-orange-400" />
-                    <div>
-                      <p className="text-[9px] font-black uppercase tracking-widest text-orange-600">
-                        Accountant
-                      </p>
-                      <p className="text-xs text-gray-600">
-                        Being assigned by superadmin...
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {selectedService.certificate_url ? (
-                  <button
-                    onClick={() => {
-                      const certificateUrl =
-                        resolveStorageUrl(selectedService.certificate_url ?? null) ??
-                        selectedService.certificate_url ??
-                        null;
-                      forceDownload(certificateUrl, "certificate.pdf");
-                    }}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-amber-600 py-3 text-[10px] font-black uppercase tracking-widest text-white shadow-md transition-all hover:bg-amber-700"
-                    type="button"
-                  >
-                    <i className="fas fa-certificate" /> Download Certificate
-                  </button>
-                ) : null}
-
-                {selectedService.update_note || selectedService.rejection_reason ? (
-                  <div
-                    className={`rounded-xl border p-4 ${
-                      selectedService.rejection_reason
-                        ? "border-rose-100 bg-rose-50"
-                        : "border-amber-100 bg-amber-50"
-                    }`}
-                  >
-                    <p
-                      className={`mb-1 text-[9px] font-black uppercase tracking-widest ${
-                        selectedService.rejection_reason
-                          ? "text-rose-600"
-                          : "text-amber-600"
-                      }`}
-                    >
-                      {selectedService.rejection_reason
-                        ? "Rejection Reason"
-                        : "Action Required"}
-                    </p>
-                    <p className="text-xs text-gray-700">
-                      {selectedService.rejection_reason || selectedService.update_note}
-                    </p>
-                  </div>
-                ) : null}
-
-                {canPayForService(selectedService) ? (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between rounded-xl border border-indigo-100 bg-indigo-50/50 p-3">
-                      <div>
-                        <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-indigo-400">
-                          Service Fee
-                        </p>
-                        <p className="text-xl font-bold tracking-tight text-indigo-900">
-                          INR {formatPrice(calculateServicePrice(selectedService))}
-                        </p>
-                      </div>
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600">
-                        <i className="fas fa-tag" />
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => handleOpenOrderModal(selectedService)}
-                      className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-900 py-3.5 text-sm font-bold text-white shadow-md transition-all hover:bg-blue-800 active:scale-[0.98]"
-                      type="button"
-                    >
-                      <i className="fas fa-shopping-cart text-xs" />
-                      {String(selectedService.status || "").toLowerCase() ===
-                      "payment_pending"
-                        ? "Continue Payment"
-                        : "Pay Now"}
-                    </button>
-                  </div>
-                ) : null}
-
-                <div className="space-y-2 border-t border-gray-50 pt-3">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
-                    Details
-                  </p>
-                  <DetailRow label="Service" value={selectedService.service?.name ?? "-"} />
-                  <DetailRow
-                    label="Date Applied"
-                    value={formatDate(selectedService.created_at)}
-                  />
-                  <DetailRow label="Tracking ID" value={getTrackingId(selectedService)} mono />
-                </div>
-
-                {deliveredDocuments.length > 0 ? (
-                  <div className="space-y-2 pt-3">
-                    <p className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-gray-400">
-                      Delivered Documents
-                      <Link
-                        href="/dashboard/documents"
-                        className="text-blue-600 hover:underline"
-                      >
-                        View All
-                      </Link>
-                    </p>
-                    {deliveredDocuments.slice(0, 3).map((document) => {
-                      const resolvedUrl = resolveStorageUrl(document.file_url ?? null);
-                      if (!resolvedUrl) {
-                        return null;
-                      }
-
-                      return (
-                        <button
-                          key={document.id}
-                          onClick={() =>
-                            forceDownload(
-                              resolvedUrl,
-                              document.file_name || "document.pdf",
-                            )
-                          }
-                          className="group flex w-full items-center gap-3 rounded-xl border border-gray-100 bg-white p-2.5 text-left transition-all hover:border-blue-200"
-                          type="button"
-                        >
-                          <i className="fas fa-file-alt text-gray-300 transition-colors group-hover:text-blue-500" />
-                          <span className="flex-1 truncate text-[10px] font-bold uppercase text-gray-600">
-                            {document.document_name ||
-                              document.document_type ||
-                              document.file_name}
-                          </span>
-                          <i className="fas fa-download text-[9px] text-gray-300 transition-colors group-hover:text-blue-900" />
-                        </button>
-                      );
-                    })}
-                  </div>
-                ) : null}
-
-                <div className="flex gap-2 pt-3">
-                  {canDeleteService(selectedService) ? (
-                    <button
-                      onClick={() => handleDeleteClick(selectedService)}
-                      disabled={deletingId === selectedService.id}
-                      className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-rose-50 py-2.5 text-[10px] font-bold uppercase tracking-widest text-rose-600 transition-all hover:bg-rose-100"
-                      type="button"
-                    >
-                      <i className="fas fa-trash-alt" /> Cancel
-                    </button>
-                  ) : null}
-                  <a
-                    href="https://wa.me/919898196396"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gray-50 py-2.5 text-[10px] font-bold uppercase tracking-widest text-gray-600 transition-all hover:bg-gray-100"
-                  >
-                    <i className="fas fa-headset" /> Support
-                  </a>
-                </div>
-              </div>
-            ) : (
-              <div className="rounded-2xl border border-dashed border-gray-200 bg-white p-8 text-center">
-                <i className="fas fa-hand-pointer mb-4 text-3xl text-gray-200" />
-                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
-                  Select an application to view details
-                </p>
-              </div>
-            )}
 
             <div className="relative overflow-hidden rounded-2xl bg-blue-900 p-6 text-white shadow-xl shadow-blue-900/10">
               <i className="fas fa-wallet absolute -bottom-4 -right-4 text-7xl text-white/5" />
@@ -795,19 +509,7 @@ export function DashboardServicesView() {
         service={orderService}
       />
 
-      <ConfirmationModal
-        isOpen={showDeleteModal}
-        loading={deletingId === serviceToDelete?.id}
-        onClose={() => {
-          setShowDeleteModal(false);
-          setServiceToDelete(null);
-        }}
-        onConfirm={() => void handleConfirmDelete()}
-        title="Remove Service"
-        message="Are you sure you want to remove this service application? This action cannot be undone."
-        confirmLabel="Remove Service"
-        variant="danger"
-      />
+
     </>
   );
 }

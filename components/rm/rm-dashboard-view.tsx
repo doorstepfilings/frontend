@@ -10,6 +10,7 @@ import { useStoredUser } from "@/lib/auth/hooks";
 import { rmApi } from "@/lib/api/rm-api";
 import { buildCollectionKey } from "@/lib/utils/list-keys";
 import { getStatusLabel } from "@/lib/utils/status-helpers";
+import { LogoLoader } from "@/components/ui/logo-loader";
 
 const TERMINAL_STATUSES = new Set(["approved", "cancelled", "completed", "rejected"]);
 const REVIEW_STATUSES = new Set(["applied", "under_review", "update_required"]);
@@ -134,8 +135,8 @@ export function RMDashboardView() {
 
                 <div className="space-y-4">
                   {loading ? (
-                    <div className="flex items-center justify-center py-12">
-                      <div className="h-10 w-10 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+                    <div className="py-8">
+                      <LogoLoader size={40} label="Loading Onboardings..." />
                     </div>
                   ) : recentUsers.length === 0 ? (
                     <div className="rounded-[2rem] bg-slate-50 p-8 text-center text-sm font-bold uppercase tracking-widest text-slate-400">
@@ -190,8 +191,8 @@ export function RMDashboardView() {
 
                 <div className="space-y-4">
                   {loading ? (
-                    <div className="flex items-center justify-center py-12">
-                      <div className="h-10 w-10 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+                    <div className="py-8">
+                      <LogoLoader size={40} label="Loading Pipeline..." />
                     </div>
                   ) : recentRequests.length === 0 ? (
                     <div className="rounded-[2rem] bg-slate-50 p-8 text-center text-sm font-bold uppercase tracking-widest text-slate-400">

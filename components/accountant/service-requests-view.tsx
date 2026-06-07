@@ -9,14 +9,15 @@ import { StatusIndicator } from "@/components/ui/status-indicator";
 import Link from "next/link";
 import { buildCollectionKey } from "@/lib/utils/list-keys";
 import { format } from "date-fns";
+import { LogoLoader } from "@/components/ui/logo-loader";
 
 const TABS = [
     { id: 'all', label: 'All Requests', icon: 'fa-list-ul', statuses: [] },
     { id: 'new', label: 'New Assigned', icon: 'fa-plus-circle', statuses: ['applied'] },
-    { id: 'ongoing', label: 'Ongoing Work', icon: 'fa-spinner', statuses: ['in_progress', 'under_review', 'document_collection', 'paid'] },
+    { id: 'ongoing', label: 'Ongoing Work', icon: 'fa-spinner', statuses: ['in_progress', 'under_review', 'document_collection'] },
     { id: 'action', label: 'Action Required', icon: 'fa-exclamation-triangle', statuses: ['update_required'] },
-    { id: 'review', label: 'Admin Review', icon: 'fa-search', statuses: ['submitted_to_ca'] },
-    { id: 'completed', label: 'Completed', icon: 'fa-check-double', statuses: ['completed', 'approved'] },
+    { id: 'review', label: 'Admin Review', icon: 'fa-search', statuses: [] },
+    { id: 'completed', label: 'Completed', icon: 'fa-check-double', statuses: ['completed'] },
     { id: 'rejected', label: 'Rejected', icon: 'fa-ban', statuses: ['rejected', 'cancelled'] },
 ];
 
@@ -110,11 +111,8 @@ export function AccountantServiceRequestsView() {
                                 <tbody className="divide-y divide-slate-100">
                                     {loading ? (
                                         <tr>
-                                            <td colSpan={6} className="px-8 py-32 text-center">
-                                                <div className="flex flex-col items-center gap-4">
-                                                    <div className="h-10 w-10 animate-spin rounded-full border-2 border-slate-200 border-t-slate-900 mx-auto"></div>
-                                                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Loading Pipeline...</p>
-                                                </div>
+                                            <td colSpan={6} className="px-8 py-24 text-center">
+                                                <LogoLoader size={48} label="Loading Pipeline..." />
                                             </td>
                                         </tr>
                                     ) : filteredRequests.length === 0 ? (

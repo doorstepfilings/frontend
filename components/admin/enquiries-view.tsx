@@ -7,6 +7,8 @@ import { apiClient } from "@/lib/api/client";
 import { toast } from "react-hot-toast";
 import { format } from "date-fns";
 import { buildCollectionKey } from "@/lib/utils/list-keys";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { LogoLoader } from "@/components/ui/logo-loader";
 
 export function EnquiriesView() {
     const [enquiries, setEnquiries] = useState<any[]>([]);
@@ -93,16 +95,19 @@ export function EnquiriesView() {
                                     className="w-full pl-14 pr-6 py-4 bg-white border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all"
                                 />
                             </div>
-                            <select 
+                            <SearchableSelect 
                                 value={statusFilter}
                                 onChange={(e) => setStatusFilter(e.target.value)}
-                                className="h-14 px-6 bg-white border border-slate-200 rounded-2xl text-xs font-black uppercase tracking-widest outline-none appearance-none cursor-pointer"
-                            >
-                                <option value="all">All Channels</option>
-                                <option value="pending">Awaiting Action</option>
-                                <option value="responded">Feedback Issued</option>
-                                <option value="closed">Archive Records</option>
-                            </select>
+                                options={[
+                                    { value: "all", label: "All Channels" },
+                                    { value: "pending", label: "Awaiting Action" },
+                                    { value: "responded", label: "Feedback Issued" },
+                                    { value: "closed", label: "Archive Records" }
+                                ]}
+                                placeholder="All Channels"
+                                size="sm"
+                                className="min-w-[200px]"
+                            />
                         </div>
                     </div>
 
@@ -129,8 +134,8 @@ export function EnquiriesView() {
                                 <tbody className="divide-y divide-slate-50">
                                     {loading ? (
                                         <tr>
-                                            <td colSpan={4} className="px-8 py-32 text-center">
-                                                <div className="h-10 w-10 animate-spin rounded-full border-2 border-blue-600 border-t-transparent mx-auto"></div>
+                                            <td colSpan={4} className="px-8 py-24 text-center">
+                                                <LogoLoader size={48} label="Loading enquiries..." />
                                             </td>
                                         </tr>
                                     ) : filteredEnquiries.length === 0 ? (
@@ -164,19 +169,18 @@ export function EnquiriesView() {
                                                 {e.service && <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1 block">Ref: {e.service}</span>}
                                             </td>
                                             <td className="px-8 py-6 text-center">
-                                                <select 
+                                                <SearchableSelect 
                                                     value={e.status}
                                                     onChange={(val) => handleUpdateStatus(e.id, val.target.value)}
-                                                    className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest outline-none border transition-all cursor-pointer ${
-                                                        e.status === 'pending' ? 'bg-amber-50 text-amber-600 border-amber-100' :
-                                                        e.status === 'responded' ? 'bg-blue-50 text-blue-600 border-blue-100' :
-                                                        'bg-emerald-50 text-emerald-600 border-emerald-100'
-                                                    }`}
-                                                >
-                                                    <option value="pending">Awaiting</option>
-                                                    <option value="responded">Feedback</option>
-                                                    <option value="closed">Archived</option>
-                                                </select>
+                                                    options={[
+                                                        { value: "pending", label: "Awaiting" },
+                                                        { value: "responded", label: "Feedback" },
+                                                        { value: "closed", label: "Archived" }
+                                                    ]}
+                                                    placeholder="Status"
+                                                    size="sm"
+                                                    className="min-w-[120px]"
+                                                />
                                             </td>
                                             <td className="px-8 py-6 text-right">
                                                 <button 

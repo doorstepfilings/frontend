@@ -11,73 +11,49 @@ const STATUS_CONFIG: Record<
     color: "bg-slate-100 text-slate-700 border-slate-200",
     icon: "fa-pen",
     label: "Draft",
-    progress: 15,
-  },
-  pending: {
-    color: "bg-amber-100 text-amber-700 border-amber-200",
-    icon: "fa-hourglass-half",
-    label: "Awaiting Review",
-    progress: 45,
-  },
-  document_collection: {
-    color: "bg-blue-100 text-blue-700 border-blue-200",
-    icon: "fa-folder-open",
-    label: "Documentation",
-    progress: 50,
-  },
-  submitted_to_ca: {
-    color: "bg-indigo-100 text-indigo-700 border-indigo-200",
-    icon: "fa-paper-plane",
-    label: "Forwarded to CA",
-    progress: 60,
-  },
-  under_review: {
-    color: "bg-cyan-100 text-cyan-700 border-cyan-200",
-    icon: "fa-magnifying-glass",
-    label: "Verification",
-    progress: 75,
-  },
-  update_required: {
-    color: "bg-rose-100 text-rose-700 border-rose-200",
-    icon: "fa-rotate-left",
-    label: "Action Required",
-    progress: 35,
-  },
-  revision_requested: {
-    color: "bg-rose-100 text-rose-700 border-rose-200",
-    icon: "fa-rotate-left",
-    label: "Revision Required",
-    progress: 55,
-  },
-  approved: {
-    color: "bg-emerald-100 text-emerald-700 border-emerald-200",
-    icon: "fa-check-double",
-    label: "Approved",
-    progress: 100,
-  },
-  rejected: {
-    color: "bg-red-100 text-red-700 border-red-200",
-    icon: "fa-ban",
-    label: "Rejected",
-    progress: 100,
-  },
-  applied: {
-    color: "bg-indigo-100 text-indigo-700 border-indigo-200",
-    icon: "fa-info-circle",
-    label: "New Order",
     progress: 10,
+  },
+  payment_pending: {
+    color: "bg-rose-100 text-rose-700 border-rose-200",
+    icon: "fa-credit-card",
+    label: "Payment Pending",
+    progress: 20,
   },
   paid: {
     color: "bg-emerald-100 text-emerald-700 border-emerald-200",
-    icon: "fa-check-circle",
+    icon: "fa-wallet",
     label: "Payment Verified",
+    progress: 30,
+  },
+  applied: {
+    color: "bg-indigo-100 text-indigo-700 border-indigo-200",
+    icon: "fa-sparkles",
+    label: "Initial Submission",
     progress: 40,
+  },
+  document_collection: {
+    color: "bg-orange-100 text-orange-700 border-orange-200",
+    icon: "fa-folder-open",
+    label: "Collect Documents",
+    progress: 50,
+  },
+  under_review: {
+    color: "bg-purple-100 text-purple-700 border-purple-200",
+    icon: "fa-magnifying-glass",
+    label: "Verification Stage",
+    progress: 60,
+  },
+  update_required: {
+    color: "bg-red-100 text-red-700 border-red-200",
+    icon: "fa-rotate-left",
+    label: "Request Correction",
+    progress: 60,
   },
   in_progress: {
     color: "bg-blue-100 text-blue-700 border-blue-200",
     icon: "fa-spinner fa-spin",
-    label: "Processing",
-    progress: 60,
+    label: "Processing / Dept Submission",
+    progress: 80,
   },
   completed: {
     color: "bg-emerald-100 text-emerald-700 border-emerald-200",
@@ -85,29 +61,17 @@ const STATUS_CONFIG: Record<
     label: "Service Completed",
     progress: 100,
   },
+  rejected: {
+    color: "bg-red-100 text-red-700 border-red-200",
+    icon: "fa-ban",
+    label: "Reject Filing",
+    progress: 100,
+  },
   cancelled: {
     color: "bg-red-100 text-red-700 border-red-200",
     icon: "fa-times-circle",
-    label: "Cancelled",
+    label: "Cancel Application",
     progress: 0,
-  },
-  on_hold: {
-    color: "bg-orange-100 text-orange-700 border-orange-200",
-    icon: "fa-pause-circle",
-    label: "On Hold",
-    progress: 50,
-  },
-  pending_documents: {
-    color: "bg-purple-100 text-purple-700 border-purple-200",
-    icon: "fa-file-medical",
-    label: "Pending Documents",
-    progress: 70,
-  },
-  payment_pending: {
-    color: "bg-rose-100 text-rose-700 border-rose-200",
-    icon: "fa-credit-card",
-    label: "Payment Pending",
-    progress: 30,
   },
 };
 
@@ -118,7 +82,7 @@ const DEFAULT_STATUS = {
   progress: 10,
 };
 
-function getStatusConfig(status: string) {
+export function getStatusConfig(status: string) {
   const normalizedStatus = String(status || "").toLowerCase();
   const config = STATUS_CONFIG[normalizedStatus];
 
@@ -132,6 +96,42 @@ function getStatusConfig(status: string) {
       normalizedStatus.charAt(0).toUpperCase() +
       normalizedStatus.slice(1).replace(/_/g, " "),
   };
+}
+
+export type MilestoneState = {
+  currentStep: number;
+  isWarning: boolean;
+};
+
+export function getMilestoneState(status: string): MilestoneState {
+  const normalizedStatus = String(status || "").toLowerCase();
+
+  // Milestone 1: Submission
+  if (["draft", "applied"].includes(normalizedStatus)) {
+    return { currentStep: 1, isWarning: false };
+  }
+  
+  // Milestone 2: Payment
+  if (["payment_pending", "paid"].includes(normalizedStatus)) {
+    return { currentStep: 2, isWarning: normalizedStatus === "payment_pending" };
+  }
+  
+  // Milestone 3: Verification
+  if (["document_collection", "under_review", "update_required"].includes(normalizedStatus)) {
+    return { currentStep: 3, isWarning: normalizedStatus === "update_required" };
+  }
+  
+  // Milestone 4: Processing
+  if (["in_progress"].includes(normalizedStatus)) {
+    return { currentStep: 4, isWarning: false };
+  }
+  
+  // Milestone 5: Completion
+  if (["completed", "approved", "rejected", "cancelled"].includes(normalizedStatus)) {
+    return { currentStep: 5, isWarning: ["rejected", "cancelled"].includes(normalizedStatus) };
+  }
+
+  return { currentStep: 1, isWarning: false };
 }
 
 export const getStatusLabel = (status: string) => getStatusConfig(status).label;

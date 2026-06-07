@@ -1,7 +1,20 @@
-import NextAuth from "next-auth";
+import NextAuth, { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import Google from "next-auth/providers/google";
 import { appConfig } from "@/lib/config";
 import type { AuthUser, BackendAuthResponse } from "@/lib/auth/types";
+import {
+  AUTH_ERROR_CODES,
+  getAuthErrorCode,
+  logAuthError,
+} from "@/lib/auth/error-helper";
+
+class CustomAuthError extends CredentialsSignin {
+  constructor(code: string) {
+    super();
+    this.code = code;
+  }
+}
 
 const authSecret =
   process.env.AUTH_SECRET?.trim() ||
@@ -9,29 +22,27 @@ const authSecret =
     ? "doorstepfilings-local-dev-auth-secret-change-me"
     : undefined);
 
-function formatMessage(message: BackendAuthResponse["message"]) {
-  if (Array.isArray(message)) {
-    return message.join(", ");
-  }
-
-  return message ?? "Authentication failed.";
-}
-
-async function authenticateWithBackend(pathname: string, body: Record<string, unknown>) {
+async function authenticateWithBackend(
+  pathname: string,
+  body: Record<string, unknown>,
+  customHeaders?: Record<string, string>
+) {
   try {
     const response = await fetch(`${appConfig.backendUrl}/api${pathname}`, {
       method: "POST",
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
+        ...customHeaders,
       },
       body: JSON.stringify(body),
     });
 
     return readBackendResponse(response);
-  } catch {
+  } catch (error) {
+    logAuthError("Backend sign-in request failed", error);
     return {
-      error: "Unable to reach the authentication service right now.",
+      error: AUTH_ERROR_CODES.NETWORK_ERROR,
       data: null,
     };
   }
@@ -64,7 +75,10 @@ async function readBackendResponse(response: Response): Promise<BackendAuthResul
 
   if (!response.ok) {
     return {
-      error: formatMessage(payload?.message),
+      error: getAuthErrorCode(
+        { response: { status: response.status, data: payload } },
+        response.status >= 500 ? AUTH_ERROR_CODES.GENERIC : AUTH_ERROR_CODES.LOGIN_FAILED,
+      ),
       data: null,
     };
   }
@@ -72,7 +86,7 @@ async function readBackendResponse(response: Response): Promise<BackendAuthResul
   const data = payload?.data;
   if (!data?.token || !data.user) {
     return {
-      error: "Authentication response was incomplete.",
+      error: AUTH_ERROR_CODES.LOGIN_FAILED,
       data: null,
     };
   }
@@ -87,9 +101,18 @@ async function readBackendResponse(response: Response): Promise<BackendAuthResul
 }
 
 function getFutureSocialProviders() {
-  // Add Google/GitHub here once the backend can exchange OAuth identities
-  // for a Doorstep API token. The login UI already reads providers dynamically.
-  return [];
+  const providers = [];
+
+  if (process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET) {
+    providers.push(
+      Google({
+        clientId: process.env.AUTH_GOOGLE_ID,
+        clientSecret: process.env.AUTH_GOOGLE_SECRET,
+      })
+    );
+  }
+
+  return providers;
 }
 
 export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
@@ -123,7 +146,7 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
 
         const authPayload = result.data;
         if (!authPayload) {
-          return null;
+          throw new CustomAuthError(result.error || AUTH_ERROR_CODES.INVALID_CREDENTIALS);
         }
 
         return {
@@ -155,7 +178,7 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
 
         const authPayload = result.data;
         if (!authPayload) {
-          return null;
+          throw new CustomAuthError(result.error || AUTH_ERROR_CODES.LOGIN_FAILED);
         }
 
         return {
@@ -171,11 +194,52 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
     authorized({ auth }) {
       return Boolean(auth?.accessToken && auth.user);
     },
+    async signIn({ user, account }) {
+      if (account && account.provider !== "credentials" && account.provider !== "mobile-otp") {
+        const socialAuthSecret = process.env.SOCIAL_AUTH_SHARED_SECRET?.trim();
+        const email = user.email?.trim().toLowerCase();
+        const providerAccountId = account.providerAccountId?.trim();
+
+        if (!socialAuthSecret || !email || !providerAccountId) {
+          logAuthError("Social sign-in configuration or profile is incomplete", {
+            hasSecret: Boolean(socialAuthSecret),
+            hasEmail: Boolean(email),
+            hasProviderAccountId: Boolean(providerAccountId),
+            provider: account.provider,
+          });
+          return `/login?error=${AUTH_ERROR_CODES.LOGIN_FAILED}`;
+        }
+
+        const result = await authenticateWithBackend(
+          "/user/oauth-login",
+          {
+            provider: account.provider,
+            email,
+            name: user.name ?? undefined,
+            provider_account_id: providerAccountId,
+            image: user.image ?? undefined,
+          },
+          {
+            "x-social-auth-secret": socialAuthSecret,
+          }
+        );
+
+        const authPayload = result.data;
+        if (!authPayload) {
+          logAuthError("Social sign-in request failed", result.error);
+          return `/login?error=${AUTH_ERROR_CODES.LOGIN_FAILED}`;
+        }
+
+        (user as any).accessToken = authPayload.token;
+        (user as any).backendUser = authPayload.user;
+      }
+      return true;
+    },
     async jwt({ token, user, trigger, session }) {
       if (user) {
-        const { accessToken, ...sessionUser } = user as AuthUser & { accessToken?: string };
-        token.accessToken = accessToken;
-        token.user = buildSessionUser(sessionUser);
+        const u = user as any;
+        token.accessToken = u.accessToken;
+        token.user = buildSessionUser(u.backendUser ?? u);
       }
 
       if (trigger === "update" && session?.user) {

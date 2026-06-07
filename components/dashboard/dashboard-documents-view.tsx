@@ -1,8 +1,10 @@
 "use client";
 
+import { PageLogoLoader } from "@/components/ui/logo-loader";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import { ConfirmationModal } from "@/components/ui/confirmation-modal";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
   ImageLightbox,
   type ImageLightboxSlide,
@@ -11,6 +13,7 @@ import {
   DocumentUpload,
   type DocumentUploadRow,
 } from "@/components/ui/document-upload";
+import { ChatNoteModal } from "@/components/ui/chat-note-modal";
 import {
   deleteMyDocument,
   fetchMyServices,
@@ -34,6 +37,7 @@ type DashboardUploadRow = DocumentUploadRow & {
 };
 
 type DashboardDocumentArchiveItem = {
+  document_category?: string | null;
   document_name?: string | null;
   document_type?: string | null;
   file_name?: string | null;
@@ -44,6 +48,7 @@ type DashboardDocumentArchiveItem = {
   serviceName?: string | null;
   serviceStatus?: string | null;
   status?: string | null;
+  notes?: string | null;
 };
 
 const createEmptyRow = (): DashboardUploadRow => ({
@@ -83,6 +88,14 @@ type DashboardDocumentsViewProps = {
   };
 };
 
+const getDocStatusLabel = (status?: string | null) => {
+  const s = String(status || "").toLowerCase();
+  if (s === "rejected" || s === "correction") return "Correction";
+  if (s === "verified" || s === "approved") return "Verified";
+  if (s === "pending") return "Pending Verification";
+  return s || "Uploaded";
+};
+
 export function DashboardDocumentsView({
   paymentFeedback,
 }: DashboardDocumentsViewProps) {
@@ -101,6 +114,7 @@ export function DashboardDocumentsView({
   const [documentToDelete, setDocumentToDelete] =
     useState<DashboardDocumentArchiveItem | null>(null);
   const [isDeletingDocument, setIsDeletingDocument] = useState(false);
+  const [viewingNoteDoc, setViewingNoteDoc] = useState<DashboardDocumentArchiveItem | null>(null);
 
   useEffect(() => {
     void dispatch(fetchMyServices());
@@ -131,6 +145,7 @@ export function DashboardDocumentsView({
     const nextServiceId = paymentFeedback?.serviceIds?.[0] || "";
 
     if (nextServiceId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setUploadServiceId((current) => current || nextServiceId);
       setArchiveServiceId((current) =>
         current === "all" ? nextServiceId || "all" : current,
@@ -203,9 +218,9 @@ export function DashboardDocumentsView({
             alt: getArchiveDocumentLabel(doc),
             download: doc.file_name
               ? {
-                  filename: doc.file_name,
-                  url: src,
-                }
+                filename: doc.file_name,
+                url: src,
+              }
               : src,
             src,
           },
@@ -365,28 +380,21 @@ export function DashboardDocumentsView({
       </div>
 
       <div className="space-y-8 rounded-2xl border border-gray-100 bg-white p-8 shadow-sm">
-        <div className="flex flex-col justify-between gap-6 md:flex-row md:items-center">
-          <div>
-            <h2 className="text-lg font-bold text-gray-900">
-              Add New Documents
-            </h2>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
-              Select a service to attach documents
-            </p>
-          </div>
-          <select
-            value={uploadServiceId}
-            onChange={(event) => setUploadServiceId(event.target.value)}
-            className="h-12 rounded-xl border border-gray-200 bg-white px-4 text-sm font-bold text-gray-700 outline-none focus:border-blue-500"
-          >
-            <option value="">Select Target Service</option>
-            {uploadableServices.map((service) => (
-              <option key={service.id} value={service.id}>
-                {service.service?.name}
-              </option>
-            ))}
-          </select>
-        </div>
+
+        <h2 className="text-lg font-bold text-gray-900">
+          Add New Documents
+        </h2>
+        <SearchableSelect
+          value={uploadServiceId}
+          onChange={(event) => setUploadServiceId(event.target.value)}
+          options={uploadableServices.map((service) => ({
+            value: String(service.id),
+            label: String(service.service?.name || ""),
+          }))}
+          placeholder="Select Target Service"
+          className="min-w-[220px]"
+          size="sm"
+        />
 
         {uploadServiceId ? (
           <DocumentUpload
@@ -432,25 +440,25 @@ export function DashboardDocumentsView({
               onChange={(event) => setSearchQuery(event.target.value)}
               className="h-12 rounded-xl border border-gray-200 bg-white px-4 text-sm font-bold outline-none focus:border-blue-500"
             />
-            <select
+            <SearchableSelect
               value={archiveServiceId}
               onChange={(event) => setArchiveServiceId(event.target.value)}
-              className="h-12 rounded-xl border border-gray-200 bg-white px-4 text-xs font-bold uppercase tracking-widest outline-none focus:border-blue-500"
-            >
-              <option value="all">All Services</option>
-              {myServices.map((service) => (
-                <option key={service.id} value={service.id}>
-                  {service.service?.name}
-                </option>
-              ))}
-            </select>
+              options={[
+                { value: "all", label: "All Services" },
+                ...myServices.map((service) => ({
+                  value: String(service.id),
+                  label: String(service.service?.name || ""),
+                })),
+              ]}
+              placeholder="All Services"
+              className="min-w-[180px]"
+              size="sm"
+            />
           </div>
         </div>
 
         {loading ? (
-          <div className="flex min-h-[240px] items-center justify-center rounded-2xl border border-gray-100 bg-white shadow-sm">
-            <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-900 border-t-transparent" />
-          </div>
+          <PageLogoLoader label="Loading documents..." />
         ) : filteredDocs.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-gray-200 bg-white py-24 text-center shadow-sm">
             <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-gray-50">
@@ -469,51 +477,69 @@ export function DashboardDocumentsView({
             {filteredDocs.map((doc: DashboardDocumentArchiveItem) => (
               <div
                 key={doc.id}
-                className="group rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition-all hover:shadow-md"
+                className="group flex flex-col justify-between rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition-all hover:shadow-md"
               >
-                <div className="mb-6 flex items-start justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gray-50">
-                      <i
-                        className={`fas ${DOC_TYPE_ICON(doc.mime_type)} text-xl`}
-                      />
+                <div>
+                  <div className="mb-6 flex items-start justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gray-50">
+                        <i
+                          className={`fas ${DOC_TYPE_ICON(doc.mime_type)} text-xl`}
+                        />
+                      </div>
+                      <div>
+                        <h4 className="max-w-[150px] truncate text-sm font-bold text-gray-900">
+                          {getArchiveDocumentLabel(doc)}
+                        </h4>
+                        <p className={`text-[10px] font-bold uppercase tracking-widest ${doc.status === 'rejected' ? "text-amber-500 font-extrabold animate-pulse" : "text-gray-400"}`}>
+                          {getDocStatusLabel(doc.status)}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="max-w-[150px] truncate text-sm font-bold text-gray-900">
-                        {getArchiveDocumentLabel(doc)}
-                      </h4>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
-                        {doc.status}
-                      </p>
+                    <div className="flex gap-2">
+                      {doc.notes && (
+                        <button
+                          onClick={() => setViewingNoteDoc(doc)}
+                          className={`flex h-10 w-10 items-center justify-center rounded-xl transition-all bg-amber-50 text-amber-600 hover:bg-amber-900 hover:text-white`}
+                          title="View accountant note"
+                          type="button"
+                        >
+                          <i className="fas fa-comment-dots text-xs" />
+                        </button>
+                      )}
+                      {isImageDocument(doc) ? (
+                        <button
+                          onClick={() => void handleOpenPreview(doc.id)}
+                          className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600 transition-all hover:bg-blue-900 hover:text-white"
+                          title="Preview image"
+                          type="button"
+                        >
+                          <i className="fas fa-eye text-xs" />
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => void handleOpenDocument(doc)}
+                          className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-50 text-gray-400 transition-all hover:bg-blue-900 hover:text-white"
+                          title="View document"
+                          type="button"
+                        >
+                          <i className="fas fa-external-link-alt text-xs" />
+                        </button>
+                      )}
+                      {!["verified", "approved"].includes(String(doc.status || "").toLowerCase()) && (
+                        <button
+                          onClick={() => handleDeleteClick(doc)}
+                          className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-50 text-rose-500 transition-all hover:bg-rose-600 hover:text-white"
+                          type="button"
+                        >
+                          <i className="fas fa-trash-alt text-xs" />
+                        </button>
+                      )}
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    {isImageDocument(doc) ? (
-                      <button
-                        onClick={() => void handleOpenPreview(doc.id)}
-                        className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600 transition-all hover:bg-blue-900 hover:text-white"
-                        title="Preview image"
-                        type="button"
-                      >
-                        <i className="fas fa-eye text-xs" />
-                      </button>
-                    ) : null}
-                    <button
-                      onClick={() => void handleOpenDocument(doc)}
-                      className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-50 text-gray-400 transition-all hover:bg-blue-900 hover:text-white"
-                      type="button"
-                    >
-                      <i className="fas fa-external-link-alt text-xs" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteClick(doc)}
-                      className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-50 text-rose-500 transition-all hover:bg-rose-600 hover:text-white"
-                      type="button"
-                    >
-                      <i className="fas fa-trash-alt text-xs" />
-                    </button>
-                  </div>
+
                 </div>
+
                 <div className="flex items-center justify-between border-t border-gray-50 pt-4">
                   <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
                     Service
@@ -535,6 +561,19 @@ export function DashboardDocumentsView({
         onClose={() => setLightboxIndex(-1)}
       />
 
+      <ChatNoteModal
+        isOpen={viewingNoteDoc !== null}
+        onClose={() => setViewingNoteDoc(null)}
+        noteText={viewingNoteDoc?.notes}
+        contextName={
+          viewingNoteDoc?.document_name ||
+          (viewingNoteDoc?.document_category ? (viewingNoteDoc.document_category.charAt(0).toUpperCase() + viewingNoteDoc.document_category.slice(1)) : null) ||
+          viewingNoteDoc?.file_name ||
+          "Document"
+        }
+        userType="user"
+      />
+
       <ConfirmationModal
         isOpen={documentToDelete !== null}
         loading={isDeletingDocument}
@@ -546,9 +585,9 @@ export function DashboardDocumentsView({
         onConfirm={() =>
           documentToDelete
             ? void handleDelete(
-                String(documentToDelete.id),
-                String(documentToDelete.serviceId),
-              )
+              String(documentToDelete.id),
+              String(documentToDelete.serviceId),
+            )
             : undefined
         }
         title="Delete Document"

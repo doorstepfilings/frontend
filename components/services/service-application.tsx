@@ -12,6 +12,7 @@ import { setStoredUser } from "@/lib/auth/storage";
 import type { AuthUser } from "@/lib/auth/types";
 import { usePincodeLookup } from "@/lib/hooks/use-pincode-lookup";
 import { DocumentUpload } from "@/components/ui/document-upload";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { OrderSummaryModal } from "./order-summary-modal";
 import {
   SLOT_TIMES,
@@ -352,7 +353,11 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
     const fetchSlots = async () => {
       setSlotsLoading(true);
       try {
-        const dateStr = selectedDate.toISOString().split('T')[0];
+        const dateStr = [
+          selectedDate.getFullYear(),
+          String(selectedDate.getMonth() + 1).padStart(2, '0'),
+          String(selectedDate.getDate()).padStart(2, '0')
+        ].join('-');
         const res = await apiClient.get<{ data: Slot[] }>("/service/slot-availability", {
           params: { service_id: selectedService.id, date: dateStr },
         });
@@ -362,13 +367,43 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
     fetchSlots();
   }, [selectedService, selectedDate, includeAppointment]);
 
+  const localSlots = SLOT_TIMES.map(time => {
+    const backendSlot = slots.find(s => s.time === time);
+    let isPastLocal = backendSlot?.is_past ?? false;
+    const isFullLocal = backendSlot?.is_full ?? false;
+
+    if (selectedDate) {
+      const now = new Date();
+      if (
+        selectedDate.getFullYear() === now.getFullYear() &&
+        selectedDate.getMonth() === now.getMonth() &&
+        selectedDate.getDate() === now.getDate()
+      ) {
+        const [hour, min] = time.split(':').map(Number);
+        if (now.getHours() > hour || (now.getHours() === hour && now.getMinutes() >= min)) {
+          isPastLocal = true;
+        }
+      } else if (selectedDate < new Date(now.setHours(0, 0, 0, 0))) {
+        isPastLocal = true;
+      }
+    }
+
+    return {
+      time,
+      is_past: isPastLocal,
+      is_full: isFullLocal,
+      booked: backendSlot?.booked ?? 0,
+      remaining: backendSlot?.remaining ?? 0
+    };
+  });
+
   const getSlotRecovery = () => {
     if (!selectedDate || slotsLoading || slots.length === 0) return null;
 
-    const selectedSlotState = selectedTimeSlot ? slots.find(s => s.time === selectedTimeSlot) : null;
-    const availableSlots = slots.filter(s => !s.is_past && !s.is_full);
+    const selectedSlotState = selectedTimeSlot ? localSlots.find(s => s.time === selectedTimeSlot) : null;
+    const availableSlots = localSlots.filter(s => !s.is_past && !s.is_full);
 
-    const nextSlot = slots.find(s => {
+    const nextSlot = localSlots.find(s => {
       if (selectedTimeSlot) {
         return s.time > selectedTimeSlot && !s.is_past && !s.is_full;
       }
@@ -445,7 +480,11 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
 
     try {
       const payload = new FormData();
-      const dateStr = selectedDate ? selectedDate.toISOString().split('T')[0] : null;
+      const dateStr = selectedDate ? [
+        selectedDate.getFullYear(),
+        String(selectedDate.getMonth() + 1).padStart(2, '0'),
+        String(selectedDate.getDate()).padStart(2, '0')
+      ].join('-') : null;
       const formPayload = {
         ...formData,
         phone: `+${formData.dialCode}${formData.phone}`,
@@ -477,7 +516,11 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
       // If it's a slot conflict, we might want to refresh slots or show recovery msg
       if (includeAppointment && selectedService?.id && selectedDate && /slot|future time|passed|booked/i.test(parsedError)) {
         // Re-fetch slots to get latest availability
-        const dateStr = selectedDate.toISOString().split('T')[0];
+        const dateStr = [
+          selectedDate.getFullYear(),
+          String(selectedDate.getMonth() + 1).padStart(2, '0'),
+          String(selectedDate.getDate()).padStart(2, '0')
+        ].join('-');
         try {
           const res = await apiClient.get<{ data: Slot[] }>("/service/slot-availability", {
             params: { service_id: selectedService.id, date: dateStr },
@@ -492,12 +535,20 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
 
   const handleFinish = () => {
     setShowSuccessModal(false);
-    setShowOrderModal(true);
+    if (modalMode && onModalClose) {
+      onModalClose();
+    } else {
+      setShowOrderModal(true);
+    }
   };
 
   const handleCloseOrderModal = () => {
     setShowOrderModal(false);
-    router.push("/dashboard/services");
+    if (modalMode && onModalClose) {
+      onModalClose();
+    } else {
+      router.push("/dashboard/services");
+    }
   };
 
   const handleConfirmPayment = async () => {
@@ -519,6 +570,10 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
         order_id: order.razorpay_order_id,
         handler: async (r: any) => {
           await apiClient.post("/payments/razorpay/verify", { ...r, payment_id: order.payment_id });
+          if (modalMode && onModalClose) {
+            onModalClose();
+            return;
+          }
           router.replace(
             buildDashboardDocumentsUrl({
               message:
@@ -584,22 +639,16 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
                     </div>
                 ) : (
                     <div className="relative">
-                        <select
+                        <SearchableSelect
                             value={selectedService ? String(selectedService.id) : ""}
                             onChange={(e) => handleServiceSelectionChange(e.target.value)}
-                            className="w-full appearance-none px-4 py-3 bg-white border border-gray-300 rounded-lg text-gray-700 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                            options={services.map((service) => ({
+                                value: String(service.id),
+                                label: service.name,
+                            }))}
+                            placeholder="Select a service"
                             required
-                        >
-                            <option value="">Select a service</option>
-                            {services.map((service) => (
-                                <option key={service.id} value={service.id}>
-                                    {service.name}
-                                </option>
-                            ))}
-                        </select>
-                        <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">
-                            <i className="fas fa-chevron-down text-xs"></i>
-                        </span>
+                        />
                     </div>
                 )}
             </div>
@@ -884,7 +933,7 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
                                 <label className="block text-sm font-semibold text-gray-700 mb-4">Available Slots <span className="text-red-500">*</span></label>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
                                     {SLOT_TIMES.map((time) => {
-                                        const status = slots.find(s => s.time === time);
+                                        const status = localSlots.find(s => s.time === time);
                                         const isSelected = selectedTimeSlot === time;
                                         const isDisabled = !!status?.is_full || !!status?.is_past;
                                         return (
@@ -1030,7 +1079,7 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
   return (
     <>
       {content}
-      <SuccessModal isOpen={showSuccessModal} onFinish={handleFinish} />
+      <SuccessModal isOpen={showSuccessModal} onFinish={handleFinish} modalMode={modalMode} />
       <OrderSummaryModal
         isOpen={showOrderModal}
         loading={paymentLoading}
@@ -1042,7 +1091,7 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
   );
 }
 
-function SuccessModal({ isOpen, onFinish }: { isOpen: boolean; onFinish: () => void }) {
+function SuccessModal({ isOpen, onFinish, modalMode }: { isOpen: boolean; onFinish: () => void; modalMode?: boolean }) {
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
@@ -1051,9 +1100,13 @@ function SuccessModal({ isOpen, onFinish }: { isOpen: boolean; onFinish: () => v
           <i className="fas fa-check text-3xl"></i>
         </div>
         <h3 className="text-2xl font-bold text-gray-900 mb-2">Success!</h3>
-        <p className="text-gray-500 mb-8 font-medium">Your application has been submitted successfully. You can now proceed to payment.</p>
+        <p className="text-gray-500 mb-8 font-medium">
+          {modalMode 
+            ? "Your application has been submitted successfully." 
+            : "Your application has been submitted successfully. You can now proceed to payment."}
+        </p>
         <button onClick={onFinish} className="w-full py-4 bg-[#1e3a8a] text-white rounded-xl font-bold hover:bg-blue-800 transition-all shadow-lg shadow-blue-900/20">
-          Proceed to Summary
+          {modalMode ? "Done" : "Proceed to Summary"}
         </button>
       </div>
     </div>
