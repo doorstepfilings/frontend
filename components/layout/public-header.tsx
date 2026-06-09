@@ -91,15 +91,15 @@ export function PublicHeader() {
       }`}
     >
       <div className="container mx-auto px-4">
-        <div className="flex h-20 items-center justify-between">
+        <div className="flex h-16 items-center justify-between sm:h-20">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-3">
+          <Link href="/" className="flex min-w-0 items-center gap-3">
             <Image
               src="/assets/images/logo.png"
               alt="DoorstepFilings"
               width={160}
               height={80}
-              className="h-20 w-auto object-contain"
+              className="h-16 w-auto object-contain sm:h-20"
             />
           </Link>
 

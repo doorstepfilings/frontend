@@ -77,8 +77,8 @@ export function UserDashboardShell({
 
       <div className="min-w-0 w-full flex-1 transition-all duration-300 lg:ml-64">
         <header className="sticky top-0 z-30 border-b border-gray-100 bg-white">
-          <div className="flex items-center justify-between px-4 py-4 lg:px-8">
-            <div className="flex items-center gap-4">
+          <div className="flex items-center justify-between gap-3 px-3 py-4 sm:px-4 lg:px-8">
+            <div className="flex min-w-0 items-center gap-3 sm:gap-4">
               <button
                 onClick={() => setIsSidebarOpen(true)}
                 className="flex h-10 w-10 items-center justify-center rounded-lg text-gray-600 hover:bg-gray-100 lg:hidden"
@@ -86,15 +86,15 @@ export function UserDashboardShell({
               >
                 <i className="fas fa-bars text-xl" />
               </button>
-              <div>
-                <h1 className="text-lg font-bold text-gray-800">{currentPage}</h1>
+              <div className="min-w-0">
+                <h1 className="truncate text-lg font-bold text-gray-800">{currentPage}</h1>
                 <p className="hidden text-xs text-gray-500 sm:block">
                   Manage your services and documents
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex shrink-0 items-center gap-2 sm:gap-3">
               <button
                 className="flex h-10 w-10 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-blue-900"
                 type="button"
@@ -103,16 +103,16 @@ export function UserDashboardShell({
               </button>
               <Link
                 href="/services"
-                className="flex items-center gap-2 rounded-lg bg-blue-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-800"
+                className="flex h-10 items-center gap-2 rounded-lg bg-blue-900 px-3 text-sm font-medium text-white transition-colors hover:bg-blue-800 sm:px-4"
               >
                 <i className="fas fa-compass" />
-                New Services
+                <span className="hidden sm:inline">New Services</span>
               </Link>
             </div>
           </div>
         </header>
 
-        <main className="p-4 lg:p-8">{children}</main>
+        <main className="min-w-0 p-3 sm:p-4 lg:p-8">{children}</main>
       </div>
     </div>
   );

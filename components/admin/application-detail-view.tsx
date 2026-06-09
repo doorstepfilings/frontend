@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
 import {
   fetchAdminApplicationDetail,
+  updateApplicationStatus,
   updateDocumentStatus,
 } from "@/lib/features/admin/admin-slice";
 import { AdminLayout } from "@/components/layout/AdminLayout";
@@ -18,6 +19,9 @@ import { AccountantDocumentList } from "@/components/accountant/accountant-docum
 import { splitDocumentsByOwner } from "@/lib/utils/document-helpers";
 import { format } from "date-fns";
 import { getStatusConfig, getMilestoneState } from "@/lib/utils/status-helpers";
+import { ChatNoteModal } from "@/components/ui/chat-note-modal";
+import { useStoredUser } from "@/lib/auth/hooks";
+import { parseApiError } from "@/lib/utils/error-parser";
 
 const MILESTONES = [
   { id: 1, label: "Submission" },
@@ -31,9 +35,11 @@ export function ApplicationDetailView() {
   const params = useParams();
   const id = params?.id as string;
   const [activeTab, setActiveTab] = useState<"overview" | "data" | "documents" | "logs">("overview");
+  const [viewingNoteService, setViewingNoteService] = useState(false);
 
   const dispatch = useAppDispatch();
-  const { selectedApplication: app, loading } = useAppSelector(
+  const currentUser = useStoredUser();
+  const { selectedApplication: app, loading, actionLoading } = useAppSelector(
     (state) => state.admin,
   );
 
@@ -68,7 +74,11 @@ export function ApplicationDetailView() {
     return getMilestoneState(app?.status);
   }, [app?.status]);
 
-  const progress = Math.round(((currentStep) / MILESTONES.length) * 100);
+  const noteCount = useMemo(() => {
+    const notes = app?.update_note || app?.revision_notes || "";
+    if (!notes) return 0;
+    return notes.split("\n\n").filter((n: string) => n.trim() !== "").length;
+  }, [app?.update_note, app?.revision_notes]);
 
   if (loading || !app) {
     return (
@@ -121,6 +131,19 @@ export function ApplicationDetailView() {
                   {app.service?.name}
                 </p>
               </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setViewingNoteService(true)}
+                className="h-10 px-5 bg-blue-50 border border-blue-200 text-blue-700 rounded-xl text-xs font-bold hover:bg-blue-100 transition-all flex items-center gap-2 shadow-sm"
+              >
+                <i className="fas fa-comment-dots text-blue-500"></i> Service Notes
+                {noteCount > 0 && (
+                  <span className="ml-1 bg-blue-600 text-white rounded-full px-2.5 py-0.5 text-[10px] font-bold">
+                    {noteCount}
+                  </span>
+                )}
+              </button>
             </div>
           </div>
 
@@ -325,13 +348,18 @@ export function ApplicationDetailView() {
                       onDelete={() => { }}
                       onUpdateStatus={handleUpdateDocStatus}
                       canUpload={false}
+                      clientName={app.user?.name}
+                      accountantName={app.accountant?.name || currentUser?.name}
                     />
                     <AccountantDocumentList
                       title="Internal Verification Documents"
                       documents={internalDocs}
                       onDelete={() => { }}
                       onUpdateStatus={handleUpdateDocStatus}
+                      allowInternalStatusUpdate
                       canUpload={false}
+                      clientName={app.user?.name}
+                      accountantName={app.accountant?.name || currentUser?.name}
                     />
                   </div>
                 </div>
@@ -340,12 +368,35 @@ export function ApplicationDetailView() {
               {activeTab === "logs" && (
                 <div className="space-y-6">
                   <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Communication Log</h3>
+                  
+                  {/* Service Notes Chat */}
                   <div className="space-y-4">
-                    {!app.notes && !app.ca_notes && !app.rejection_reason && !app.update_note && (
-                      <p className="text-sm italic text-slate-400">
-                        No notes or remarks found for this order.
-                      </p>
-                    )}
+                    <div className="bg-slate-50 border border-slate-100 rounded-2xl p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center shadow-md shadow-blue-600/15">
+                            <i className="fas fa-comments text-white text-sm"></i>
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-bold text-slate-900">Service Notes Thread</h4>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                              {noteCount > 0 ? `${noteCount} message${noteCount > 1 ? "s" : ""}` : "No messages yet"}
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => setViewingNoteService(true)}
+                          className="h-10 px-5 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-blue-700 transition-all shadow-md shadow-blue-600/15 flex items-center gap-2"
+                        >
+                          <i className="fas fa-comment-dots"></i> 
+                          {noteCount > 0 ? "View & Reply" : "Start Conversation"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Static Notes Summary Cards */}
+                  {(app.notes || app.ca_notes || app.rejection_reason) && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {app.notes && (
                         <NoteBox
@@ -361,13 +412,6 @@ export function ApplicationDetailView() {
                           color="blue"
                         />
                       )}
-                      {app.update_note && (
-                        <NoteBox
-                          label="Correction Request to Client"
-                          text={app.update_note}
-                          color="amber"
-                        />
-                      )}
                       {app.rejection_reason && (
                         <NoteBox
                           label="Reason for Rejection"
@@ -376,30 +420,47 @@ export function ApplicationDetailView() {
                         />
                       )}
                     </div>
-                  </div>
+                  )}
                 </div>
               )}
             </div>
           </div>
         </div>
+
+        {/* Service Notes ChatNoteModal */}
+        <ChatNoteModal
+          isOpen={viewingNoteService}
+          onClose={() => setViewingNoteService(false)}
+          title="Service Notes"
+          contextName={app.service?.name || "Service Application"}
+          noteText={app.update_note || app.revision_notes || ""}
+          userType="admin"
+          fallbackSender={currentUser?.name || "Admin"}
+          fallbackRole="Admin"
+          clientName={app.user?.name}
+          accountantName={app.accountant?.name || currentUser?.name}
+          onSubmitNote={async (note: string) => {
+            const senderName = currentUser?.name;
+            const formattedNote = senderName ? `Admin (${senderName}): ${note}` : `Admin: ${note}`;
+            const currentNotes = app.update_note || app.revision_notes || "";
+            const newNoteText = currentNotes ? `${currentNotes}\n\n${formattedNote}` : formattedNote;
+            
+            const resultAction = await dispatch(
+              updateApplicationStatus({
+                id: app.id,
+                status: app.status,
+                update_note: newNoteText,
+              })
+            );
+            if (updateApplicationStatus.fulfilled.match(resultAction)) {
+              dispatch(fetchAdminApplicationDetail(id));
+            } else {
+              throw new Error(parseApiError(resultAction.payload));
+            }
+          }}
+        />
       </AdminLayout>
     </AuthGuard>
-  );
-}
-
-function InfoSection({ title, icon, children }: any) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="mb-6 flex items-center gap-3">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-50 text-slate-400">
-          <i className={`fas ${icon} text-xs`}></i>
-        </div>
-        <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-          {title}
-        </h3>
-      </div>
-      {children}
-    </div>
   );
 }
 

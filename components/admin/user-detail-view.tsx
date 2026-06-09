@@ -233,21 +233,96 @@ export function UserDetailView() {
 
           {error && <ErrorBanner message={error} />}
 
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-6">
-            <SummaryStat label="Email" value={String(userRecord.email ?? "-")} />
-            <SummaryStat label="Phone" value={String(getMobileNumber(userRecord) ?? "-")} />
-            <SummaryStat label="Joined" value={formatAdminDate(getCreatedAt(userRecord))} />
-            <SummaryStat label="Location" value={getLocationDisplay(userRecord)} />
-            <SummaryStat
-              label="Regional Manager"
-              value={String(regionalManager?.name ?? "Not assigned")}
-              tone="blue"
-            />
-            <SummaryStat
-              label="Accountant"
-              value={String(accountant?.name ?? "Not assigned")}
-              tone="emerald"
-            />
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            {/* Left Panel: Profile Information */}
+            <div className="lg:col-span-1 space-y-6">
+              <div className="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-[var(--admin-card-shadow)]">
+                <h2 className="text-lg font-black text-gray-900 mb-6">Profile Details</h2>
+                <div className="space-y-6">
+                  {/* Email */}
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                      Email Address
+                    </p>
+                    <div className="mt-1 flex items-center justify-between gap-2">
+                      <a
+                        href={`mailto:${userRecord.email}`}
+                        className="text-sm font-semibold text-blue-700 transition-colors hover:text-blue-900 break-all"
+                      >
+                        {String(userRecord.email ?? "-")}
+                      </a>
+                      {Boolean(userRecord.email) && (
+                        <button
+                          onClick={() => {
+                            void navigator.clipboard.writeText(String(userRecord.email));
+                            toast.success("Email copied to clipboard");
+                          }}
+                          className="text-gray-400 hover:text-gray-600 transition-colors p-1"
+                          title="Copy Email"
+                        >
+                          <i className="fas fa-copy" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Phone */}
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                      Phone Number
+                    </p>
+                    <div className="mt-1">
+                      {getMobileNumber(userRecord) ? (
+                        <a
+                          href={`tel:${getMobileNumber(userRecord)}`}
+                          className="text-sm font-semibold text-gray-700 transition-colors hover:text-blue-600"
+                        >
+                          {String(getMobileNumber(userRecord))}
+                        </a>
+                      ) : (
+                        <span className="text-sm font-semibold text-gray-700">-</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Location */}
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                      Location
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-gray-700 break-words">
+                      {getLocationDisplay(userRecord)}
+                    </p>
+                  </div>
+
+                  {/* Joined Date */}
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                      Joined Date
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-gray-700">
+                      {formatAdminDate(getCreatedAt(userRecord))}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Panel: Assignments */}
+            <div className="lg:col-span-2 space-y-6">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <SummaryStat
+                  label="Relationship Manager"
+                  value={String(regionalManager?.name ?? "Not assigned")}
+                  tone="blue"
+                />
+                <SummaryStat
+                  label="Accountant"
+                  value={String(accountant?.name ?? "Not assigned")}
+                  tone="emerald"
+                />
+              </div>
+            </div>
           </div>
 
           {normalizedRole === "user" && (
@@ -336,7 +411,7 @@ export function UserDetailView() {
           {normalizedRole === "regional_manager" && (
             <DetailSection
               title="Managed Users"
-              subtitle="Users currently assigned to this regional manager profile."
+              subtitle="Users currently assigned to this relationship manager profile."
             >
               {managedUsers.length === 0 ? (
                 <EmptySection label="No managed users found." icon="fa-users" />
@@ -409,7 +484,7 @@ export function UserDetailView() {
                           Email
                         </th>
                         <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">
-                          Regional Manager
+                          Relationship Manager
                         </th>
                         <th className="px-6 py-4 text-right text-[10px] font-black uppercase tracking-widest text-gray-400">
                           Open

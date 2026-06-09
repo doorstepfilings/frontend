@@ -18,15 +18,15 @@ export function ServicesMegaMenu({
 
   return (
     <div
-      className={`absolute left-1/2 top-full w-[1000px] -translate-x-1/2 overflow-hidden rounded-2xl border border-gray-100/50 bg-white shadow-xl shadow-blue-900/10 transition-all duration-300 ${
+      className={`absolute left-1/2 top-full max-h-[calc(100dvh-6rem)] w-[min(1000px,calc(100vw-2rem))] -translate-x-1/2 overflow-hidden rounded-2xl border border-gray-100/50 bg-white shadow-xl shadow-blue-900/10 transition-all duration-300 ${
         isVisible
           ? "visible translate-y-2 opacity-100"
           : "invisible translate-y-4 opacity-0"
       }`}
     >
-      <div className="flex min-h-[450px]">
+      <div className="flex max-h-[calc(100dvh-6rem)] min-h-[360px]">
         {/* Category sidebar */}
-        <div className="w-72 border-r border-gray-100 bg-gray-50/50 py-6">
+        <div className="w-64 shrink-0 overflow-y-auto border-r border-gray-100 bg-gray-50/50 py-6 xl:w-72">
           <div className="mb-4 px-6">
             <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400">
               Service Categories
@@ -68,7 +68,7 @@ export function ServicesMegaMenu({
         </div>
 
         {/* Services panel */}
-        <div className="relative flex-1 bg-white p-8">
+        <div className="relative min-w-0 flex-1 overflow-y-auto bg-white p-6 xl:p-8">
           {activeCategory && (
             <div className="animate-fade-in">
               {/* Panel header */}
@@ -94,7 +94,7 @@ export function ServicesMegaMenu({
               </div>
 
               {/* Service links grid */}
-              <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+              <div className="grid grid-cols-1 gap-x-8 gap-y-4 xl:grid-cols-2">
                 {activeCategory.services?.map((service, sIdx) => (
                   <Link
                     key={sIdx}

@@ -88,8 +88,26 @@ export function AccountantRequestDetailView() {
     // Check if it's a direct data object or a form event
     if (eOrData && typeof eOrData === 'object' && 'status' in eOrData) {
       data = eOrData;
-    } else if (eOrData) {
-      (eOrData as React.FormEvent).preventDefault();
+    } else {
+      if (eOrData) {
+        (eOrData as React.FormEvent).preventDefault();
+      }
+      
+      let finalUpdateNote = req.update_note || req.revision_notes || "";
+      const noteText = statusForm.status === "update_required" ? statusForm.update_note : (statusForm.status === "rejected" ? statusForm.rejection_reason : "");
+      if (noteText.trim()) {
+        const roleName = currentUser?.role === "super_admin" ? "Admin" : "Accountant";
+        const senderName = currentUser?.name;
+        const formattedNote = senderName ? `${roleName} (${senderName}): ${noteText.trim()}` : `${roleName}: ${noteText.trim()}`;
+        finalUpdateNote = finalUpdateNote ? `${finalUpdateNote}\n\n${formattedNote}` : formattedNote;
+      }
+      
+      data = {
+        status: statusForm.status,
+        ca_notes: statusForm.ca_notes,
+        rejection_reason: statusForm.rejection_reason,
+        update_note: finalUpdateNote,
+      };
     }
 
     if (!data.status) return toast.error("Please select a target status");
@@ -106,7 +124,7 @@ export function AccountantRequestDetailView() {
     setUpdating(true);
     try {
       await apiClient.patch(`/accountant/service-requests/${id}/status`, data);
-      toast.success("Workflow stage recalibrated");
+      toast.success("Service status updated successfully");
       setShowStatusModal(false);
       fetchData();
     } catch (error: any) {
@@ -120,17 +138,23 @@ export function AccountantRequestDetailView() {
   const handleDeleteDoc = async (docId: string | number) => {
     try {
       await apiClient.delete(`/accountant/service-requests/${id}/documents/${docId}`);
-      toast.success("Artifact purged from archives");
+      toast.success("Deleted document successfully");
       fetchData();
     } catch (err) {
-      toast.error("Purge failed");
+      toast.error("Failed to delete document");
     }
   };
 
-  const handleUpdateDocStatus = async (doc: any, status: string) => {
+  const handleUpdateDocStatus = async (doc: any, status: string, remark?: string) => {
     try {
-      await apiClient.patch(`/accountant/service-requests/${id}/documents/${doc.id}/status`, { status });
-      toast.success("Artifact status updated");
+      await apiClient.patch(
+        `/accountant/service-requests/${id}/documents/${doc.id}/status`,
+        {
+          status,
+          ...(remark ? { notes: remark, remark } : {}),
+        },
+      );
+      toast.success("Client document comment updated");
       fetchData();
     } catch (err) {
       toast.error("Status update failed");
@@ -182,9 +206,6 @@ export function AccountantRequestDetailView() {
                     {noteCount}
                   </span>
                 )}
-              </button>
-              <button className="h-10 px-5 bg-white border border-slate-200 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-50 transition-all flex items-center gap-2">
-                <i className="fas fa-print opacity-50"></i> Export Dossier
               </button>
             </div>
           </div>
@@ -495,7 +516,7 @@ export function AccountantRequestDetailView() {
                   onClick={() => setActiveDocTab("internal")}
                   className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${activeDocTab === "internal" ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}
                 >
-                  Internal Repository ({internalDocs.length})
+                  Internal Documents ({internalDocs.length})
                 </button>
               </div>
 
@@ -504,7 +525,9 @@ export function AccountantRequestDetailView() {
                   title={activeDocTab === "client" ? "Client Documents" : "Internal Documents"}
                   documents={activeDocTab === "client" ? clientDocs : internalDocs}
                   onDelete={handleDeleteDoc}
-                  onUpdateStatus={activeDocTab === "client" ? handleUpdateDocStatus : undefined}
+                  onUpdateStatus={handleUpdateDocStatus}
+                  clientName={req.user?.name}
+                  accountantName={currentUser?.name}
                 />
               </div>
             </div>
@@ -577,6 +600,10 @@ export function AccountantRequestDetailView() {
         contextName={req.service?.name || "Service Application"}
         noteText={req.update_note || req.revision_notes || ""}
         userType="accountant"
+        fallbackSender={currentUser?.name || "Accountant"}
+        fallbackRole="Accountant"
+        clientName={req.user?.name}
+        accountantName={currentUser?.name}
         onSubmitNote={async (note: string) => {
           const roleName = currentUser?.role === "super_admin" ? "Admin" : "Accountant";
           const senderName = currentUser?.name;

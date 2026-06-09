@@ -34,7 +34,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     <div className="admin-theme flex min-h-screen overflow-x-hidden">
       <AdminSidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
 
-      <div className="w-full flex-1 transition-all duration-300 lg:ml-[17rem]">
+      <div className="min-w-0 w-full flex-1 transition-all duration-300 lg:ml-[17rem]">
         <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/88 backdrop-blur-md">
           <div className="flex items-center justify-between gap-3 px-3 py-3 sm:px-5 lg:px-8">
             <div className="flex min-w-0 items-center gap-3 sm:gap-4">
@@ -75,7 +75,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <main className="px-3 py-4 sm:px-4 lg:px-8 lg:py-6">{children}</main>
+        <main className="min-w-0 px-3 py-4 sm:px-4 lg:px-8 lg:py-6">{children}</main>
       </div>
     </div>
   );

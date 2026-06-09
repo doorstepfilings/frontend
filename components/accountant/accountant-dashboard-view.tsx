@@ -24,11 +24,11 @@ export function AccountantDashboardView() {
     return (
         <AuthGuard allowedRoles={["accountant"]}>
             <AdminLayout>
-                <div className="space-y-10">
+                <div className="space-y-6 sm:space-y-10">
                     {/* Header */}
                     <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
-                        <div>
-                            <h1 className="text-4xl font-black text-slate-900 tracking-tight">Accountant Workspace</h1>
+                        <div className="min-w-0">
+                            <h1 className="break-words text-3xl font-black text-slate-900 tracking-tight sm:text-4xl">Accountant Workspace</h1>
                             <p className="text-sm text-slate-500 font-bold mt-2 uppercase tracking-widest opacity-60">Operations Desk • {user?.name}</p>
                         </div>
                     </div>
@@ -45,13 +45,13 @@ export function AccountantDashboardView() {
                     <div className="grid grid-cols-1 xl:grid-cols-3 gap-10">
                         {/* Assignment Queue */}
                         <div className="xl:col-span-2 space-y-6">
-                            <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden min-h-[500px]">
-                                <div className="p-10 border-b border-slate-50 flex items-center justify-between">
+                            <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden min-h-[420px] lg:rounded-[3rem] lg:min-h-[500px]">
+                                <div className="p-5 sm:p-6 lg:p-10 border-b border-slate-50 flex items-center justify-between gap-3">
                                     <h3 className="text-xl font-black text-slate-900 tracking-tight">Active Work Queue</h3>
                                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{serviceRequests.length} Tasks</span>
                                 </div>
                                 <div className="overflow-x-auto">
-                                    <table className="w-full text-left">
+                                    <table className="min-w-[680px] w-full text-left">
                                         <thead className="bg-slate-50/50">
                                             <tr>
                                                 <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Service / Client</th>
@@ -105,7 +105,7 @@ export function AccountantDashboardView() {
 
                         {/* Sidebar: Status Summary */}
                         <div className="space-y-6">
-                            <div className="bg-slate-900 rounded-[3rem] p-10 text-white shadow-2xl shadow-slate-900/20">
+                            <div className="bg-slate-900 rounded-[2rem] p-5 text-white shadow-2xl shadow-slate-900/20 sm:p-6 lg:rounded-[3rem] lg:p-10">
                                 <h3 className="text-xl font-black tracking-tight mb-8">Performance</h3>
                                 <div className="space-y-6">
                                     <div>
@@ -120,12 +120,12 @@ export function AccountantDashboardView() {
                                             ></div>
                                         </div>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700">
+                                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                        <div className="bg-slate-800 p-5 sm:p-6 rounded-2xl border border-slate-700">
                                             <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Total</p>
                                             <p className="text-2xl font-black">{stats.totalRequests}</p>
                                         </div>
-                                        <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700">
+                                        <div className="bg-slate-800 p-5 sm:p-6 rounded-2xl border border-slate-700">
                                             <p className="text-[9px] font-black text-rose-500 uppercase tracking-widest mb-1">Urgent</p>
                                             <p className="text-2xl font-black text-rose-400">{stats.actionRequired}</p>
                                         </div>

@@ -1,12 +1,69 @@
-export const isClientDeliveryDocument = (doc: any) => {
-  const status = String(doc?.status || "").toLowerCase();
+const normalizeDocumentField = (value: unknown) =>
+  String(value || "").toLowerCase();
+
+const getDocumentType = (doc: any) =>
+  normalizeDocumentField(doc?.document_type);
+
+const getDocumentCategory = (doc: any) =>
+  normalizeDocumentField(doc?.document_category);
+
+const hasInternalDocumentMarker = (doc: any) => {
+  const type = getDocumentType(doc);
+  const category = getDocumentCategory(doc);
+
   return (
-    doc?.document_type === "client" && ["approved", "verified"].includes(status)
+    ["internal", "internal_only", "internal_document"].includes(type) ||
+    ["internal", "internal_document"].includes(category)
+  );
+};
+
+const hasClientDocumentMarker = (doc: any) => {
+  const type = getDocumentType(doc);
+  const category = getDocumentCategory(doc);
+
+  return (
+    ["client", "client_document"].includes(type) ||
+    ["client_document", "client_visible"].includes(category)
+  );
+};
+
+export const isClientDeliveryDocument = (doc: any) => {
+  const status = normalizeDocumentField(doc?.status);
+  return (
+    !hasInternalDocumentMarker(doc) &&
+    hasClientDocumentMarker(doc) &&
+    ["approved", "verified"].includes(status)
   );
 };
 
 const getUploadedById = (doc: any) =>
   doc?.uploaded_by?.id ?? doc?.uploaded_by ?? null;
+
+const getUploaderRole = (doc: any) =>
+  normalizeDocumentField(doc?.uploaded_by?.role);
+
+const isStaffUploaderRole = (role: string) =>
+  [
+    "accountant",
+    "admin",
+    "super_admin",
+    "regional_manager",
+    "rm",
+    "employee",
+  ].includes(role);
+
+export const getDocumentNoteText = (doc: any) => {
+  const note =
+    doc?.notes ??
+    doc?.remark ??
+    doc?.remarks ??
+    doc?.revision_notes ??
+    doc?.update_note ??
+    doc?.rejection_reason ??
+    null;
+
+  return typeof note === "string" && note.trim() ? note : "";
+};
 
 export const isClientUploadedDocument = (doc: any, userId: number | string | null) => {
   if (userId === null || userId === undefined) return false;
@@ -21,36 +78,33 @@ export const getClientUploadedDocuments = (docs: any[], userId: number | string 
 };
 
 export const isClientDocument = (doc: any) => {
-  const type = String(doc?.document_type || "").toLowerCase();
-  const category = String(doc?.document_category || "").toLowerCase();
-  const role = String(doc?.uploaded_by?.role || "").toLowerCase();
-  const status = String(doc?.status || "").toLowerCase();
-
-  const isStaffRole = [
-    "accountant",
-    "admin",
-    "super_admin",
-    "regional_manager",
-    "rm",
-    "employee",
-  ].includes(role);
+  const type = getDocumentType(doc);
+  const category = getDocumentCategory(doc);
+  const role = getUploaderRole(doc);
+  const status = normalizeDocumentField(doc?.status);
+  const isStaffRole = isStaffUploaderRole(role);
 
   // 1. Explicit Internal markers (Sole Source of Truth - hide always)
-  if (["internal", "internal_only", "internal_document"].includes(type)) {
-    return false;
-  }
-  if (["internal", "internal_document"].includes(category)) {
+  if (hasInternalDocumentMarker(doc)) {
     return false;
   }
 
   // 2. User/Customer Role (Clients always see their own uploads)
   if (role === "user" || role === "customer") return true;
 
-  // 3. Staff Uploads (Accountant/Admin/RM)
-  if (isStaffRole) {
-    // Only show if the document is finalized/approved/verified
+  // For any staff/fallback uploads, certificates and reports MUST be approved or verified to be visible to the client
+  const isDeliverable =
+    ["certificate", "report"].includes(category) ||
+    looksLikeCertificate(doc) ||
+    looksLikeReport(doc);
+
+  if (isDeliverable) {
     const isReady = ["approved", "verified"].includes(status);
     if (!isReady) return false;
+  }
+
+  // 3. Staff Uploads (Accountant/Admin/RM)
+  if (isStaffRole) {
 
     // Only show if explicitly marked as client visible
     if (type === "client" || type === "client_document") return true;
@@ -80,27 +134,37 @@ export const isClientDocument = (doc: any) => {
   return false;
 };
 
+export const isClientManagedDocument = (doc: any) => {
+  const role = getUploaderRole(doc);
+
+  if (hasInternalDocumentMarker(doc)) {
+    return false;
+  }
+
+  if (hasClientDocumentMarker(doc)) {
+    return true;
+  }
+
+  if (role === "user" || role === "customer") {
+    return true;
+  }
+
+  return isClientDocument(doc);
+};
+
 export const isInternalDocument = (doc: any) => {
-  const type = String(doc?.document_type || "").toLowerCase();
-  const category = String(doc?.document_category || "").toLowerCase();
-  const role = String(doc?.uploaded_by?.role || "").toLowerCase();
+  const role = getUploaderRole(doc);
 
   // 1. Explicit Internal markers (Sole Source of Truth)
-  if (["internal", "internal_only", "internal_document"].includes(type)) {
-    return true;
-  }
-  if (["internal", "internal_document"].includes(category)) {
+  if (hasInternalDocumentMarker(doc)) {
     return true;
   }
 
-  const isInternalRole = [
-    "accountant",
-    "admin",
-    "super_admin",
-    "regional_manager",
-    "rm",
-    "employee",
-  ].includes(role);
+  if (hasClientDocumentMarker(doc)) {
+    return false;
+  }
+
+  const isInternalRole = isStaffUploaderRole(role);
 
   // 2. It's internal if uploaded by staff and NOT categorized as a client document
   return isInternalRole && !isClientDocument(doc);
@@ -110,7 +174,7 @@ export const splitDocumentsByOwner = (docs: any[], clientUserId: number | string
   if (!Array.isArray(docs)) return { clientDocs: [], internalDocs: [] };
 
   return {
-    clientDocs: docs.filter((doc) => isClientDocument(doc)),
+    clientDocs: docs.filter((doc) => isClientManagedDocument(doc)),
     internalDocs: docs.filter((doc) => isInternalDocument(doc)),
   };
 };

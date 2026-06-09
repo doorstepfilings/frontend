@@ -181,35 +181,107 @@ export function RegionalManagerDetailView() {
 
           {error && <ErrorBanner message={error} />}
 
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-6">
-            <SummaryStat label="Email" value={String(manager.email ?? "-")} />
-            <SummaryStat label="Phone" value={String(getMobileNumber(manager) ?? "-")} />
-            <SummaryStat label="Joined" value={formatAdminDate(getCreatedAt(manager))} />
-            <SummaryStat label="Region" value={getLocationDisplay(manager)} />
-            <SummaryStat label="Assigned Users" value={assignedUsers.length} tone="blue" />
-            <SummaryStat
-              label="Active Services"
-              value={String(manager.active_services_count ?? 0)}
-              tone="emerald"
-            />
-          </div>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            {/* Left Panel: Profile Information */}
+            <div className="lg:col-span-1 space-y-6">
+              <div className="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-[var(--admin-card-shadow)]">
+                <h2 className="text-lg font-black text-gray-900 mb-6">Profile Details</h2>
+                <div className="space-y-6">
+                  {/* Email */}
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                      Email Address
+                    </p>
+                    <div className="mt-1 flex items-center justify-between gap-2">
+                      <a
+                        href={`mailto:${manager.email}`}
+                        className="text-sm font-semibold text-blue-700 transition-colors hover:text-blue-900 break-all"
+                      >
+                        {String(manager.email ?? "-")}
+                      </a>
+                      {Boolean(manager.email) && (
+                        <button
+                          onClick={() => {
+                            void navigator.clipboard.writeText(String(manager.email));
+                            toast.success("Email copied to clipboard");
+                          }}
+                          className="text-gray-400 hover:text-gray-600 transition-colors p-1"
+                          title="Copy Email"
+                        >
+                          <i className="fas fa-copy" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
 
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <SummaryStat
-              label="Revenue"
-              value={formatAdminCurrency(
-                typeof manager.total_revenue === "string" ||
-                  typeof manager.total_revenue === "number"
-                  ? manager.total_revenue
-                  : 0,
-              )}
-              tone="amber"
-            />
-            <SummaryStat
-              label="Performance"
-              value={String(manager.performance_score ?? "Inactive")}
-              tone="indigo"
-            />
+                  {/* Phone */}
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                      Phone Number
+                    </p>
+                    <div className="mt-1">
+                      {getMobileNumber(manager) ? (
+                        <a
+                          href={`tel:${getMobileNumber(manager)}`}
+                          className="text-sm font-semibold text-gray-700 transition-colors hover:text-blue-600"
+                        >
+                          {String(getMobileNumber(manager))}
+                        </a>
+                      ) : (
+                        <span className="text-sm font-semibold text-gray-700">-</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Region */}
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                      Region
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-gray-700 break-words">
+                      {getLocationDisplay(manager)}
+                    </p>
+                  </div>
+
+                  {/* Joined Date */}
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                      Joined Date
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-gray-700">
+                      {formatAdminDate(getCreatedAt(manager))}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Panel: Performance & Metrics */}
+            <div className="lg:col-span-2 space-y-6">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <SummaryStat label="Assigned Users" value={assignedUsers.length} tone="blue" />
+                <SummaryStat
+                  label="Active Services"
+                  value={String(manager.active_services_count ?? 0)}
+                  tone="emerald"
+                />
+                <SummaryStat
+                  label="Revenue"
+                  value={formatAdminCurrency(
+                    typeof manager.total_revenue === "string" ||
+                      typeof manager.total_revenue === "number"
+                      ? manager.total_revenue
+                      : 0,
+                  )}
+                  tone="amber"
+                />
+                <SummaryStat
+                  label="Performance"
+                  value={String(manager.performance_score ?? "Inactive")}
+                  tone="indigo"
+                />
+              </div>
+            </div>
           </div>
 
           <DetailSection

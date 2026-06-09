@@ -25,7 +25,9 @@ export function MobileMenu({
   return (
     <div
       className={`border-t bg-white transition-all duration-300 lg:hidden ${
-        isOpen ? "max-h-screen opacity-100" : "max-h-0 overflow-hidden opacity-0"
+        isOpen
+          ? "max-h-[calc(100dvh-4rem)] overflow-y-auto opacity-100 sm:max-h-[calc(100dvh-5rem)]"
+          : "max-h-0 overflow-hidden opacity-0"
       }`}
     >
       <div className="container mx-auto px-4 py-4">

@@ -305,7 +305,7 @@ export const fetchUsers = createAsyncThunk(
   }
 );
 
-// Async thunk to fetch all regional managers
+// Async thunk to fetch all relationship managers
 export const fetchRMS = createAsyncThunk(
   "admin/fetchRMS",
   async (_, { rejectWithValue }) => {
@@ -314,7 +314,7 @@ export const fetchRMS = createAsyncThunk(
       return response.data?.data ?? response.data;
     } catch (error: any) {
       return rejectWithValue(
-        error.response?.data?.message || "Failed to fetch regional managers"
+        error.response?.data?.message || "Failed to fetch relationship managers"
       );
     }
   }

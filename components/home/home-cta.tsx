@@ -6,12 +6,12 @@ const BENEFITS = [
 
 export function HomeCta() {
   return (
-    <section className="relative overflow-hidden bg-blue-900 py-20 text-white">
+    <section className="relative overflow-hidden bg-blue-900 py-14 text-white sm:py-20">
       <div className="absolute top-0 right-0 h-full w-1/2 origin-top-right skew-x-12 bg-white/5" />
       <div className="container relative z-10 mx-auto px-4">
         <div className="flex flex-col items-center gap-12 lg:flex-row">
           {/* Left copy */}
-          <div className="lg:w-1/2">
+          <div className="w-full lg:w-1/2">
             <h2 className="mb-6 text-3xl font-bold md:text-4xl">
               Partnering for Your Success
             </h2>
@@ -33,7 +33,7 @@ export function HomeCta() {
           </div>
 
           {/* Right consultation form */}
-          <div className="rounded-2xl bg-white p-8 text-gray-800 shadow-2xl lg:w-1/2">
+          <div className="w-full rounded-2xl bg-white p-5 text-gray-800 shadow-2xl sm:p-8 lg:w-1/2">
             <h3 className="mb-6 text-2xl font-bold">Request a Consultation</h3>
             <form className="space-y-4">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

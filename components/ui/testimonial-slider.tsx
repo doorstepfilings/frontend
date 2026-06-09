@@ -147,7 +147,7 @@ export function TestimonialSlider({ testimonials }: TestimonialSliderProps) {
   }
 
   return (
-    <section className="overflow-hidden bg-gradient-to-b from-gray-50 to-white py-20">
+    <section className="overflow-hidden  from-gray-50 to-white py-20">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mx-auto mb-16 max-w-3xl text-center">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-amber-500/20 bg-amber-500/10 px-4 py-2">

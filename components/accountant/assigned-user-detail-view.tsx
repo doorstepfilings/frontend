@@ -187,7 +187,7 @@ export function AccountantAssignedUserDetailView() {
                             <div className="bg-white rounded-3xl border border-slate-200/60 shadow-sm p-10">
                                 <h3 className="text-lg font-bold text-slate-900 tracking-tight mb-8">Account Support</h3>
                                 <div className="space-y-10">
-                                    {/* Regional Manager */}
+                                    {/* Relationship Manager */}
                                     {user.regional_manager ? (
                                         <div className="space-y-6">
                                             <div className="flex items-center gap-5">
@@ -196,7 +196,7 @@ export function AccountantAssignedUserDetailView() {
                                                 </div>
                                                 <div>
                                                     <h4 className="text-base font-bold text-slate-900 leading-none mb-1.5">{user.regional_manager.name}</h4>
-                                                    <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest">Regional Manager</p>
+                                                    <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest">Relationship Manager</p>
                                                 </div>
                                             </div>
                                             <div className="space-y-4 pt-4 border-t border-slate-50">

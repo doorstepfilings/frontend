@@ -126,9 +126,8 @@ export const AccountantUploadForm = ({
               value={row.document_category}
               onChange={(e) => updateRow(index, "document_category", e.target.value)}
               options={[
-                { value: "certificate", label: "Final Certificate" },
-                { value: "report", label: "Operational Report" },
-                { value: "other", label: "Other Asset" }
+                { value: "certificate", label: "Certificate" },
+                { value: "report", label: "Report" }
               ]}
               placeholder="Select Purpose..."
               size="sm"

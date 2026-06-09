@@ -176,7 +176,7 @@ export function AccountView() {
         },
       });
       setRmResult(response.data?.data ?? null);
-      showMessage("success", "Regional Manager found.");
+      showMessage("success", "Relationship Manager found.");
     } catch (requestError) {
       setRmResult(null);
       logAuthError("Account relationship manager search failed", requestError);
@@ -207,7 +207,7 @@ export function AccountView() {
 
       setRmSearchId("");
       setRmResult(null);
-      showMessage("success", "Connected to Regional Manager successfully.");
+      showMessage("success", "Connected to Relationship Manager successfully.");
     } catch (requestError) {
       logAuthError("Account relationship manager connection failed", requestError);
       showMessage("error", getFriendlyAuthErrorMessage(requestError, AUTH_ERROR_MESSAGES.GENERIC));
@@ -225,7 +225,7 @@ export function AccountView() {
           <div className="mb-8">
             <h1 className="text-2xl font-black text-slate-900 tracking-tight">Account Settings</h1>
             <p className="mt-1 text-sm font-medium text-slate-500">
-              Manage your profile, security preferences, and Regional Manager connection.
+              Manage your profile, security preferences, and Relationship Manager connection.
             </p>
           </div>
 
@@ -427,7 +427,7 @@ export function AccountView() {
                     <i className="fas fa-user-tie" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-black text-slate-900 tracking-tight">Regional Manager</h2>
+                    <h2 className="text-xl font-black text-slate-900 tracking-tight">Relationship Manager</h2>
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                       Your direct relationship interface
                     </p>
@@ -466,9 +466,9 @@ export function AccountView() {
                       <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-white shadow-sm text-3xl text-slate-300">
                         <i className="fas fa-user-slash" />
                       </div>
-                      <h3 className="text-lg font-black text-slate-900 tracking-tight mb-2">No Regional Manager Linked</h3>
+                      <h3 className="text-lg font-black text-slate-900 tracking-tight mb-2">No Relationship Manager Linked</h3>
                       <p className="text-sm font-medium text-slate-500 max-w-sm mx-auto">
-                        Link with a Regional Manager using their officer ID to receive personalized assistance.
+                        Link with a Relationship Manager using their officer ID to receive personalized assistance.
                       </p>
                     </div>
 
@@ -480,7 +480,7 @@ export function AccountView() {
                             value={rmSearchId}
                             onChange={(event) => setRmSearchId(event.target.value)}
                             className="flex-1 h-14 rounded-2xl border border-blue-100 bg-white px-6 text-sm font-medium text-slate-700 outline-none transition-all focus:ring-4 focus:ring-blue-500/10 placeholder:text-slate-300"
-                            placeholder="Officer ID (e.g. RM000123)"
+                            placeholder="Officer ID (e.g. RMMHMUM260001)"
                           />
                           <button
                             type="button"
@@ -503,7 +503,7 @@ export function AccountView() {
                               </div>
                               <div>
                                 <p className="font-black text-slate-900 tracking-tight">
-                                  {rmResult.name ?? "Regional Manager"}
+                                  {rmResult.name ?? "Relationship Manager"}
                                 </p>
                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
                                   ID: {rmResult.rm_unique_id ?? "N/A"}

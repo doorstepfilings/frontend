@@ -99,13 +99,13 @@ export function RMDashboardView() {
   return (
     <AuthGuard allowedRoles={["regional_manager"]}>
       <AdminLayout>
-        <div className="space-y-10">
+        <div className="space-y-6 sm:space-y-10">
           <div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
-            <div>
-              <h1 className="text-4xl font-black tracking-tight text-slate-900">
+            <div className="min-w-0">
+              <h1 className="break-words text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
                 Regional Overview
               </h1>
-              <p className="mt-2 text-sm font-bold uppercase tracking-widest text-slate-500 opacity-60">
+              <p className="mt-2 break-words text-xs font-bold uppercase tracking-widest text-slate-500 opacity-60 sm:text-sm">
                 Operations Hub - {user?.name}
               </p>
             </div>
@@ -120,8 +120,8 @@ export function RMDashboardView() {
 
           <div className="grid grid-cols-1 gap-10 xl:grid-cols-3">
             <div className="space-y-6 xl:col-span-2">
-              <div className="rounded-[3rem] border border-slate-100 bg-white p-10 shadow-sm">
-                <div className="mb-8 flex items-center justify-between">
+              <div className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-sm sm:p-6 lg:rounded-[3rem] lg:p-10">
+                <div className="mb-6 flex items-center justify-between gap-3 sm:mb-8">
                   <h3 className="text-xl font-black tracking-tight text-slate-900">
                     Recent Onboardings
                   </h3>
@@ -149,14 +149,14 @@ export function RMDashboardView() {
                           account.email,
                           account.mobile_number,
                         ])}
-                        className="flex items-center justify-between rounded-[2rem] bg-slate-50 p-6"
+                        className="flex flex-col gap-4 rounded-[2rem] bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6"
                       >
-                        <div className="flex items-center gap-4">
-                          <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-slate-100 bg-white font-black text-slate-500">
+                        <div className="flex min-w-0 items-center gap-4">
+                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-slate-100 bg-white font-black text-slate-500">
                             {account.name?.charAt(0)?.toUpperCase() || "U"}
                           </div>
-                          <div>
-                            <h4 className="text-sm font-black text-slate-900">
+                          <div className="min-w-0">
+                            <h4 className="break-words text-sm font-black text-slate-900">
                               {account.name}
                             </h4>
                             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
@@ -167,7 +167,7 @@ export function RMDashboardView() {
                             </p>
                           </div>
                         </div>
-                        <span className="rounded-lg bg-blue-100 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-blue-700">
+                        <span className="w-fit rounded-lg bg-blue-100 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-blue-700">
                           {account.accountant ? "Mapped" : "Pending"}
                         </span>
                       </div>
@@ -176,8 +176,8 @@ export function RMDashboardView() {
                 </div>
               </div>
 
-              <div className="rounded-[3rem] border border-slate-100 bg-white p-10 shadow-sm">
-                <div className="mb-8 flex items-center justify-between">
+              <div className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-sm sm:p-6 lg:rounded-[3rem] lg:p-10">
+                <div className="mb-6 flex items-center justify-between gap-3 sm:mb-8">
                   <h3 className="text-xl font-black tracking-tight text-slate-900">
                     Service Pipeline
                   </h3>
@@ -205,10 +205,10 @@ export function RMDashboardView() {
                           request.user?.email,
                           request.service?.name,
                         ])}
-                        className="flex flex-col gap-4 rounded-[2rem] bg-slate-50 p-6 md:flex-row md:items-center md:justify-between"
+                        className="flex flex-col gap-4 rounded-[2rem] bg-slate-50 p-4 sm:p-6 md:flex-row md:items-center md:justify-between"
                       >
-                        <div>
-                          <h4 className="text-sm font-black text-slate-900">
+                        <div className="min-w-0">
+                          <h4 className="break-words text-sm font-black text-slate-900">
                             {request.service?.name || "Service Request"}
                           </h4>
                           <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">
@@ -217,7 +217,7 @@ export function RMDashboardView() {
                           </p>
                         </div>
                         <div className="flex items-center gap-3">
-                          <span className="rounded-lg bg-white px-3 py-1 text-[9px] font-black uppercase tracking-widest text-slate-500">
+                          <span className="break-words rounded-lg bg-white px-3 py-1 text-[9px] font-black uppercase tracking-widest text-slate-500">
                             {request.accountant?.name || "Awaiting Assignment"}
                           </span>
                         </div>
@@ -229,19 +229,19 @@ export function RMDashboardView() {
             </div>
 
             <div className="space-y-6">
-              <div className="rounded-[3rem] bg-slate-900 p-10 text-white shadow-2xl shadow-slate-900/20">
+              <div className="rounded-[2rem] bg-slate-900 p-5 text-white shadow-2xl shadow-slate-900/20 sm:p-6 lg:rounded-[3rem] lg:p-10">
                 <h3 className="mb-8 text-xl font-black tracking-tight">Quick Actions</h3>
                 <div className="space-y-3">
                   <Link
                     href="/rm/assigned-users"
-                    className="flex h-14 w-full items-center gap-4 rounded-2xl bg-white/10 px-6 text-[10px] font-black uppercase tracking-widest transition-all hover:bg-white/20"
+                    className="flex min-h-14 w-full items-center gap-4 rounded-2xl bg-white/10 px-4 py-4 text-[10px] font-black uppercase tracking-widest transition-all hover:bg-white/20 sm:px-6"
                   >
                     <i className="fas fa-users text-blue-400"></i>
                     Review Assigned Users
                   </Link>
                   <Link
                     href="/rm/service-requests"
-                    className="flex h-14 w-full items-center gap-4 rounded-2xl bg-white/10 px-6 text-[10px] font-black uppercase tracking-widest transition-all hover:bg-white/20"
+                    className="flex min-h-14 w-full items-center gap-4 rounded-2xl bg-white/10 px-4 py-4 text-[10px] font-black uppercase tracking-widest transition-all hover:bg-white/20 sm:px-6"
                   >
                     <i className="fas fa-file-export text-emerald-400"></i>
                     Review Service Queue

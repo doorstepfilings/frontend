@@ -6,9 +6,11 @@ import {
   formatFileSize,
   getDocumentIcon,
   getDocumentSourceUrl,
+  getDocumentNoteText,
   openDocumentInNewTab,
   isImageDocument,
   resolveStorageUrl,
+  isInternalDocument,
 } from "@/lib/utils/document-helpers";
 import { format } from "date-fns";
 import { SearchableSelect } from "@/components/ui/searchable-select";
@@ -29,6 +31,9 @@ interface AccountantDocumentListProps {
   canUpload?: boolean;
   onDelete: (id: string | number) => void;
   onUpdateStatus?: (doc: any, status: string, remark?: string) => Promise<void>;
+  allowInternalStatusUpdate?: boolean;
+  clientName?: string;
+  accountantName?: string;
 }
 
 export const AccountantDocumentList = ({
@@ -37,6 +42,9 @@ export const AccountantDocumentList = ({
   canUpload = true,
   onDelete,
   onUpdateStatus,
+  allowInternalStatusUpdate = false,
+  clientName,
+  accountantName,
 }: AccountantDocumentListProps) => {
   const currentUser = useStoredUser();
   const [updatingId, setUpdatingId] = useState<string | number | null>(null);
@@ -44,6 +52,19 @@ export const AccountantDocumentList = ({
   const [remark, setRemark] = useState("");
   const [lightboxIndex, setLightboxIndex] = useState(-1);
   const [viewingNoteDoc, setViewingNoteDoc] = useState<any | null>(null);
+
+  const formatCurrentUserNote = (note: string) => {
+    const trimmedNote = note.trim();
+    if (/^(Accountant|Admin|Super_Admin|SuperAdmin|Super\s+Admin|You|User|Client|System)(?:\s*\(.*?\))?:/i.test(trimmedNote)) {
+      return trimmedNote;
+    }
+
+    const roleName = currentUser?.role === "super_admin" ? "Admin" : "Accountant";
+    const senderName = currentUser?.name;
+    return senderName
+      ? `${roleName} (${senderName}): ${trimmedNote}`
+      : `${roleName}: ${trimmedNote}`;
+  };
 
   const imageGallery = React.useMemo(() => {
     return documents.reduce<Array<{ docId: string | number; slide: ImageLightboxSlide }>>((gallery, doc) => {
@@ -133,6 +154,9 @@ export const AccountantDocumentList = ({
             const ds = DOC_STATUS[doc.status] || DOC_STATUS.pending;
             const iconConfig = getDocumentIcon(doc.mime_type, doc.file_name);
             const isRemarking = remarkingId === doc.id;
+            const canUpdateStatus =
+              Boolean(onUpdateStatus) &&
+              (allowInternalStatusUpdate || !isInternalDocument(doc));
 
             return (
               <div key={doc.id} className="p-6 transition-colors hover:bg-slate-50/50">
@@ -174,8 +198,8 @@ export const AccountantDocumentList = ({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    {onUpdateStatus && (
+                  <div className="relative z-10 flex items-center gap-3">
+                    {canUpdateStatus ? (
                       <SearchableSelect
                         value={["pending", "verified", "approved", "rejected"].includes(doc.status) ? doc.status : "pending"}
                         disabled={updatingId === doc.id}
@@ -191,23 +215,32 @@ export const AccountantDocumentList = ({
                         isSearchable={false}
                         size="sm"
                       />
-                    )}
-
-                    {!onUpdateStatus && (
+                    ) : (
                       <div className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-[9px] font-bold uppercase tracking-wider ${ds.cls}`}>
                         <i className={`fas ${ds.icon}`} />
                         {ds.label}
                       </div>
                     )}
 
-                    {doc.notes && !isRemarking && (
+                    {((canUpdateStatus && !isRemarking) || getDocumentNoteText(doc)) && (
                       <button
                         onClick={() => setViewingNoteDoc(doc)}
-                        className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-[9px] font-bold uppercase tracking-wider ${doc.status === 'rejected' ? 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100' : 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100'} transition-colors cursor-pointer`}
-                        title="View Note"
+                        className={`flex p-3 items-center justify-center rounded-xl border text-xs transition-colors ${
+                          getDocumentNoteText(doc)
+                            ? (doc.status === 'rejected'
+                              ? 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100'
+                              : 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100')
+                            : 'border-slate-200 bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-600'
+                        }`}
+                        aria-label={getDocumentNoteText(doc) ? "View note" : "Add note"}
+                        title={getDocumentNoteText(doc) ? "View Note" : "Add Note"}
+                        type="button"
                       >
-                        <i className={`fas ${doc.status === 'rejected' ? 'fa-exclamation-circle' : 'fa-comment-dots'}`} />
-                        Note
+                        <i className={`fas ${
+                          getDocumentNoteText(doc)
+                            ? (doc.status === 'rejected' ? 'fa-comment-medical' : 'fa-comment-dots')
+                            : 'fa-comment'
+                        }`} />
                       </button>
                     )}
 
@@ -288,7 +321,7 @@ export const AccountantDocumentList = ({
       <ChatNoteModal
         isOpen={viewingNoteDoc !== null}
         onClose={() => setViewingNoteDoc(null)}
-        noteText={viewingNoteDoc?.notes}
+        noteText={getDocumentNoteText(viewingNoteDoc)}
         contextName={
           viewingNoteDoc?.document_name || 
           (viewingNoteDoc?.document_category ? (viewingNoteDoc.document_category.charAt(0).toUpperCase() + viewingNoteDoc.document_category.slice(1)) : null) || 
@@ -296,12 +329,14 @@ export const AccountantDocumentList = ({
           "Document"
         }
         userType="accountant"
+        uploadedBy={viewingNoteDoc?.uploaded_by}
+        clientName={clientName}
+        accountantName={accountantName}
         onSubmitNote={async (note: string) => {
           if (!viewingNoteDoc || !onUpdateStatus) return;
-          const roleName = currentUser?.role === "super_admin" ? "Admin" : "Accountant";
-          const senderName = currentUser?.name;
-          const formattedNote = senderName ? `${roleName} (${senderName}): ${note}` : `${roleName}: ${note}`;
-          const newNoteText = viewingNoteDoc.notes ? `${viewingNoteDoc.notes}\n\n${formattedNote}` : formattedNote;
+          const formattedNote = formatCurrentUserNote(note);
+          const currentNoteText = getDocumentNoteText(viewingNoteDoc);
+          const newNoteText = currentNoteText ? `${currentNoteText}\n\n${formattedNote}` : formattedNote;
           await onUpdateStatus(viewingNoteDoc, viewingNoteDoc.status, newNoteText);
           setViewingNoteDoc({ ...viewingNoteDoc, notes: newNoteText });
         }}

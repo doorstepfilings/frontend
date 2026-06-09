@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useId } from "react";
-import Select, { GroupBase, Props } from "react-select";
+import Select, { GroupBase, Props, StylesConfig } from "react-select";
 import { cn } from "@/lib/utils";
 
 export interface SearchableSelectOption {
@@ -37,9 +37,26 @@ export const SearchableSelect = ({
   isMulti = false,
   isClearable = true,
   isSearchable = true,
+  menuPortalTarget,
+  menuPosition = "fixed",
+  styles,
   ...props
 }: SearchableSelectProps) => {
   const instanceId = useId();
+  const resolvedMenuPortalTarget =
+    menuPortalTarget ?? (typeof document !== "undefined" ? document.body : undefined);
+  const mergedStyles = React.useMemo<
+    StylesConfig<SearchableSelectOption, boolean, GroupBase<SearchableSelectOption>>
+  >(
+    () => ({
+      ...styles,
+      menuPortal: (base, state) => ({
+        ...(styles?.menuPortal ? styles.menuPortal(base, state) : base),
+        zIndex: 9999,
+      }),
+    }),
+    [styles],
+  );
 
   // Flatten options if they are grouped, to easily find the selectedOption
   const flatOptions = React.useMemo(() => {
@@ -87,7 +104,7 @@ export const SearchableSelect = ({
   };
 
   return (
-    <div className={cn("w-full text-left", className)}>
+    <div className={cn("relative w-full text-left", className)}>
       <Select
         instanceId={instanceId}
         options={options}
@@ -99,6 +116,9 @@ export const SearchableSelect = ({
         isMulti={isMulti}
         placeholder={placeholder}
         required={required}
+        menuPortalTarget={resolvedMenuPortalTarget}
+        menuPosition={menuPosition}
+        styles={mergedStyles}
         unstyled
         classNames={{
           control: ({ isFocused, isDisabled }) =>

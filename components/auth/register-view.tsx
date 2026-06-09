@@ -493,7 +493,7 @@ export function RegisterView() {
                         onChange={handleChange}
                         className={`w-full rounded-xl border py-3 pl-12 pr-4 text-slate-900 outline-none transition-all focus:border-transparent focus:bg-white focus:ring-2 focus:ring-blue-900 ${errors.rm_id ? "border-red-300 bg-red-50" : "border-slate-200 bg-slate-50"
                           }`}
-                        placeholder="RM000001"
+                        placeholder="RMMHMUM260001"
                       />
                     </div>
                     <button

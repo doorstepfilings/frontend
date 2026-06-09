@@ -5,7 +5,6 @@ import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
 import { fetchAccountantDashboard } from "@/lib/features/accountant/accountant-slice";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { AuthGuard } from "@/components/auth/auth-guard";
-import { StatCard } from "@/components/dashboard/stat-card";
 import { splitDocumentsByOwner } from "@/lib/utils/document-helpers";
 import { AccountantDocumentList } from "./accountant-document-list";
 import { apiClient } from "@/lib/api/client";
@@ -14,7 +13,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 
 export function AccountantDocumentsView() {
     const dispatch = useAppDispatch();
-    const { serviceRequests, loading } = useAppSelector((state) => state.accountant);
+    const { serviceRequests } = useAppSelector((state) => state.accountant);
     
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
@@ -82,9 +81,15 @@ export function AccountantDocumentsView() {
         }
     };
 
-    const handleUpdateDocStatus = async (doc: any, status: string) => {
+    const handleUpdateDocStatus = async (doc: any, status: string, remark?: string) => {
         try {
-            await apiClient.patch(`/accountant/service-requests/${doc.requestId}/documents/${doc.id}/status`, { status });
+            await apiClient.patch(
+                `/accountant/service-requests/${doc.requestId}/documents/${doc.id}/status`,
+                {
+                    status,
+                    ...(remark ? { notes: remark, remark } : {}),
+                },
+            );
             toast.success("Status updated");
             dispatch(fetchAccountantDashboard());
         } catch (err) {
@@ -122,7 +127,7 @@ export function AccountantDocumentsView() {
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-3xl border border-slate-200/60 shadow-sm overflow-hidden">
+                    <div className="overflow-visible rounded-3xl border border-slate-200/60 bg-white shadow-sm">
                         {/* High-End Filtering Bar */}
                         <div className="p-8 border-b border-slate-100 bg-slate-50/30 space-y-6">
                             <div className="flex flex-col lg:flex-row gap-6 items-center justify-between">

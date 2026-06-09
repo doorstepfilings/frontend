@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { format, isValid } from "date-fns";
 import { toast } from "react-hot-toast";
@@ -14,11 +14,15 @@ import { adminApi } from "@/lib/api/admin-api";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { AuthGuard } from "@/components/auth/auth-guard";
 import { LogoLoader } from "@/components/ui/logo-loader";
+import { SearchSelect } from "@/components/ui/core/search-select";
+import { useConfirm } from "@/hooks/use-confirm";
 import { normalizeRole } from "@/lib/auth/redirects";
+import { usePincodeLookup } from "@/lib/hooks/use-pincode-lookup";
 import {
   type AdminRecord,
   getAccountant,
   getAccountantUniqueId,
+  getAssignedUsers,
   getAssignedAccountantUsers,
   getAssignedUsersCount,
   getCreatedAt,
@@ -31,12 +35,36 @@ import {
 type ManagementType = "users" | "rms" | "accountants";
 type WorkloadFilter = "all" | "active" | "idle" | "heavy";
 
-type CreateFormState = {
+type LocationFormState = {
+  address: string;
+  city: string;
+  pincode: string;
+  state: string;
+};
+
+type CreateFormState = LocationFormState & {
   name: string;
   email: string;
   password: string;
   mobile_number: string;
   rm_id: string;
+};
+
+type RoleChangeModalState = {
+  user: AdminRecord;
+  nextRole: "regional_manager";
+  location: LocationFormState;
+};
+
+type RmOption = {
+  id: number;
+  value: string;
+  label: string;
+  name: string;
+  code: string;
+  city: string;
+  pincode: string;
+  state: string;
 };
 
 const pageMeta: Record<
@@ -59,11 +87,11 @@ const pageMeta: Record<
     defaultSortBy: "created",
   },
   rms: {
-    title: "Regional Managers",
+    title: "Relationship Managers",
     eyebrow: "Super Admin",
     description: "Manager directory with assignment counts and direct profile access.",
     buttonLabel: "Add Manager",
-    emptyLabel: "No regional managers matched the current filters.",
+    emptyLabel: "No relationship managers matched the current filters.",
     defaultSortBy: "created",
   },
   accountants: {
@@ -76,7 +104,15 @@ const pageMeta: Record<
   },
 };
 
+const initialLocationState: LocationFormState = {
+  address: "",
+  city: "",
+  pincode: "",
+  state: "",
+};
+
 const initialFormState: CreateFormState = {
+  ...initialLocationState,
   name: "",
   email: "",
   password: "",
@@ -98,9 +134,9 @@ const routeMeta: Record<
     detailHref: (id) => `/admin/users/${id}`,
   },
   rms: {
-    href: "/admin/regional-managers",
-    countLabel: "Regional Managers",
-    detailHref: (id) => `/admin/regional-managers/${id}`,
+    href: "/admin/relationship-managers",
+    countLabel: "Relationship Managers",
+    detailHref: (id) => `/admin/relationship-managers/${id}`,
   },
   accountants: {
     href: "/admin/accountants",
@@ -111,7 +147,10 @@ const routeMeta: Record<
 
 function getErrorMessage(error: unknown, fallback: string) {
   const maybeError = error as { response?: { data?: { message?: string } } };
-  return maybeError.response?.data?.message || fallback;
+  return (
+    maybeError.response?.data?.message ||
+    (error instanceof Error ? error.message : fallback)
+  );
 }
 
 function formatJoinedDate(record: AdminRecord) {
@@ -130,7 +169,7 @@ function getRoleLabel(role: string) {
   }
 
   if (role === "regional_manager") {
-    return "Regional Manager";
+    return "Relationship Manager";
   }
 
   if (role === "accountant") {
@@ -182,12 +221,75 @@ function getLocationLabel(record: AdminRecord) {
   return "Not set";
 }
 
+function getRecordText(record: AdminRecord | null | undefined, key: string) {
+  const value = record?.[key];
+  return typeof value === "string" || typeof value === "number" ? String(value) : "";
+}
+
+function getRecordNumberId(record: AdminRecord | null | undefined) {
+  const id = record?.id;
+  if (typeof id === "number") {
+    return id;
+  }
+
+  if (typeof id === "string" && /^\d+$/.test(id)) {
+    return Number(id);
+  }
+
+  return null;
+}
+
+function getLocationFormState(record: AdminRecord | null | undefined): LocationFormState {
+  return {
+    address: getRecordText(record, "address"),
+    city: getRecordText(record, "city"),
+    pincode: getRecordText(record, "pincode").replace(/\D/g, "").slice(0, 6),
+    state: getRecordText(record, "state"),
+  };
+}
+
+function getLocationPayload(location: LocationFormState) {
+  const payload: Record<string, string> = {};
+
+  (["address", "city", "pincode", "state"] as const).forEach((key) => {
+    const value = location[key].trim();
+    if (value) {
+      payload[key] = value;
+    }
+  });
+
+  return payload;
+}
+
+function normalizeLocationToken(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function getRmLocationScore(user: AdminRecord, option: RmOption) {
+  const userState = normalizeLocationToken(getRecordText(user, "state"));
+  const userCity = normalizeLocationToken(getRecordText(user, "city"));
+  const userPincode = getRecordText(user, "pincode").replace(/\D/g, "");
+  const optionState = normalizeLocationToken(option.state);
+  const optionCity = normalizeLocationToken(option.city);
+  const optionPincode = option.pincode.replace(/\D/g, "");
+
+  let score = 0;
+  if (userState && userState === optionState) score += 4;
+  if (userCity && userCity === optionCity) score += 3;
+  if (userPincode && optionPincode && userPincode.slice(0, 3) === optionPincode.slice(0, 3)) {
+    score += 1;
+  }
+
+  return score;
+}
+
 export function UserManagementView({
   initialType = "users",
 }: {
   initialType?: ManagementType;
 }) {
   const dispatch = useAppDispatch();
+  const { confirm, ConfirmDialog } = useConfirm();
   const { users, rms, accountants } = useAppSelector((state) => state.admin);
   const currentType = initialType;
   const [searchQuery, setSearchQuery] = useState("");
@@ -200,6 +302,46 @@ export function UserManagementView({
   const [isRefreshing, setIsRefreshing] = useState(true);
   const [activeActionKey, setActiveActionKey] = useState<string | null>(null);
   const [formState, setFormState] = useState<CreateFormState>(initialFormState);
+  const [roleChangeModal, setRoleChangeModal] =
+    useState<RoleChangeModalState | null>(null);
+
+  const handleCreatePincodeSuccess = useCallback(
+    (data: { city: string; state: string }) => {
+      setFormState((state) => ({
+        ...state,
+        city: data.city,
+        state: data.state,
+      }));
+    },
+    [],
+  );
+
+  const handleRolePincodeSuccess = useCallback(
+    (data: { city: string; state: string }) => {
+      setRoleChangeModal((modal) =>
+        modal
+          ? {
+              ...modal,
+              location: {
+                ...modal.location,
+                city: data.city,
+                state: data.state,
+              },
+            }
+          : modal,
+      );
+    },
+    [],
+  );
+
+  const { loading: createPincodeLoading } = usePincodeLookup(
+    formState.pincode,
+    handleCreatePincodeSuccess,
+  );
+  const { loading: rolePincodeLoading } = usePincodeLookup(
+    roleChangeModal?.location.pincode,
+    handleRolePincodeSuccess,
+  );
 
   const refreshData = async () => {
     setIsRefreshing(true);
@@ -439,12 +581,46 @@ export function UserManagementView({
     () =>
       rms
         .filter((item: AdminRecord) => typeof item.id === "number")
-        .map((item: AdminRecord) => ({
-          id: Number(item.id),
-          name: String(item.name ?? "Regional Manager"),
-          code: getRmUniqueId(item) || "RM",
-        })),
+        .map((item: AdminRecord): RmOption => {
+          const name = String(item.name ?? "Relationship Manager");
+          const code = getRmUniqueId(item) || "RM";
+          const city = getRecordText(item, "city");
+          const state = getRecordText(item, "state");
+          const pincode = getRecordText(item, "pincode");
+
+          return {
+            id: Number(item.id),
+            value: String(item.id),
+            label: `${name} (${code})`,
+            name,
+            code,
+            city,
+            pincode,
+            state,
+          };
+        }),
     [rms],
+  );
+
+  const getRmSelectOptions = useCallback(
+    (user: AdminRecord) =>
+      assignedRmOptions
+        .map((option) => ({
+          ...option,
+          score: getRmLocationScore(user, option),
+        }))
+        .sort((left, right) => {
+          if (left.score !== right.score) {
+            return right.score - left.score;
+          }
+
+          return left.name.localeCompare(right.name);
+        })
+        .map((option) => ({
+          value: option.value,
+          label: option.label,
+        })),
+    [assignedRmOptions],
   );
 
   const assignedAccountantOptions = useMemo(
@@ -466,18 +642,26 @@ export function UserManagementView({
 
   const handleCreate = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setIsSubmitting(true);
+
+    const role =
+      currentType === "users"
+        ? "user"
+        : currentType === "rms"
+          ? "regional_manager"
+          : "accountant";
+
+    if (role === "regional_manager" && !formState.state.trim()) {
+      toast.error("State is required to generate the RM ID");
+      return;
+    }
 
     try {
+      setIsSubmitting(true);
+
       const payload: Record<string, unknown> = {
         name: formState.name.trim(),
         email: formState.email.trim(),
-        role:
-          currentType === "users"
-            ? "user"
-            : currentType === "rms"
-              ? "regional_manager"
-              : "accountant",
+        role,
       };
 
       if (formState.password.trim()) {
@@ -490,6 +674,10 @@ export function UserManagementView({
 
       if (currentType === "users" && formState.rm_id) {
         payload.rm_id = Number(formState.rm_id);
+      }
+
+      if (currentType === "rms") {
+        Object.assign(payload, getLocationPayload(formState));
       }
 
       await adminApi.storeUser(payload);
@@ -519,7 +707,12 @@ export function UserManagementView({
       return;
     }
 
-    const confirmed = window.confirm("Delete this record permanently?");
+    const confirmed = await confirm({
+      title: "Delete record?",
+      message: "This record will be permanently removed.",
+      confirmLabel: "Delete",
+      variant: "danger",
+    });
     if (!confirmed || typeof item.id !== "number") {
       return;
     }
@@ -571,17 +764,127 @@ export function UserManagementView({
     }
   };
 
-  const handleRoleUpdate = async (userId: number, nextRole: string) => {
+  const handleRoleUpdate = async (
+    userId: number,
+    nextRole: string,
+    extraData: Record<string, unknown> = {},
+  ) => {
     setActiveActionKey(`role-${userId}`);
 
     try {
-      await adminApi.updateRole(userId, { role: nextRole });
+      await adminApi.updateRole(userId, { role: nextRole, ...extraData });
       toast.success(`Role changed to ${getRoleLabel(nextRole)}`);
       await refreshData();
+      return true;
     } catch (error) {
       toast.error(getErrorMessage(error, "Failed to update role"));
+      return false;
     } finally {
       setActiveActionKey(null);
+    }
+  };
+
+  const handleRoleSelection = (item: AdminRecord, nextRole: string) => {
+    if (typeof item.id !== "number" || nextRole === getRole(item)) {
+      return;
+    }
+
+    if (nextRole === "regional_manager") {
+      setRoleChangeModal({
+        user: item,
+        nextRole,
+        location: getLocationFormState(item),
+      });
+      return;
+    }
+
+    void handleRoleUpdate(item.id, nextRole);
+  };
+
+  const handleMoveManagerToUser = async (item: AdminRecord) => {
+    const managerId = getRecordNumberId(item);
+    if (managerId === null) {
+      return;
+    }
+
+    const assignedUsersCount = getAssignedUsersCount(item);
+    const confirmed = await confirm({
+      title: "Change RM to user?",
+      message:
+        assignedUsersCount > 0
+          ? `${assignedUsersCount} assigned user${assignedUsersCount === 1 ? "" : "s"} will be disconnected from this RM before the role changes.`
+          : "This RM will become a regular user.",
+      confirmLabel: "Change role",
+      variant: "warning",
+    });
+    if (!confirmed) {
+      return;
+    }
+
+    setActiveActionKey(`role-${managerId}`);
+
+    try {
+      let assignedUsers = getAssignedUsers(item);
+
+      if (assignedUsersCount > assignedUsers.length) {
+        const response = await adminApi.getRMDetails(managerId);
+        const managerDetails = (response.data?.data ?? response.data ?? item) as AdminRecord;
+        assignedUsers = getAssignedUsers(managerDetails);
+      }
+
+      if (assignedUsersCount > assignedUsers.length) {
+        throw new Error("Unable to load every assigned user for this RM.");
+      }
+
+      const assignedUserIds = assignedUsers
+        .map(getRecordNumberId)
+        .filter((userId): userId is number => userId !== null);
+      if (assignedUserIds.length !== assignedUsers.length) {
+        throw new Error("Unable to disconnect one or more assigned users.");
+      }
+
+      await Promise.all(
+        assignedUserIds.map((userId) =>
+          adminApi.assignRM({
+            user_id: userId,
+            rm_id: null,
+          }),
+        ),
+      );
+
+      await adminApi.updateRole(managerId, { role: "user" });
+      toast.success(
+        assignedUserIds.length > 0
+          ? `RM changed to user and ${assignedUserIds.length} assigned user${assignedUserIds.length === 1 ? "" : "s"} disconnected`
+          : "RM changed to user",
+      );
+      await refreshData();
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Failed to change RM to user"));
+    } finally {
+      setActiveActionKey(null);
+    }
+  };
+
+  const handleConfirmRoleChange = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!roleChangeModal || typeof roleChangeModal.user.id !== "number") {
+      return;
+    }
+
+    if (!roleChangeModal.location.state.trim()) {
+      toast.error("State is required to generate the RM ID");
+      return;
+    }
+
+    const updated = await handleRoleUpdate(
+      roleChangeModal.user.id,
+      roleChangeModal.nextRole,
+      getLocationPayload(roleChangeModal.location),
+    );
+    if (updated) {
+      setRoleChangeModal(null);
     }
   };
 
@@ -810,7 +1113,7 @@ export function UserManagementView({
                         Role
                       </th>
                       <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">
-                        Regional Manager
+                        Relationship Manager
                       </th>
                       <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">
                         Accountant
@@ -870,9 +1173,7 @@ export function UserManagementView({
                                 <select
                                   value={role}
                                   onChange={(event) => {
-                                    if (typeof item.id === "number") {
-                                      void handleRoleUpdate(item.id, event.target.value);
-                                    }
+                                    handleRoleSelection(item, event.target.value);
                                   }}
                                   disabled={isProtectedRole || isRowBusy}
                                   className={`w-full min-w-0 rounded-lg px-3 py-2 text-[10px] font-black uppercase tracking-widest ${isProtectedRole
@@ -892,21 +1193,20 @@ export function UserManagementView({
                             </td>
                             <td className="px-6 py-4 align-top">
                               {canManageAssignments && typeof item.id === "number" ? (
-                                <select
+                                <SearchSelect
+                                  options={[
+                                    { value: "", label: "No relationship manager" },
+                                    ...getRmSelectOptions(item),
+                                  ]}
                                   value={String(regionalManager?.id ?? "")}
-                                  onChange={(event) =>
-                                    void handleAssignRM(item.id as number, event.target.value)
+                                  onChange={(value) =>
+                                    void handleAssignRM(item.id as number, value)
                                   }
                                   disabled={isRowBusy}
-                                  className="w-full min-w-0 rounded-lg bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-700 focus:outline-none focus:ring-4 focus:ring-blue-500/10"
-                                >
-                                  <option value="">No RM</option>
-                                  {assignedRmOptions.map((option) => (
-                                    <option key={option.id} value={option.id}>
-                                      {option.name} ({option.code})
-                                    </option>
-                                  ))}
-                                </select>
+                                  searchable
+                                  size="sm"
+                                  placeholder="No relationship manager"
+                                />
                               ) : (
                                 <span className="text-xs font-semibold italic text-gray-400">
                                   Locked
@@ -1000,7 +1300,7 @@ export function UserManagementView({
                     {showTableLoading ? (
                       <tr>
                         <td colSpan={7} className="px-6 py-24 text-center">
-                          <LoadingState label="Loading regional managers..." />
+                          <LoadingState label="Loading relationship managers..." />
                         </td>
                       </tr>
                     ) : currentData.length === 0 ? (
@@ -1060,6 +1360,26 @@ export function UserManagementView({
                                 >
                                   <i className="fas fa-eye" />
                                 </Link>
+                                <button
+                                  onClick={() => void handleMoveManagerToUser(item)}
+                                  disabled={isRowBusy}
+                                  title={
+                                    assignedUsersCount > 0
+                                      ? "Change to user and disconnect assigned users"
+                                      : "Change manager to user"
+                                  }
+                                  aria-label="Change manager to user"
+                                  className="inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-amber-50 px-3 text-[10px] font-black uppercase tracking-widest text-amber-700 shadow-sm transition-all hover:bg-amber-500 hover:text-white disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400"
+                                >
+                                  {activeActionKey === `role-${item.id}` ? (
+                                    "..."
+                                  ) : (
+                                    <>
+                                      <i className="fas fa-user text-xs" />
+                                      <span>RM to User</span>
+                                    </>
+                                  )}
+                                </button>
                                 <button
                                   onClick={() => void handleDelete(item)}
                                   disabled={assignedUsersCount > 0 || isRowBusy}
@@ -1303,7 +1623,7 @@ export function UserManagementView({
                 {currentType === "users" && (
                   <div>
                     <label className="mb-2 block text-[11px] font-black uppercase tracking-widest text-gray-400">
-                      Regional Manager
+                      Relationship Manager
                     </label>
                     <select
                       value={formState.rm_id}
@@ -1312,13 +1632,79 @@ export function UserManagementView({
                       }
                       className="w-full rounded-xl border border-gray-100 bg-white px-4 py-3 text-sm font-semibold text-gray-700 focus:outline-none focus:ring-4 focus:ring-blue-500/10"
                     >
-                      <option value="">No regional manager</option>
+                      <option value="">No relationship manager</option>
                       {assignedRmOptions.map((option) => (
                         <option key={option.id} value={option.id}>
                           {option.name} ({option.code})
                         </option>
                       ))}
                     </select>
+                  </div>
+                )}
+
+                {currentType === "rms" && (
+                  <div className="grid gap-5 border-t border-gray-100 pt-5 md:grid-cols-2">
+                    <div className="md:col-span-2">
+                      <label className="mb-2 block text-[11px] font-black uppercase tracking-widest text-gray-400">
+                        Address
+                      </label>
+                      <input
+                        value={formState.address}
+                        onChange={(event) =>
+                          setFormState((state) => ({ ...state, address: event.target.value }))
+                        }
+                        className="w-full rounded-xl border border-gray-100 bg-white px-4 py-3 text-sm font-semibold text-gray-700 focus:outline-none focus:ring-4 focus:ring-blue-500/10"
+                        placeholder="Optional address"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-[11px] font-black uppercase tracking-widest text-gray-400">
+                        Pincode
+                      </label>
+                      <div className="relative">
+                        <input
+                          value={formState.pincode}
+                          onChange={(event) =>
+                            setFormState((state) => ({
+                              ...state,
+                              pincode: event.target.value.replace(/\D/g, "").slice(0, 6),
+                            }))
+                          }
+                          className="w-full rounded-xl border border-gray-100 bg-white px-4 py-3 pr-10 text-sm font-semibold text-gray-700 focus:outline-none focus:ring-4 focus:ring-blue-500/10"
+                          placeholder="400001"
+                        />
+                        {createPincodeLoading && (
+                          <i className="fas fa-circle-notch fa-spin absolute right-4 top-1/2 -translate-y-1/2 text-blue-600" />
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-[11px] font-black uppercase tracking-widest text-gray-400">
+                        City
+                      </label>
+                      <input
+                        value={formState.city}
+                        onChange={(event) =>
+                          setFormState((state) => ({ ...state, city: event.target.value }))
+                        }
+                        className="w-full rounded-xl border border-gray-100 bg-white px-4 py-3 text-sm font-semibold text-gray-700 focus:outline-none focus:ring-4 focus:ring-blue-500/10"
+                        placeholder="Mumbai"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="mb-2 block text-[11px] font-black uppercase tracking-widest text-gray-400">
+                        State
+                      </label>
+                      <input
+                        required
+                        value={formState.state}
+                        onChange={(event) =>
+                          setFormState((state) => ({ ...state, state: event.target.value }))
+                        }
+                        className="w-full rounded-xl border border-gray-100 bg-white px-4 py-3 text-sm font-semibold text-gray-700 focus:outline-none focus:ring-4 focus:ring-blue-500/10"
+                        placeholder="Maharashtra"
+                      />
+                    </div>
                   </div>
                 )}
 
@@ -1339,6 +1725,167 @@ export function UserManagementView({
             </div>
           </div>
         )}
+
+        {roleChangeModal && (
+          <div className="fixed inset-0 z-[90] overflow-y-auto bg-slate-900/45 px-4 py-10 backdrop-blur-sm">
+            <div className="mx-auto max-w-2xl rounded-[2rem] border border-gray-100 bg-white shadow-2xl">
+              <div className="flex items-center justify-between border-b border-gray-100 px-6 py-5">
+                <div>
+                  <h2 className="text-xl font-black text-gray-900">
+                    Promote to Relationship Manager
+                  </h2>
+                  <p className="mt-1 text-sm text-gray-500">
+                    {String(roleChangeModal.user.name ?? "Selected user")}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setRoleChangeModal(null)}
+                  className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-100 text-gray-500 transition-colors hover:bg-gray-200"
+                >
+                  <i className="fas fa-times" />
+                </button>
+              </div>
+
+              <form onSubmit={handleConfirmRoleChange} className="space-y-5 px-6 py-6">
+                <div className="grid gap-5 md:grid-cols-2">
+                  <div className="md:col-span-2">
+                    <label className="mb-2 block text-[11px] font-black uppercase tracking-widest text-gray-400">
+                      Address
+                    </label>
+                    <input
+                      value={roleChangeModal.location.address}
+                      onChange={(event) =>
+                        setRoleChangeModal((modal) =>
+                          modal
+                            ? {
+                                ...modal,
+                                location: {
+                                  ...modal.location,
+                                  address: event.target.value,
+                                },
+                              }
+                            : modal,
+                        )
+                      }
+                      className="w-full rounded-xl border border-gray-100 bg-white px-4 py-3 text-sm font-semibold text-gray-700 focus:outline-none focus:ring-4 focus:ring-blue-500/10"
+                      placeholder="Optional address"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-[11px] font-black uppercase tracking-widest text-gray-400">
+                      Pincode
+                    </label>
+                    <div className="relative">
+                      <input
+                        value={roleChangeModal.location.pincode}
+                        onChange={(event) =>
+                          setRoleChangeModal((modal) =>
+                            modal
+                              ? {
+                                  ...modal,
+                                  location: {
+                                    ...modal.location,
+                                    pincode: event.target.value
+                                      .replace(/\D/g, "")
+                                      .slice(0, 6),
+                                  },
+                                }
+                              : modal,
+                          )
+                        }
+                        className="w-full rounded-xl border border-gray-100 bg-white px-4 py-3 pr-10 text-sm font-semibold text-gray-700 focus:outline-none focus:ring-4 focus:ring-blue-500/10"
+                        placeholder="400001"
+                      />
+                      {rolePincodeLoading && (
+                        <i className="fas fa-circle-notch fa-spin absolute right-4 top-1/2 -translate-y-1/2 text-blue-600" />
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-[11px] font-black uppercase tracking-widest text-gray-400">
+                      City
+                    </label>
+                    <input
+                      value={roleChangeModal.location.city}
+                      onChange={(event) =>
+                        setRoleChangeModal((modal) =>
+                          modal
+                            ? {
+                                ...modal,
+                                location: {
+                                  ...modal.location,
+                                  city: event.target.value,
+                                },
+                              }
+                            : modal,
+                        )
+                      }
+                      className="w-full rounded-xl border border-gray-100 bg-white px-4 py-3 text-sm font-semibold text-gray-700 focus:outline-none focus:ring-4 focus:ring-blue-500/10"
+                      placeholder="Mumbai"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="mb-2 block text-[11px] font-black uppercase tracking-widest text-gray-400">
+                      State
+                    </label>
+                    <input
+                      required
+                      value={roleChangeModal.location.state}
+                      onChange={(event) =>
+                        setRoleChangeModal((modal) =>
+                          modal
+                            ? {
+                                ...modal,
+                                location: {
+                                  ...modal.location,
+                                  state: event.target.value,
+                                },
+                              }
+                            : modal,
+                        )
+                      }
+                      className="w-full rounded-xl border border-gray-100 bg-white px-4 py-3 text-sm font-semibold text-gray-700 focus:outline-none focus:ring-4 focus:ring-blue-500/10"
+                      placeholder="Maharashtra"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-3 border-t border-gray-100 pt-5 sm:flex-row sm:justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setRoleChangeModal(null)}
+                    className="admin-btn-muted text-xs"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={
+                      activeActionKey === `role-${String(roleChangeModal.user.id ?? "")}`
+                    }
+                    className="admin-btn text-xs"
+                  >
+                    <i
+                      className={`fas ${
+                        activeActionKey === `role-${String(roleChangeModal.user.id ?? "")}`
+                          ? "fa-circle-notch fa-spin"
+                          : "fa-check"
+                      }`}
+                    />
+                    <span>
+                      {activeActionKey === `role-${String(roleChangeModal.user.id ?? "")}`
+                        ? "Updating..."
+                        : "Promote User"}
+                    </span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        <ConfirmDialog />
       </AdminLayout>
     </AuthGuard>
   );

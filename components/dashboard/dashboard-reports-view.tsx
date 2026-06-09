@@ -8,7 +8,7 @@ import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
 import {
   forceDownload,
   getDocumentTimestamp,
-  isClientDocument,
+  isClientDeliveryDocument,
   looksLikeReport,
   resolveStorageUrl,
 } from "@/lib/utils/document-helpers";
@@ -27,7 +27,7 @@ export function DashboardReportsView() {
     () =>
       (myServices || []).reduce((acc: any[], service: any) => {
         (service.request_documents || []).forEach((doc: any) => {
-          if (isClientDocument(doc) && looksLikeReport(doc)) {
+          if (isClientDeliveryDocument(doc) && looksLikeReport(doc)) {
             acc.push({
               id: `doc-${doc.id}`,
               serviceName: service.service?.name,

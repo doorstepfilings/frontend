@@ -244,12 +244,12 @@ export function CartView() {
           </div>
 
           <div className="space-y-6">
-            <div className="sticky top-24 rounded-[3rem] bg-slate-900 p-10 text-white shadow-2xl shadow-slate-900/20">
-              <h2 className="mb-10 text-2xl font-black tracking-tight">
+            <div className="sticky top-20 rounded-[2rem] bg-slate-900 p-5 text-white shadow-2xl shadow-slate-900/20 sm:p-8 lg:top-24 lg:rounded-[3rem] lg:p-10">
+              <h2 className="mb-6 text-2xl font-black tracking-tight sm:mb-10">
                 Order Summary
               </h2>
 
-              <div className="mb-10 space-y-6">
+              <div className="mb-8 space-y-5 sm:mb-10 sm:space-y-6">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold uppercase tracking-widest text-slate-400">
                     Subtotal

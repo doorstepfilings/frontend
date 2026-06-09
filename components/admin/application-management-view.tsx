@@ -69,7 +69,7 @@ export function ApplicationManagementView() {
         setAssigningId(applicationId);
         try {
             await dispatch(assignAccountantToApplication({ applicationId, accountantId })).unwrap();
-            toast.success("Assignment updated successfully");
+            toast.success("Accountant Assignment updated successfully");
             dispatch(fetchAdminApplications());
         } catch (error: any) {
             toast.error(error || "Failed to update assignment");
@@ -227,7 +227,7 @@ export function ApplicationManagementView() {
                                                 <td className="px-6 py-6 text-right">
                                                     <Link 
                                                         href={`/admin/service-applications/${app.id}`}
-                                                        className="h-10 px-6 bg-slate-900 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-blue-600 transition-all flex items-center justify-center gap-2 shadow-lg shadow-slate-900/10 hover:shadow-blue-500/20"
+                                                        className="h-10 bg-slate-900 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-blue-600 transition-all flex items-center justify-center gap-2 shadow-lg shadow-slate-900/10 hover:shadow-blue-500/20"
                                                     >
                                                         Details
                                                         <i className="fas fa-arrow-right text-[8px]"></i>

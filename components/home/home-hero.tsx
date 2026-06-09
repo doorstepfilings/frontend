@@ -19,13 +19,13 @@ function StarRating() {
 
 export function HomeHero() {
   return (
-    <section className="relative flex min-h-screen items-center overflow-hidden bg-slate-950">
+    <section className="relative flex min-h-[calc(100dvh-4rem)] items-center overflow-hidden bg-slate-950 lg:min-h-screen">
       {/* Background layers */}
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950" />
-        <div className="animate-blob absolute -left-32 top-1/4 h-[600px] w-[600px] rounded-full bg-blue-600/20 blur-[120px]" />
-        <div className="animate-blob delay-500 absolute -right-32 bottom-1/4 h-[500px] w-[500px] rounded-full bg-amber-500/15 blur-[100px]" />
-        <div className="absolute left-1/2 top-1/2 h-[800px] w-[800px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo-600/10 blur-[150px]" />
+        <div className="animate-blob absolute -left-48 top-1/4 h-[420px] w-[420px] rounded-full bg-blue-600/20 blur-[100px] sm:-left-32 sm:h-[600px] sm:w-[600px] sm:blur-[120px]" />
+        <div className="animate-blob delay-500 absolute -right-48 bottom-1/4 h-[360px] w-[360px] rounded-full bg-amber-500/15 blur-[90px] sm:-right-32 sm:h-[500px] sm:w-[500px] sm:blur-[100px]" />
+        <div className="absolute left-1/2 top-1/2 h-[520px] w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo-600/10 blur-[120px] sm:h-[800px] sm:w-[800px] sm:blur-[150px]" />
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:60px_60px]" />
         <div
           className="absolute inset-0 opacity-30"
@@ -36,7 +36,7 @@ export function HomeHero() {
         />
       </div>
 
-      <div className="container relative z-20 mx-auto px-4 py-24 sm:px-6 lg:px-8 lg:py-32">
+      <div className="container relative z-20 mx-auto px-4 py-16 sm:px-6 sm:py-24 lg:px-8 lg:py-32">
         <div className="flex flex-col items-center gap-12 lg:flex-row lg:gap-20">
           {/* Left copy */}
           <div className="w-full text-left lg:w-[55%]">
@@ -64,10 +64,10 @@ export function HomeHero() {
             </p>
 
             {/* CTA buttons */}
-            <div className="animate-fade-in-up delay-300 mb-10 flex flex-col sm:flex-row gap-4">
+            <div className="animate-fade-in-up delay-300 mb-10 flex flex-col gap-4 sm:flex-row">
               <Link
                 href="/contact"
-                className="group relative overflow-hidden rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 px-8 py-4 text-lg font-semibold text-white shadow-lg shadow-amber-500/25 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-amber-500/40 w-full sm:w-auto text-center flex justify-center items-center"
+                className="group relative flex w-full items-center justify-center overflow-hidden rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 px-5 py-4 text-center text-base font-semibold text-white shadow-lg shadow-amber-500/25 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-amber-500/40 sm:w-auto sm:px-8 sm:text-lg"
               >
                 <span className="relative z-10 flex items-center gap-2">
                   Get Free Consultation
@@ -90,7 +90,7 @@ export function HomeHero() {
 
               <Link
                 href="/about"
-                className="group flex items-center justify-center gap-3 rounded-xl border border-slate-700 bg-white/5 px-8 py-4 text-lg font-semibold text-white backdrop-blur-sm transition-all duration-300 hover:border-slate-600 hover:bg-white/10 w-full sm:w-auto"
+                className="group flex w-full items-center justify-center gap-3 rounded-xl border border-slate-700 bg-white/5 px-5 py-4 text-base font-semibold text-white backdrop-blur-sm transition-all duration-300 hover:border-slate-600 hover:bg-white/10 sm:w-auto sm:px-8 sm:text-lg"
               >
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/20 transition-colors group-hover:bg-amber-500/30">
                   <svg

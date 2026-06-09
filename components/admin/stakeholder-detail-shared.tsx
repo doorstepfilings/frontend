@@ -32,7 +32,7 @@ export function getRoleDisplayLabel(role: string | null | undefined) {
   }
 
   if (role === "regional_manager") {
-    return "Regional Manager";
+    return "Relationship Manager";
   }
 
   if (role === "accountant") {

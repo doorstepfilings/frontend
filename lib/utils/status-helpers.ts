@@ -106,18 +106,18 @@ export type MilestoneState = {
 export function getMilestoneState(status: string): MilestoneState {
   const normalizedStatus = String(status || "").toLowerCase();
 
-  // Milestone 1: Submission
-  if (["draft", "applied"].includes(normalizedStatus)) {
+  // Milestone 1: Submission (draft = still at submission)
+  if (normalizedStatus === "draft") {
     return { currentStep: 1, isWarning: false };
   }
-  
-  // Milestone 2: Payment
-  if (["payment_pending", "paid"].includes(normalizedStatus)) {
+
+  // Milestone 2: Payment (applied = submission done, now at payment; payment_pending = waiting for payment)
+  if (["applied", "payment_pending"].includes(normalizedStatus)) {
     return { currentStep: 2, isWarning: normalizedStatus === "payment_pending" };
   }
   
-  // Milestone 3: Verification
-  if (["document_collection", "under_review", "update_required"].includes(normalizedStatus)) {
+  // Milestone 3: Verification (paid = payment done, now at verification stage)
+  if (["paid", "document_collection", "under_review", "update_required"].includes(normalizedStatus)) {
     return { currentStep: 3, isWarning: normalizedStatus === "update_required" };
   }
   

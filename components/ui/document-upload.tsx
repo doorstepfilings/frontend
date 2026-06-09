@@ -72,15 +72,15 @@ export const DocumentUpload = ({
   };
 
   return (
-    <div className="animate-fadeIn overflow-hidden rounded-2xl border border-gray-200 bg-white">
-      <div className="flex items-center justify-between gap-4 border-b border-gray-100 px-6 py-4">
+    <div className="animate-fadeIn overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex items-center justify-between gap-4 border-b border-slate-100 px-6 py-5">
         <div>
-          <h3 className="flex items-center gap-3 text-sm font-bold uppercase tracking-widest text-gray-900">
-            <i className="fas fa-cloud-upload-alt text-blue-500" />
+          <h3 className="flex items-center gap-2.5 text-xs font-extrabold uppercase tracking-widest text-slate-800">
+            <i className="fa-solid fa-cloud-arrow-up text-blue-500 text-sm" />
             {title}
           </h3>
           {description && (
-            <p className="mt-1 text-sm text-gray-500">{description}</p>
+            <p className="mt-1 text-xs text-slate-400 font-medium">{description}</p>
           )}
         </div>
 
@@ -89,7 +89,7 @@ export const DocumentUpload = ({
           variant="outline"
           size="sm"
           onClick={onAddRow}
-          className="rounded-xl border-blue-200 bg-blue-50 font-bold text-blue-700 hover:bg-blue-100"
+          className="rounded-xl border-blue-100 bg-blue-50/50 hover:bg-blue-50 font-semibold text-blue-600 hover:text-blue-700 shadow-sm transition-all duration-200 active:scale-95"
         >
           <i className="fas fa-plus mr-2" /> Add Row
         </Button>
@@ -112,7 +112,7 @@ export const DocumentUpload = ({
           return (
             <div
               key={index}
-              className="space-y-4 rounded-2xl border border-gray-100 bg-gray-50/50 p-5"
+              className="relative space-y-4 rounded-2xl border border-slate-100 bg-slate-50/30 hover:bg-slate-50/60 p-5 transition-all duration-300 hover:border-slate-200"
             >
               <div className="flex flex-col gap-4 xl:flex-row xl:items-end">
                 {showTypeInput && (
@@ -146,7 +146,7 @@ export const DocumentUpload = ({
                         value={row.type}
                         onChange={(event) => onTypeChange(index, event.target.value)}
                         placeholder="e.g. Aadhaar Card"
-                        className="h-[50px] w-full rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                        className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-800 outline-none transition-all focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 placeholder:text-slate-400 shadow-sm"
                       />
                     )}
                   </div>
@@ -161,10 +161,10 @@ export const DocumentUpload = ({
                       <button
                         type="button"
                         onClick={() => onSourceChange?.(index, "upload")}
-                        className={`rounded-xl px-4 py-3 text-xs font-bold transition-all ${
+                        className={`rounded-xl px-4 py-2.5 text-xs font-bold transition-all duration-200 ${
                           rowSource === "upload"
-                            ? "bg-blue-900 text-white shadow-lg shadow-blue-900/20"
-                            : "border border-gray-200 bg-white text-gray-600 hover:border-blue-200 hover:text-blue-900"
+                            ? "bg-blue-900 text-white shadow-md shadow-blue-900/10"
+                            : "border border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:text-blue-900"
                         }`}
                       >
                         Upload New
@@ -172,10 +172,10 @@ export const DocumentUpload = ({
                       <button
                         type="button"
                         onClick={() => onSourceChange?.(index, "existing")}
-                        className={`rounded-xl px-4 py-3 text-xs font-bold transition-all ${
+                        className={`rounded-xl px-4 py-2.5 text-xs font-bold transition-all duration-200 ${
                           rowSource === "existing"
-                            ? "bg-emerald-600 text-white shadow-lg shadow-emerald-900/20"
-                            : "border border-gray-200 bg-white text-gray-600 hover:border-emerald-200 hover:text-emerald-700"
+                            ? "bg-emerald-600 text-white shadow-md shadow-emerald-900/10"
+                            : "border border-slate-200 bg-white text-slate-600 hover:border-emerald-200 hover:text-emerald-700"
                         }`}
                       >
                         Use Existing
@@ -191,7 +191,7 @@ export const DocumentUpload = ({
                     type="button"
                     variant="ghost"
                     onClick={() => onRemoveRow(index)}
-                    className="h-[50px] w-[50px] rounded-xl border border-red-50 text-red-500 hover:bg-red-50 hover:text-red-600"
+                    className="h-12 w-12 rounded-xl border border-rose-50 text-rose-500 hover:bg-rose-50 hover:text-rose-600 transition-all duration-200"
                     title="Remove Row"
                   >
                     <i className="fas fa-trash-alt" />
@@ -248,10 +248,12 @@ export const DocumentUpload = ({
                   </div>
                 ) : (
                   <div
-                    className={`relative rounded-xl border border-dashed bg-white p-4 transition-all ${
+                    className={`relative rounded-xl border border-dashed p-4 transition-all duration-200 ${
                       fileErrors[index]
-                        ? "border-red-200 bg-red-50/30"
-                        : "border-gray-200 hover:border-blue-200"
+                        ? "border-rose-200 bg-rose-50/20"
+                        : row.file
+                          ? "border-slate-200 bg-white shadow-sm"
+                          : "border-slate-200 bg-white hover:border-blue-300 hover:bg-blue-50/10"
                     }`}
                   >
                     <input
@@ -264,10 +266,12 @@ export const DocumentUpload = ({
                     />
                     <div className="flex items-center gap-3">
                       <div
-                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${
+                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all duration-200 ${
                           fileErrors[index]
-                            ? "bg-red-100 text-red-600"
-                            : `${iconData.bg} ${iconData.color}`
+                            ? "bg-rose-100 text-rose-600"
+                            : row.file
+                              ? `${iconData.bg} ${iconData.color} scale-105 shadow-sm`
+                              : "bg-slate-50 text-slate-400 group-hover:text-blue-500 group-hover:bg-blue-50/60"
                         }`}
                       >
                         <i
@@ -278,13 +282,13 @@ export const DocumentUpload = ({
                       </div>
                       <div className="min-w-0 flex-1">
                         <p
-                          className={`truncate text-sm font-semibold ${
-                            row.file ? "text-gray-900" : "text-gray-500"
+                          className={`truncate text-sm font-semibold transition-colors duration-200 ${
+                            row.file ? "text-slate-800" : "text-slate-400"
                           }`}
                         >
                           {row.file ? row.file.name : "Choose file"}
                         </p>
-                        <p className="mt-1 text-[11px] text-gray-400">
+                        <p className="mt-1 text-[11px] font-medium text-slate-400">
                           {row.file
                             ? formatFileSize(row.file.size)
                             : `PDF, JPG, PNG up to ${maxFileSizeMB}MB`}
@@ -295,9 +299,9 @@ export const DocumentUpload = ({
                 )}
 
                 {fileErrors[index] && rowSource !== "existing" && (
-                  <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-xs text-red-700">
+                  <div className="rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs text-rose-700">
                     <p className="font-semibold">{fileErrors[index]}</p>
-                    <p className="mt-1 text-[11px] text-red-600">
+                    <p className="mt-1 text-[11px] text-rose-650">
                       Reduce the file size below {maxFileSizeMB}MB and try again.
                     </p>
                   </div>
@@ -317,7 +321,7 @@ export const DocumentUpload = ({
                   value={row.notes}
                   onChange={(event) => onNotesChange(index, event.target.value)}
                   placeholder="Add any specific details about this document..."
-                  className="h-[50px] w-full rounded-xl border border-gray-200 bg-white px-4 text-sm text-gray-600 outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                  className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-600 outline-none transition-all focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 placeholder:text-slate-400 shadow-sm"
                 />
               </div>
             </div>
@@ -333,12 +337,12 @@ export const DocumentUpload = ({
                 hasErrors ||
                 rows.some((row) => !rowIsComplete(row))
               }
-              className={`h-[60px] w-full rounded-2xl text-sm font-black uppercase tracking-widest shadow-xl transition-all ${
+              className={`h-14 w-full rounded-xl text-xs font-black uppercase tracking-widest shadow-lg transition-all duration-200 ${
                 isUploading ||
                 hasErrors ||
                 rows.some((row) => !rowIsComplete(row))
-                  ? "bg-gray-100 text-gray-400"
-                  : "bg-blue-900 text-white shadow-blue-900/20 hover:bg-blue-800 hover:shadow-2xl active:scale-[0.98]"
+                  ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+                  : "bg-gradient-to-r from-blue-900 to-indigo-950 text-white shadow-blue-900/25 hover:from-blue-800 hover:to-indigo-900 hover:shadow-xl hover:shadow-blue-900/35 active:scale-[0.98]"
               }`}
             >
               {isUploading ? (
@@ -356,7 +360,7 @@ export const DocumentUpload = ({
 
             {(hasErrors || rows.some((row) => !rowIsComplete(row))) &&
               !isUploading && (
-                <p className="mt-4 text-center text-[11px] font-medium text-gray-500">
+                <p className="mt-4 text-center text-[11px] font-medium text-slate-450">
                   {hasErrors
                     ? "Please resolve file size errors to continue"
                     : "Complete each row with a document type and file to enable upload"}

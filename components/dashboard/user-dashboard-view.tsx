@@ -114,11 +114,11 @@ export function UserDashboardView() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="flex flex-col overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm lg:col-span-2">
-          <div className="flex items-center justify-between border-b border-gray-50 p-6">
+          <div className="flex items-center justify-between gap-3 border-b border-gray-50 p-4 sm:p-6">
             <h2 className="text-lg font-bold text-gray-900">Recent Applications</h2>
             <Link
               href="/dashboard/services"
-              className="text-sm font-semibold text-blue-600 hover:text-blue-800"
+              className="shrink-0 text-sm font-semibold text-blue-600 hover:text-blue-800"
             >
               View all
             </Link>
@@ -126,7 +126,7 @@ export function UserDashboardView() {
 
           <div className="flex-1">
             {recentServices.length === 0 ? (
-              <div className="p-12 text-center text-gray-500">
+              <div className="p-6 text-center text-gray-500 sm:p-12">
                 <i className="fas fa-clipboard-list mb-4 text-4xl text-gray-200" />
                 <p>No recent applications found.</p>
               </div>
@@ -139,14 +139,14 @@ export function UserDashboardView() {
                       service.service?.name,
                     ])}
                     href={`/dashboard/services/${service.id}`}
-                    className="group flex items-center justify-between px-6 py-4 transition-colors hover:bg-gray-50"
+                    className="group flex flex-col gap-3 px-4 py-4 transition-colors hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between sm:px-6"
                   >
-                    <div className="flex items-center gap-4">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                    <div className="flex min-w-0 items-center gap-4">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
                         <i className="fas fa-file-invoice" />
                       </div>
-                      <div>
-                        <p className="text-sm font-semibold text-gray-900">
+                      <div className="min-w-0">
+                        <p className="break-words text-sm font-semibold text-gray-900">
                           {service.service?.name}
                         </p>
                         <p className="text-xs text-gray-400">
@@ -154,7 +154,7 @@ export function UserDashboardView() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex w-full items-center justify-between gap-4 sm:w-auto sm:justify-end">
                       <span
                         className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider ${getStatusColorClass(
                           service.status,

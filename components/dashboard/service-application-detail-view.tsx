@@ -51,6 +51,7 @@ type ServiceDocument = {
     id: number | string;
     status?: string | null;
     notes?: string | null;
+    uploaded_by?: { id?: number | string; name?: string; role?: string } | null;
 };
 
 type DocumentLightboxItem = {
@@ -356,7 +357,6 @@ export function ServiceApplicationDetailView() {
     }
 
     const isPaid = ["paid", "success"].includes(String(service?.payment_status || "").toLowerCase());
-    const progress = isPaid ? Math.round((currentStep / 5) * 100) : 0;
 
     return (
         <div className="space-y-10 animate-fadeIn">
@@ -379,38 +379,77 @@ export function ServiceApplicationDetailView() {
             </div>
 
             <div className="bg-white rounded-[2rem] border border-slate-100 p-6 md:p-10 shadow-sm space-y-8">
-                {/* 1. Journey Tracker & Key Stats */}
+                {/* 1. Journey Tracker - Milestone Stepper */}
                 <div className="relative">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                         <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">
                             Journey Status
                         </h3>
-                        <div>
+                        <div className="flex items-center gap-3">
                             <StatusIndicator status={service?.status} />
+                            <div className={`px-3 py-1 text-white rounded-lg text-[10px] font-bold ${
+                                service?.status === "completed" || service?.status === "approved"
+                                    ? "bg-emerald-600"
+                                    : (isWarning ? (service?.status === "update_required" ? "bg-red-500" : "bg-amber-500") : "bg-blue-900")
+                            }`}>
+                                {service?.status === "completed" || service?.status === "approved" ? "Completed" : `Stage ${currentStep} of 5`}
+                                {isWarning && service?.status !== "completed" && (service?.status === "update_required" ? " - Correction Required" : " - Action Needed")}
+                            </div>
                         </div>
                     </div>
 
-                    <div className="relative">
-                        <div className="h-3 bg-slate-50 rounded-full overflow-hidden">
+                    <div className="overflow-x-auto pb-4 hide-scrollbar">
+                        <div className="relative px-2 min-w-[500px]">
+                            <div className="absolute top-[1.125rem] left-10 right-10 h-0.5 bg-slate-100" />
                             <div
-                                className={`h-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(30,58,138,0.3)] ${isWarning
-                                    ? (service?.status === "update_required" ? "bg-red-500" : "bg-amber-500")
-                                    : (service?.status === "completed" || service?.status === "approved" ? "bg-emerald-500" : "bg-blue-900")
-                                    }`}
-                                style={{ width: `${progress}%` }}
-                            ></div>
-                        </div>
-                        <div className="flex justify-between mt-4">
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                Submission
-                            </span>
-                            <span className={`text-[10px] font-black uppercase tracking-widest ${service?.status === "completed" || service?.status === "approved" ? "text-emerald-600" : "text-blue-900"
-                                }`}>
-                                {progress}% Processed
-                            </span>
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                Completion
-                            </span>
+                                className={`absolute top-[1.125rem] left-10 h-0.5 transition-all duration-1000 ${
+                                    service?.status === "completed" || service?.status === "approved"
+                                        ? "bg-emerald-500"
+                                        : (isWarning ? (service?.status === "update_required" ? "bg-red-500" : "bg-amber-500") : "bg-blue-900")
+                                }`}
+                                style={{ width: `calc((100% - 5rem) * ${(currentStep - 1) / 4})` }}
+                            />
+
+                            <div className="relative z-10 flex justify-between">
+                                {[
+                                    { id: 1, label: "Submission" },
+                                    { id: 2, label: "Payment" },
+                                    { id: 3, label: "Verification" },
+                                    { id: 4, label: "Processing" },
+                                    { id: 5, label: "Completion" },
+                                ].map((step) => {
+                                    const isActive = step.id <= currentStep;
+                                    const isCurrent = step.id === currentStep;
+                                    const isStepCompleted = (isActive && !isCurrent) || (service?.status === "completed" || service?.status === "approved");
+
+                                    let circleClasses = "bg-white border-slate-100 text-slate-200";
+                                    if (isActive) circleClasses = "bg-white border-blue-900 text-blue-900 shadow-sm";
+                                    if (isStepCompleted) {
+                                        circleClasses = "bg-emerald-50 border-emerald-500 text-emerald-600 shadow-sm shadow-emerald-500/10";
+                                    } else if (isCurrent && isWarning) {
+                                        circleClasses = service?.status === "update_required"
+                                            ? "bg-red-50 border-red-500 text-red-600 shadow-sm shadow-red-500/20"
+                                            : "bg-amber-50 border-amber-500 text-amber-600 shadow-sm shadow-amber-500/20";
+                                    }
+
+                                    return (
+                                        <div key={step.id} className="flex flex-col items-center gap-4">
+                                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold border-2 transition-all duration-500 ${circleClasses}`}>
+                                                {isStepCompleted ? <i className="fas fa-check text-[10px]" /> : step.id}
+                                            </div>
+                                            <span className={`text-[10px] font-bold uppercase tracking-wide text-center max-w-[80px] ${
+                                                isActive
+                                                    ? (isCurrent && isWarning
+                                                        ? (service?.status === "update_required" ? "text-red-600" : "text-amber-600")
+                                                        : (isStepCompleted ? "text-emerald-600" : "text-blue-900"))
+                                                    : "text-slate-300"
+                                            }`}>
+                                                {step.label}
+                                            </span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
                     </div>
 
@@ -867,6 +906,9 @@ export function ServiceApplicationDetailView() {
                     "Document"
                 }
                 userType="user"
+                uploadedBy={viewingNoteDoc?.uploaded_by}
+                clientName={user?.name}
+                accountantName={assignedAccountant?.name}
             />
 
             <ChatNoteModal
@@ -876,6 +918,10 @@ export function ServiceApplicationDetailView() {
                 contextName={service?.service?.name || "Service Application"}
                 noteText={service?.update_note || service?.rejection_reason || ""}
                 userType="user"
+                fallbackSender={assignedAccountant?.name || "Accountant"}
+                fallbackRole="Accountant"
+                clientName={user?.name}
+                accountantName={assignedAccountant?.name}
             />
 
             <OrderSummaryModal

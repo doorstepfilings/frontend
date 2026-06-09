@@ -6,6 +6,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { toast } from "react-hot-toast";
 import { apiClient } from "@/lib/api/client";
 import { useAuthStatus, useStoredUser } from "@/lib/auth/hooks";
 import { setStoredUser } from "@/lib/auth/storage";
@@ -13,18 +14,11 @@ import type { AuthUser } from "@/lib/auth/types";
 import { usePincodeLookup } from "@/lib/hooks/use-pincode-lookup";
 import { DocumentUpload } from "@/components/ui/document-upload";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { OrderSummaryModal } from "./order-summary-modal";
 import {
   SLOT_TIMES,
   formatTimeSlot,
   isWorkingDay,
 } from "@/lib/utils/slot-helpers";
-import {
-  loadRazorpay,
-  type RazorpayCheckoutOptions,
-  type RazorpayPaymentResponse
-} from "@/lib/utils/razorpay";
-import { buildDashboardDocumentsUrl } from "@/lib/utils/payment-navigation";
 import { parseApiError } from "@/lib/utils/error-parser";
 import { formatPrice } from "@/lib/utils/pricing";
 
@@ -237,12 +231,8 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
 
   const [selectedPricingPlan, setSelectedPricingPlan] = useState("");
   const [submitLoading, setSubmitLoading] = useState(false);
-  const [paymentLoading, setPaymentLoading] = useState(false);
   const [documentRows, setDocumentRows] = useState<DocumentRow[]>([]);
   const [fileErrors, setFileErrors] = useState<Record<number, string>>({});
-  const [createdApplication, setCreatedApplication] = useState<any>(null);
-  const [showOrderModal, setShowOrderModal] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const selectedPlanDetails =
     selectedService?.pricing_plans?.find((plan) => plan.name === selectedPricingPlan) ?? null;
   const hasMultiplePackages = (selectedService?.pricing_plans?.length ?? 0) > 1;
@@ -507,9 +497,13 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
       });
       if (metadata.length) payload.append("document_metadata", JSON.stringify(metadata));
 
-      const res = await apiClient.post("/service/apply", payload);
-      setCreatedApplication(res.data.data);
-      setShowSuccessModal(true);
+      await apiClient.post("/service/apply", payload);
+      toast.success("Application submitted successfully.");
+      localStorage.removeItem("selectedService");
+      if (modalMode && onModalClose) {
+        onModalClose();
+      }
+      router.push("/dashboard/services");
     } catch (err: any) {
       const parsedError = parseApiError(err);
 
@@ -531,90 +525,6 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
 
       setError(parsedError);
     } finally { setSubmitLoading(false); }
-  };
-
-  const handleFinish = () => {
-    setShowSuccessModal(false);
-    if (modalMode && onModalClose) {
-      onModalClose();
-    } else {
-      setShowOrderModal(true);
-    }
-  };
-
-  const handleCloseOrderModal = () => {
-    setShowOrderModal(false);
-    if (modalMode && onModalClose) {
-      onModalClose();
-    } else {
-      router.push("/dashboard/services");
-    }
-  };
-
-  const handleConfirmPayment = async () => {
-    if (!createdApplication?.id) return;
-    const applicationId = createdApplication.id;
-    setPaymentLoading(true);
-    try {
-      const loaded = await loadRazorpay();
-      if (!loaded) return setError("Razorpay load failed");
-      const res = await apiClient.post("/payments/razorpay/order-single", { user_service_id: createdApplication.id });
-      const order = res.data.data;
-      setShowOrderModal(false);
-      const options: RazorpayCheckoutOptions = {
-        key: order.key_id,
-        amount: order.amount_paise,
-        currency: order.currency,
-        name: "DoorstepFilings",
-        description: `Payment for ${selectedService?.name || 'Service'}`,
-        order_id: order.razorpay_order_id,
-        handler: async (r: any) => {
-          await apiClient.post("/payments/razorpay/verify", { ...r, payment_id: order.payment_id });
-          if (modalMode && onModalClose) {
-            onModalClose();
-            return;
-          }
-          router.replace(
-            buildDashboardDocumentsUrl({
-              message:
-                "Payment successfully done. You can upload your documents now.",
-              status: "success",
-              serviceIds: [String(applicationId)],
-            }),
-          );
-        },
-        prefill: { name: user?.name, email: user?.email, contact: user?.mobile_number },
-        theme: { color: "#1e3a8a" },
-      };
-      const rzp = new (window as any).Razorpay({
-        ...options,
-        modal: {
-          ondismiss: async () => {
-            try {
-              await apiClient.post("/payments/razorpay/fail", {
-                payment_id: order.payment_id,
-                reason: "Payment modal closed by user",
-              });
-            } catch (e) {
-              console.warn("Failed to report payment cancellation", e);
-            }
-          },
-        },
-      });
-
-      rzp.on("payment.failed", async (response: any) => {
-        try {
-          await apiClient.post("/payments/razorpay/fail", {
-            payment_id: order.payment_id,
-            reason: response.error?.description || "Payment failed",
-          });
-        } catch (e) {
-          console.warn("Failed to report payment failure", e);
-        }
-      });
-
-      rzp.open();
-    } catch { setError("Payment failed"); } finally { setPaymentLoading(false); }
   };
 
   if (status === "loading") return <div className="p-10 text-center">Loading form...</div>;
@@ -1076,39 +986,5 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
     </div>
   );
 
-  return (
-    <>
-      {content}
-      <SuccessModal isOpen={showSuccessModal} onFinish={handleFinish} modalMode={modalMode} />
-      <OrderSummaryModal
-        isOpen={showOrderModal}
-        loading={paymentLoading}
-        onClose={handleCloseOrderModal}
-        onConfirm={handleConfirmPayment}
-        service={createdApplication}
-      />
-    </>
-  );
-}
-
-function SuccessModal({ isOpen, onFinish, modalMode }: { isOpen: boolean; onFinish: () => void; modalMode?: boolean }) {
-  if (!isOpen) return null;
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95">
-        <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
-          <i className="fas fa-check text-3xl"></i>
-        </div>
-        <h3 className="text-2xl font-bold text-gray-900 mb-2">Success!</h3>
-        <p className="text-gray-500 mb-8 font-medium">
-          {modalMode 
-            ? "Your application has been submitted successfully." 
-            : "Your application has been submitted successfully. You can now proceed to payment."}
-        </p>
-        <button onClick={onFinish} className="w-full py-4 bg-[#1e3a8a] text-white rounded-xl font-bold hover:bg-blue-800 transition-all shadow-lg shadow-blue-900/20">
-          {modalMode ? "Done" : "Proceed to Summary"}
-        </button>
-      </div>
-    </div>
-  );
+  return content;
 }

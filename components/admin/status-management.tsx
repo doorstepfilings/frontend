@@ -17,13 +17,13 @@ import {
   fetchAdminApplicationDetail
 } from "@/lib/features/admin/admin-slice";
 import {
-  isClientDocument,
-  isInternalDocument,
+  splitDocumentsByOwner,
   getDocumentIcon,
   resolveStorageUrl,
   formatFileSize
 } from "@/lib/utils/document-helpers";
 import { parseApiError } from "@/lib/utils/error-parser";
+import { useStoredUser } from "@/lib/auth/hooks";
 
 interface StatusManagementProps {
   application: any;
@@ -33,6 +33,7 @@ export const StatusManagement = ({ application }: StatusManagementProps) => {
   const dispatch = useAppDispatch();
   const { actionLoading } = useAppSelector((state) => state.admin);
   const { confirm, ConfirmDialog } = useConfirm();
+  const currentUser = useStoredUser();
 
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showOverrideModal, setShowOverrideModal] = useState(false);
@@ -68,8 +69,23 @@ export const StatusManagement = ({ application }: StatusManagementProps) => {
     e.preventDefault();
     if (!statusForm.status) return toast.error("Please select a target status");
 
+    let finalUpdateNote = application.update_note || "";
+    const noteText = statusForm.status === "update_required" ? statusForm.update_note : (statusForm.status === "rejected" ? statusForm.rejection_reason : "");
+    if (noteText.trim()) {
+      const senderName = currentUser?.name;
+      const roleName = currentUser?.role === "super_admin" ? "Admin" : "Accountant";
+      const formattedNote = senderName ? `${roleName} (${senderName}): ${noteText.trim()}` : `${roleName}: ${noteText.trim()}`;
+      finalUpdateNote = finalUpdateNote ? `${finalUpdateNote}\n\n${formattedNote}` : formattedNote;
+    }
+
     const resultAction = await dispatch(
-      updateApplicationStatus({ id: application.id, ...statusForm })
+      updateApplicationStatus({
+        id: application.id,
+        status: statusForm.status,
+        ca_notes: statusForm.ca_notes,
+        rejection_reason: statusForm.rejection_reason,
+        update_note: finalUpdateNote,
+      })
     );
     if (updateApplicationStatus.fulfilled.match(resultAction)) {
       toast.success("Service status updated successfully");
@@ -117,7 +133,7 @@ export const StatusManagement = ({ application }: StatusManagementProps) => {
     );
 
     if (updateDocumentStatus.fulfilled.match(resultAction)) {
-      toast.success("Artifact status updated");
+      toast.success("Client document comment updated");
       setShowDocStatusModal(false);
       dispatch(fetchAdminApplicationDetail(application.id));
     } else {
@@ -144,8 +160,10 @@ export const StatusManagement = ({ application }: StatusManagementProps) => {
     }
   };
 
-  const clientDocs = (application.request_documents || []).filter((d: any) => isClientDocument(d));
-  const internalDocs = (application.request_documents || []).filter((d: any) => isInternalDocument(d));
+  const { clientDocs, internalDocs } = splitDocumentsByOwner(
+    application.request_documents || [],
+    application.user?.id ?? null,
+  );
   const activeDocs = activeDocTab === "client" ? clientDocs : internalDocs;
 
   return (

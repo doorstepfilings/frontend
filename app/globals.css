@@ -58,11 +58,30 @@
 
 html {
   scroll-behavior: smooth;
+  max-width: 100%;
+  overflow-x: clip;
 }
 
 body {
   min-height: 100%;
+  max-width: 100%;
+  overflow-x: clip;
   font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  min-width: 0;
 }
 
 ::-webkit-scrollbar {
@@ -372,6 +391,91 @@ body {
 
 .admin-theme .admin-btn-muted:hover {
   background: #f1f5f9;
+}
+
+.admin-theme table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.admin-theme th,
+.admin-theme td {
+  white-space: nowrap;
+}
+
+.admin-theme th.whitespace-normal,
+.admin-theme td.whitespace-normal {
+  white-space: normal;
+}
+
+.admin-theme th.whitespace-pre-wrap,
+.admin-theme td.whitespace-pre-wrap {
+  white-space: pre-wrap;
+}
+
+.overflow-x-auto table th,
+.overflow-x-auto table td {
+  white-space: nowrap;
+}
+
+.overflow-x-auto table th.whitespace-normal,
+.overflow-x-auto table td.whitespace-normal {
+  white-space: normal;
+}
+
+.overflow-x-auto table th.whitespace-pre-wrap,
+.overflow-x-auto table td.whitespace-pre-wrap {
+  white-space: pre-wrap;
+}
+
+.panel-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  background: #fff;
+  box-shadow: var(--admin-card-shadow);
+}
+
+.panel-section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.panel-chip,
+.panel-chip-active {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid #dbeafe;
+  background: #eff6ff;
+  padding: 0.35rem 0.65rem;
+  color: #1d4ed8;
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.panel-chip-active {
+  border-color: #bfdbfe;
+  background: #dbeafe;
+}
+
+.panel-empty-state {
+  border-radius: 1rem;
+  border: 1px dashed #cbd5e1;
+  background: #f8fafc;
+  color: #64748b;
+}
+
+@media (max-width: 640px) {
+  .panel-section-header {
+    flex-direction: column;
+  }
 }
 
 .admin-theme .admin-icon-btn-soft,

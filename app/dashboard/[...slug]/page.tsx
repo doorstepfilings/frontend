@@ -37,6 +37,10 @@ export default async function DashboardCatchAllPage({
     redirect("/dashboard/services");
   }
 
+  if (key === "ydocuments") {
+    redirect("/dashboard/documents");
+  }
+
   const config = dashboardMap[key];
 
   if (!config) {

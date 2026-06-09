@@ -1,8 +1,0 @@
-Error: Static generation failed due to dynamic usage on /payment-success, reason: connection
-    at k (D:\project\doorstepfilings\doorstepfilings-frontend\.next\server\chunks\ssr\_0mlarnr._.js:8:29211)
-    at j (D:\project\doorstepfilings\doorstepfilings-frontend\.next\server\chunks\ssr\[root-of-the-server]__09q2l9_._.js:1:21945)
-    at stringify (<anonymous>)
-Error: Static generation failed due to dynamic usage on /dashboard/documents, reason: connection
-    at k (D:\project\doorstepfilings\doorstepfilings-frontend\.next\server\chunks\ssr\_0mlarnr._.js:8:29211)
-    at g (D:\project\doorstepfilings\doorstepfilings-frontend\.next\server\chunks\ssr\[root-of-the-server]__0.f4lav._.js:1:10703)
-    at stringify (<anonymous>)

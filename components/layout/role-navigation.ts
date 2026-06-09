@@ -29,7 +29,7 @@ export function getDashboardNavItems(roleInput?: string | null) {
   return [
     { path: "/admin/dashboard", label: "Dashboard", icon: "fa-th-large" },
     { path: "/admin/users", label: "Users", icon: "fa-users" },
-    { path: "/admin/regional-managers", label: "Regional Managers", icon: "fa-user-tie" },
+    { path: "/admin/relationship-managers", label: "Relationship Managers", icon: "fa-user-tie" },
     { path: "/admin/accountants", label: "Accountants", icon: "fa-calculator" },
     { path: "/admin/categories", label: "Categories", icon: "fa-folder" },
     { path: "/admin/services", label: "Services", icon: "fa-briefcase" },
@@ -58,11 +58,11 @@ export function getRolePortalMeta(roleInput?: string | null) {
 
   if (role === "regional_manager") {
     return {
-      sectionLabel: "Regional Manager Dashboard",
+      sectionLabel: "Relationship Manager Dashboard",
       headerLabel: "Operations Hub",
       actionHref: null,
       actionLabel: null,
-      roleTag: "regional manager",
+      roleTag: "relationship manager",
     };
   }
 
@@ -77,10 +77,10 @@ export function getRolePortalMeta(roleInput?: string | null) {
   }
 
   return {
-    sectionLabel: "Control Center",
-    headerLabel: "Administration Workspace",
+    sectionLabel: "Admin Console",
+    headerLabel: "Management Hub",
     actionHref: "/admin/services/create",
-    actionLabel: "Add Service",
+    actionLabel: "New Service",
     roleTag: "super admin",
   };
 }

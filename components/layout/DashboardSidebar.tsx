@@ -54,80 +54,85 @@ export default function DashboardSidebar({
       ) : null}
 
       <aside
-        className={`fixed h-full w-64 transform overflow-y-auto border-r border-gray-100 bg-white transition-all duration-300 lg:translate-x-0 ${
+        className={`fixed h-full w-64 transform overflow-y-hidden border-r border-gray-100 bg-white transition-all duration-300 lg:translate-x-0 ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         } z-50 flex flex-col`}
       >
-        <div className="flex items-center justify-between border-b border-gray-100 p-6">
-          <Link href="/" className="flex items-center gap-3">
-            <Image
-              src="/assets/images/logo.png"
-              alt="Doorstep Filings"
-              width={160}
-              height={80}
-              className="h-20 w-auto object-contain"
-            />
-          </Link>
-          <button
-            onClick={() => setIsOpen(false)}
-            className="text-gray-400 lg:hidden"
-            type="button"
-          >
-            <i className="fas fa-times text-xl" />
-          </button>
-        </div>
-
-        <div className="p-4">
-          <div className="mb-6 rounded-2xl bg-blue-900 p-4 text-white">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-lg font-bold">
-                {user?.name?.charAt(0).toUpperCase() || "U"}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold">{user?.name}</p>
-                <p className="text-xs text-blue-200">Client Account</p>
-              </div>
-            </div>
-          </div>
-
-          <nav className="space-y-1">
-            {navItems.map((item) => (
-              <Link
-                key={item.path}
-                href={item.path}
-                onClick={() => setIsOpen(false)}
-                className={`flex items-center gap-3 rounded-xl px-4 py-3 transition-all ${
-                  isActive(item.path)
-                    ? "bg-blue-50 font-semibold text-blue-900"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-blue-900"
-                }`}
-              >
-                <i className={`fas ${item.icon} w-5 text-center`} />
-                <span className="text-sm">{item.label}</span>
-              </Link>
-            ))}
-          </nav>
-
-          <div className="mt-8 border-t border-gray-100 pt-6">
-            <Link
-              href="/account"
-              className="flex items-center gap-3 rounded-xl px-4 py-3 text-gray-600 transition-colors hover:bg-gray-50"
-            >
-              <i className="fas fa-user-circle w-5 text-center" />
-              <span className="text-sm">My Profile</span>
+        {/* Scrollable Container */}
+        <div className="flex flex-1 flex-col overflow-y-auto min-h-0">
+          <div className="flex items-center justify-between border-b border-gray-100 p-6">
+            <Link href="/" className="flex items-center gap-3">
+              <Image
+                src="/assets/images/logo.png"
+                alt="Doorstep Filings"
+                width={160}
+                height={80}
+                className="h-20 w-auto object-contain"
+              />
             </Link>
             <button
-              onClick={() => void handleLogout()}
-              className="mt-1 flex w-full items-center gap-3 rounded-xl px-4 py-3 text-red-600 transition-colors hover:bg-red-50"
+              onClick={() => setIsOpen(false)}
+              className="text-gray-400 lg:hidden"
               type="button"
             >
-              <i className="fas fa-sign-out-alt w-5 text-center" />
-              <span className="text-sm font-medium">Logout</span>
+              <i className="fas fa-times text-xl" />
             </button>
+          </div>
+
+          <div className="p-4 flex-1">
+            <div className="mb-6 rounded-2xl bg-blue-900 p-4 text-white">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-lg font-bold">
+                  {user?.name?.charAt(0).toUpperCase() || "U"}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold">{user?.name}</p>
+                  <p className="text-xs text-blue-200">Client Account</p>
+                </div>
+              </div>
+            </div>
+
+            <nav className="space-y-1">
+              {navItems.map((item) => (
+                <Link
+                  key={item.path}
+                  href={item.path}
+                  onClick={() => setIsOpen(false)}
+                  className={`flex items-center gap-3 rounded-xl px-4 py-3 transition-all ${
+                    isActive(item.path)
+                      ? "bg-blue-50 font-semibold text-blue-900"
+                      : "text-gray-600 hover:bg-gray-50 hover:text-blue-900"
+                  }`}
+                >
+                  <i className={`fas ${item.icon} w-5 text-center`} />
+                  <span className="text-sm">{item.label}</span>
+                </Link>
+              ))}
+            </nav>
+
+            <div className="mt-8 border-t border-gray-100 pt-6">
+              <Link
+                href="/account"
+                className="flex items-center gap-3 rounded-xl px-4 py-3 text-gray-600 transition-colors hover:bg-gray-50"
+              >
+                <i className="fas fa-user-circle w-5 text-center" />
+                <span className="text-sm">My Profile</span>
+              </Link>
+            </div>
           </div>
         </div>
 
-        <div className="mt-auto p-4">
+        {/* Sticky Bottom Container */}
+        <div className="shrink-0 p-4 border-t border-gray-100 bg-white space-y-3">
+          <button
+            onClick={() => void handleLogout()}
+            className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-red-600 transition-colors hover:bg-red-50"
+            type="button"
+          >
+            <i className="fas fa-sign-out-alt w-5 text-center" />
+            <span className="text-sm font-medium">Logout</span>
+          </button>
+
           <Link
             href="/"
             className="flex items-center justify-center gap-2 rounded-xl bg-gray-50 py-3 text-xs font-semibold text-gray-500 transition-colors hover:bg-gray-100"

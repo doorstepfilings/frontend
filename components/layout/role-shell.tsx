@@ -31,7 +31,7 @@ export function RoleShell({
     <div className={`${theme === "admin" ? "admin-theme" : ""} min-h-screen bg-slate-50`}>
       <header className="border-b border-slate-200 bg-white">
         <div className="container mx-auto flex flex-col gap-4 px-4 py-5 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-4">
+          <div className="flex min-w-0 items-center gap-3 sm:gap-4">
             <div className="rounded-2xl bg-slate-50 px-3 py-2 shadow-sm">
               <Image
                 src="/assets/images/logo.png"
@@ -41,37 +41,37 @@ export function RoleShell({
                 className="h-11 w-auto object-contain"
               />
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">
                 Protected Workspace
               </p>
-              <h1 className="text-2xl font-black text-slate-900">{title}</h1>
+              <h1 className="break-words text-xl font-black text-slate-900 sm:text-2xl">{title}</h1>
               <p className="mt-1 text-sm text-slate-600">{subtitle}</p>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center sm:gap-3">
             <Link
               href="/account"
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-xs font-black uppercase tracking-[0.18em] text-slate-700 transition hover:bg-slate-50"
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 py-3 text-xs font-black uppercase tracking-[0.12em] text-slate-700 transition hover:bg-slate-50 sm:px-4 sm:tracking-[0.18em]"
             >
               <i className="fas fa-user text-[10px]" />
               Account
             </Link>
             <Link
               href="/"
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-xs font-black uppercase tracking-[0.18em] text-slate-700 transition hover:bg-slate-50"
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 py-3 text-xs font-black uppercase tracking-[0.12em] text-slate-700 transition hover:bg-slate-50 sm:px-4 sm:tracking-[0.18em]"
             >
               <i className="fas fa-house text-[10px]" />
               Home
             </Link>
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs font-black uppercase tracking-[0.18em] text-slate-700">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-center text-xs font-black uppercase tracking-[0.12em] text-slate-700 sm:px-4 sm:tracking-[0.18em]">
               {String(user?.role ?? "user").replace(/_/g, " ")}
             </div>
             <button
               type="button"
               onClick={() => void handleLogout()}
-              className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-xs font-black uppercase tracking-[0.18em] text-white transition hover:bg-slate-800"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-3 py-3 text-xs font-black uppercase tracking-[0.12em] text-white transition hover:bg-slate-800 sm:px-4 sm:tracking-[0.18em]"
             >
               <i className="fas fa-right-from-bracket text-[10px]" />
               Logout
@@ -80,7 +80,7 @@ export function RoleShell({
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-10">{children}</main>
+      <main className="container mx-auto min-w-0 px-3 py-6 sm:px-4 sm:py-10">{children}</main>
     </div>
   );
 }

@@ -73,7 +73,7 @@ export default function AboutPage() {
     <PublicShell>
       <div className="min-h-screen bg-gray-50">
         {/* Hero Section */}
-        <div className="relative overflow-hidden bg-blue-900 pb-20 pt-32 text-white">
+        <div className="relative overflow-hidden bg-blue-900 pb-14 pt-24 text-white sm:pb-20 sm:pt-32">
           <div className="absolute right-0 top-0 h-96 w-96 -translate-y-1/2 translate-x-1/2 rounded-full bg-white/5 blur-3xl"></div>
           <div className="absolute bottom-0 left-0 h-80 w-80 -translate-x-1/2 translate-y-1/2 rounded-full bg-amber-500/10 blur-3xl"></div>
 
@@ -85,7 +85,7 @@ export default function AboutPage() {
         </div>
 
         {/* Mission & Story */}
-        <section className="px-4 py-20">
+        <section className="px-4 py-14 sm:py-20">
           <div className="mx-auto max-w-6xl">
             <div className="grid items-center gap-12 md:grid-cols-2">
               <div className="space-y-6">
@@ -114,8 +114,8 @@ export default function AboutPage() {
                   </Link>
                 </div>
               </div>
-              <div className="relative rounded-[3rem] border border-gray-100 bg-white p-10 shadow-2xl">
-                <div className="absolute -right-6 -top-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-amber-500 text-3xl text-white shadow-xl shadow-amber-500/30">
+              <div className="relative rounded-[2rem] border border-gray-100 bg-white p-6 shadow-2xl sm:p-8 lg:rounded-[3rem] lg:p-10">
+                <div className="absolute -right-4 -top-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-amber-500 text-2xl text-white shadow-xl shadow-amber-500/30 sm:-right-6 sm:-top-6 sm:h-20 sm:w-20 sm:text-3xl">
                   <i className="fas fa-quote-right"></i>
                 </div>
                 <h3 className="mb-6 text-2xl font-black text-blue-900">
@@ -195,7 +195,7 @@ export default function AboutPage() {
         {/* All in One Place - Checklist */}
         <section className="px-4 py-20">
           <div className="mx-auto max-w-6xl">
-            <div className="relative flex flex-col gap-12 overflow-hidden rounded-[4rem] border border-gray-100 bg-white p-10 shadow-2xl md:p-16 lg:flex-row">
+            <div className="relative flex flex-col gap-8 overflow-hidden rounded-[2rem] border border-gray-100 bg-white p-5 shadow-2xl sm:p-8 md:p-12 lg:flex-row lg:gap-12 lg:rounded-[4rem] lg:p-16">
               <div className="lg:w-1/2">
                 <h2 className="mb-6 text-3xl font-black text-blue-900">
                   Complete Startup Support
@@ -360,9 +360,9 @@ export default function AboutPage() {
         </section>
 
         {/* Vision & Mission Cards */}
-        <section className="px-4 py-20">
+        <section className="px-4 py-14 sm:py-20">
           <div className="mx-auto grid max-w-6xl gap-10 md:grid-cols-2">
-            <div className="relative overflow-hidden rounded-[3.5rem] border border-gray-100 bg-white p-12 shadow-2xl">
+            <div className="relative overflow-hidden rounded-[2rem] border border-gray-100 bg-white p-6 shadow-2xl sm:p-8 lg:rounded-[3.5rem] lg:p-12">
               <div className="absolute right-0 top-0 h-full w-4 bg-blue-900"></div>
               <h3 className="mb-6 text-3xl font-black text-blue-900">
                 Our Mission
@@ -373,7 +373,7 @@ export default function AboutPage() {
                 on-ground support — delivered both online and at your doorstep.
               </p>
             </div>
-            <div className="relative overflow-hidden rounded-[3.5rem] bg-amber-500 p-12 text-white shadow-2xl shadow-amber-500/20">
+            <div className="relative overflow-hidden rounded-[2rem] bg-amber-500 p-6 text-white shadow-2xl shadow-amber-500/20 sm:p-8 lg:rounded-[3.5rem] lg:p-12">
               <div className="absolute right-0 top-0 h-full w-4 bg-white/20"></div>
               <h3 className="mb-6 text-3xl font-black">Our Vision</h3>
               <p className="text-lg leading-relaxed text-amber-50">
@@ -386,15 +386,15 @@ export default function AboutPage() {
         </section>
 
         {/* Let's Build Something Together */}
-        <section className="relative overflow-hidden px-4 py-32">
+        <section className="relative overflow-hidden px-4 py-20 sm:py-32">
           <div className="absolute inset-0 bg-blue-900"></div>
           <div className="absolute right-0 top-0 h-full w-full bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
 
           <div className="relative z-10 mx-auto max-w-4xl text-center text-white">
-            <h2 className="mb-8 text-4xl font-black leading-tight md:text-5xl">
+            <h2 className="mb-8 text-3xl font-black leading-tight sm:text-4xl md:text-5xl">
               Let’s Build Something Together
             </h2>
-            <p className="mx-auto mb-12 max-w-2xl text-xl font-medium text-blue-200">
+            <p className="mx-auto mb-10 max-w-2xl text-base font-medium text-blue-200 sm:mb-12 sm:text-xl">
               Whether you&apos;re starting your first business or managing compliance
               for a growing company, DoorstepFilings is here to support you at
               every stage.
@@ -402,18 +402,18 @@ export default function AboutPage() {
             <div className="flex flex-col justify-center gap-6 md:flex-row">
               <Link
                 href="/contact"
-                className="flex items-center justify-center gap-3 rounded-full bg-amber-500 px-12 py-5 text-lg font-black text-white shadow-2xl shadow-amber-500/30 transition-all hover:bg-white hover:text-blue-900"
+                className="flex items-center justify-center gap-3 rounded-full bg-amber-500 px-6 py-4 text-base font-black text-white shadow-2xl shadow-amber-500/30 transition-all hover:bg-white hover:text-blue-900 sm:px-12 sm:py-5 sm:text-lg"
               >
                 <i className="fas fa-handshake-simple"></i> Partner With Us
               </Link>
               <a
                 href="tel:+919898196396"
-                className="flex items-center justify-center gap-3 rounded-full border border-white/20 bg-white/10 px-12 py-5 text-lg font-black text-white backdrop-blur-md transition-all hover:bg-white/20"
+                className="flex items-center justify-center gap-3 rounded-full border border-white/20 bg-white/10 px-6 py-4 text-base font-black text-white backdrop-blur-md transition-all hover:bg-white/20 sm:px-12 sm:py-5 sm:text-lg"
               >
                 <i className="fas fa-phone-volume"></i> Call an Advisor
               </a>
             </div>
-            <div className="mt-16 grid grid-cols-3 gap-8 border-t border-white/10 pt-12 text-blue-200">
+            <div className="mt-12 grid grid-cols-1 gap-6 border-t border-white/10 pt-10 text-blue-200 sm:grid-cols-3 sm:gap-8 sm:pt-12 lg:mt-16">
               <div>
                 <h5 className="text-2xl font-black text-white">Simple</h5>
                 <p className="text-xs font-bold uppercase tracking-widest">

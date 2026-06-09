@@ -185,35 +185,107 @@ export function AccountantDetailView() {
 
           {error && <ErrorBanner message={error} />}
 
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-6">
-            <SummaryStat label="Email" value={String(accountant.email ?? "-")} />
-            <SummaryStat label="Phone" value={String(getMobileNumber(accountant) ?? "-")} />
-            <SummaryStat label="Joined" value={formatAdminDate(getCreatedAt(accountant))} />
-            <SummaryStat label="Region" value={getLocationDisplay(accountant)} />
-            <SummaryStat label="Assigned Users" value={assignedUsers.length} tone="blue" />
-            <SummaryStat
-              label="Completion Rate"
-              value={`${String(accountant.completion_rate ?? 0)}%`}
-              tone="emerald"
-            />
-          </div>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            {/* Left Panel: Profile Information */}
+            <div className="lg:col-span-1 space-y-6">
+              <div className="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-[var(--admin-card-shadow)]">
+                <h2 className="text-lg font-black text-gray-900 mb-6">Profile Details</h2>
+                <div className="space-y-6">
+                  {/* Email */}
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                      Email Address
+                    </p>
+                    <div className="mt-1 flex items-center justify-between gap-2">
+                      <a
+                        href={`mailto:${accountant.email}`}
+                        className="text-sm font-semibold text-blue-700 transition-colors hover:text-blue-900 break-all"
+                      >
+                        {String(accountant.email ?? "-")}
+                      </a>
+                      {Boolean(accountant.email) && (
+                        <button
+                          onClick={() => {
+                            void navigator.clipboard.writeText(String(accountant.email));
+                            toast.success("Email copied to clipboard");
+                          }}
+                          className="text-gray-400 hover:text-gray-600 transition-colors p-1"
+                          title="Copy Email"
+                        >
+                          <i className="fas fa-copy" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
 
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <SummaryStat
-              label="Active Services"
-              value={String(accountant.active_services_count ?? services.length)}
-              tone="amber"
-            />
-            <SummaryStat
-              label="Revenue"
-              value={formatAdminCurrency(
-                typeof accountant.total_revenue === "string" ||
-                  typeof accountant.total_revenue === "number"
-                  ? accountant.total_revenue
-                  : 0,
-              )}
-              tone="indigo"
-            />
+                  {/* Phone */}
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                      Phone Number
+                    </p>
+                    <div className="mt-1">
+                      {getMobileNumber(accountant) ? (
+                        <a
+                          href={`tel:${getMobileNumber(accountant)}`}
+                          className="text-sm font-semibold text-gray-700 transition-colors hover:text-blue-600"
+                        >
+                          {String(getMobileNumber(accountant))}
+                        </a>
+                      ) : (
+                        <span className="text-sm font-semibold text-gray-700">-</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Region */}
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                      Region
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-gray-700 break-words">
+                      {getLocationDisplay(accountant)}
+                    </p>
+                  </div>
+
+                  {/* Joined Date */}
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                      Joined Date
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-gray-700">
+                      {formatAdminDate(getCreatedAt(accountant))}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Panel: Performance & Metrics */}
+            <div className="lg:col-span-2 space-y-6">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <SummaryStat label="Assigned Users" value={assignedUsers.length} tone="blue" />
+                <SummaryStat
+                  label="Completion Rate"
+                  value={`${String(accountant.completion_rate ?? 0)}%`}
+                  tone="emerald"
+                />
+                <SummaryStat
+                  label="Active Services"
+                  value={String(accountant.active_services_count ?? services.length)}
+                  tone="amber"
+                />
+                <SummaryStat
+                  label="Revenue"
+                  value={formatAdminCurrency(
+                    typeof accountant.total_revenue === "string" ||
+                      typeof accountant.total_revenue === "number"
+                      ? accountant.total_revenue
+                      : 0,
+                  )}
+                  tone="indigo"
+                />
+              </div>
+            </div>
           </div>
 
           <DetailSection
@@ -234,7 +306,7 @@ export function AccountantDetailView() {
                         Contact
                       </th>
                       <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">
-                        Regional Manager
+                        Relationship Manager
                       </th>
                       <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">
                         Location
