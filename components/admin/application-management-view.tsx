@@ -16,7 +16,7 @@ import { getStatusConfig } from "@/lib/utils/status-helpers";
 
 const TABS = [
     { id: 'active', label: 'Active Pipeline', icon: 'fa-stream', statuses: ['applied', 'document_collection', 'under_review', 'update_required', 'in_progress', 'payment_pending', 'paid'] },
-    { id: 'completed', label: 'Success Board', icon: 'fa-check-circle', statuses: ['completed'] },
+    { id: 'completed', label: 'Success Board', icon: 'fa-check-circle', statuses: ['completed', 'approved'] },
     { id: 'cancelled', label: 'Archived', icon: 'fa-archive', statuses: ['rejected', 'cancelled'] },
 ];
 

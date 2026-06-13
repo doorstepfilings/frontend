@@ -16,8 +16,8 @@ const TABS = [
     { id: 'new', label: 'New Assigned', icon: 'fa-plus-circle', statuses: ['applied'] },
     { id: 'ongoing', label: 'Ongoing Work', icon: 'fa-spinner', statuses: ['in_progress', 'under_review', 'document_collection'] },
     { id: 'action', label: 'Action Required', icon: 'fa-exclamation-triangle', statuses: ['update_required'] },
-    { id: 'review', label: 'Admin Review', icon: 'fa-search', statuses: [] },
-    { id: 'completed', label: 'Completed', icon: 'fa-check-double', statuses: ['completed'] },
+    { id: 'review', label: 'Admin Review', icon: 'fa-search', statuses: ['approved'] },
+    { id: 'completed', label: 'Completed', icon: 'fa-check-double', statuses: ['completed', 'approved'] },
     { id: 'rejected', label: 'Rejected', icon: 'fa-ban', statuses: ['rejected', 'cancelled'] },
 ];
 

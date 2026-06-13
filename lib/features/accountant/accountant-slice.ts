@@ -70,8 +70,8 @@ const accountantSlice = createSlice({
         state.stats = {
           newAssignments: reqs.filter((r: any) => r.status === "applied").length,
           ongoing: reqs.filter((r: any) => ["in_progress", "document_collection"].includes(r.status)).length,
-          underReview: reqs.filter((r: any) => r.status === "under_review").length,
-          completed: reqs.filter((r: any) => ["completed", "rejected", "cancelled"].includes(r.status)).length,
+          underReview: reqs.filter((r: any) => ["under_review", "approved"].includes(r.status)).length,
+          completed: reqs.filter((r: any) => ["completed", "approved", "rejected", "cancelled"].includes(r.status)).length,
           totalClients: action.payload.users.length,
           totalRequests: reqs.length,
           actionRequired: reqs.filter((r: any) => r.status === "update_required").length,

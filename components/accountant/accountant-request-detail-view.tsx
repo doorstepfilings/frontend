@@ -170,7 +170,7 @@ export function AccountantRequestDetailView() {
   }
 
   const { clientDocs, internalDocs } = splitDocumentsByOwner(req.request_documents || [], req.user?.id);
-  const canUpload = req.status !== "cancelled" && req.status !== "approved";
+  const canUpload = !["cancelled", "approved", "completed", "rejected"].includes(req.status);
 
   return (
     <AuthGuard allowedRoles={["accountant"]}>

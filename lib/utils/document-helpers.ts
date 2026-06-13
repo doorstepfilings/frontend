@@ -181,17 +181,15 @@ export const splitDocumentsByOwner = (docs: any[], clientUserId: number | string
 
 export const looksLikeCertificate = (doc: any) => {
   if (doc?.document_category === "certificate") return true;
-  const haystack = `${doc.document_type || ""} ${doc.document_category || ""} ${
-    doc.file_name || ""
-  }`.toLowerCase();
+  const haystack = `${doc.document_type || ""} ${doc.document_category || ""} ${doc.file_name || ""
+    }`.toLowerCase();
   return haystack.includes("certificate");
 };
 
 export const looksLikeReport = (doc: any) => {
   if (doc?.document_category === "report") return true;
-  const haystack = `${doc.document_type || ""} ${doc.document_category || ""} ${
-    doc.file_name || ""
-  }`.toLowerCase();
+  const haystack = `${doc.document_type || ""} ${doc.document_category || ""} ${doc.file_name || ""
+    }`.toLowerCase();
   return haystack.includes("report");
 };
 

@@ -168,10 +168,10 @@ export const AccountantDocumentList = ({
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2 mb-1">
                         <h4 className="truncate text-sm font-bold text-slate-900">
-                          {doc.document_name || 
-                           (doc.document_category ? (doc.document_category.charAt(0).toUpperCase() + doc.document_category.slice(1)) : null) || 
-                           doc.document_type || 
-                           "Unnamed Document"}
+                          {doc.document_name ||
+                            (doc.document_category ? (doc.document_category.charAt(0).toUpperCase() + doc.document_category.slice(1)) : null) ||
+                            doc.document_type ||
+                            "Unnamed Document"}
                         </h4>
                         {doc.uploaded_by?.name && (
                           <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[8px] font-bold text-slate-500 uppercase tracking-wider">
@@ -225,22 +225,20 @@ export const AccountantDocumentList = ({
                     {((canUpdateStatus && !isRemarking) || getDocumentNoteText(doc)) && (
                       <button
                         onClick={() => setViewingNoteDoc(doc)}
-                        className={`flex p-3 items-center justify-center rounded-xl border text-xs transition-colors ${
-                          getDocumentNoteText(doc)
+                        className={`flex p-3 items-center justify-center rounded-xl border text-xs transition-colors ${getDocumentNoteText(doc)
                             ? (doc.status === 'rejected'
                               ? 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100'
                               : 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100')
                             : 'border-slate-200 bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-600'
-                        }`}
+                          }`}
                         aria-label={getDocumentNoteText(doc) ? "View note" : "Add note"}
                         title={getDocumentNoteText(doc) ? "View Note" : "Add Note"}
                         type="button"
                       >
-                        <i className={`fas ${
-                          getDocumentNoteText(doc)
+                        <i className={`fas ${getDocumentNoteText(doc)
                             ? (doc.status === 'rejected' ? 'fa-comment-medical' : 'fa-comment-dots')
                             : 'fa-comment'
-                        }`} />
+                          }`} />
                       </button>
                     )}
 
@@ -272,8 +270,8 @@ export const AccountantDocumentList = ({
                 {isRemarking && (
                   <div className="mt-4 p-4 rounded-xl border border-rose-100 bg-rose-50/50 animate-slideDown">
                     <p className="text-[10px] font-bold text-rose-700 uppercase tracking-wider mb-2 flex items-center gap-2">
-                       <i className="fas fa-exclamation-circle" />
-                       Required Corrections Notes
+                      <i className="fas fa-exclamation-circle" />
+                      Required Corrections Notes
                     </p>
                     <textarea
                       value={remark}
@@ -282,13 +280,13 @@ export const AccountantDocumentList = ({
                       className="w-full rounded-lg border border-rose-100 bg-white p-3 text-xs font-medium text-slate-700 focus:outline-none focus:ring-4 focus:ring-rose-500/10 min-h-[80px]"
                     />
                     <div className="flex justify-end gap-2 mt-3">
-                      <button 
+                      <button
                         onClick={() => setRemarkingId(null)}
                         className="px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider text-slate-500 hover:bg-slate-100"
                       >
                         Cancel
                       </button>
-                      <button 
+                      <button
                         onClick={() => submitRemark(doc)}
                         disabled={!remark.trim() || updatingId === doc.id}
                         className="px-4 py-2 bg-rose-600 text-white rounded-lg text-[10px] font-bold uppercase tracking-wider hover:bg-rose-700 transition-all disabled:opacity-50"
@@ -323,9 +321,9 @@ export const AccountantDocumentList = ({
         onClose={() => setViewingNoteDoc(null)}
         noteText={getDocumentNoteText(viewingNoteDoc)}
         contextName={
-          viewingNoteDoc?.document_name || 
-          (viewingNoteDoc?.document_category ? (viewingNoteDoc.document_category.charAt(0).toUpperCase() + viewingNoteDoc.document_category.slice(1)) : null) || 
-          viewingNoteDoc?.file_name || 
+          viewingNoteDoc?.document_name ||
+          (viewingNoteDoc?.document_category ? (viewingNoteDoc.document_category.charAt(0).toUpperCase() + viewingNoteDoc.document_category.slice(1)) : null) ||
+          viewingNoteDoc?.file_name ||
           "Document"
         }
         userType="accountant"

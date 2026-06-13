@@ -387,11 +387,10 @@ export function ServiceApplicationDetailView() {
                         </h3>
                         <div className="flex items-center gap-3">
                             <StatusIndicator status={service?.status} />
-                            <div className={`px-3 py-1 text-white rounded-lg text-[10px] font-bold ${
-                                service?.status === "completed" || service?.status === "approved"
+                            <div className={`px-3 py-1 text-white rounded-lg text-[10px] font-bold ${service?.status === "completed" || service?.status === "approved"
                                     ? "bg-emerald-600"
                                     : (isWarning ? (service?.status === "update_required" ? "bg-red-500" : "bg-amber-500") : "bg-blue-900")
-                            }`}>
+                                }`}>
                                 {service?.status === "completed" || service?.status === "approved" ? "Completed" : `Stage ${currentStep} of 5`}
                                 {isWarning && service?.status !== "completed" && (service?.status === "update_required" ? " - Correction Required" : " - Action Needed")}
                             </div>
@@ -402,11 +401,10 @@ export function ServiceApplicationDetailView() {
                         <div className="relative px-2 min-w-[500px]">
                             <div className="absolute top-[1.125rem] left-10 right-10 h-0.5 bg-slate-100" />
                             <div
-                                className={`absolute top-[1.125rem] left-10 h-0.5 transition-all duration-1000 ${
-                                    service?.status === "completed" || service?.status === "approved"
+                                className={`absolute top-[1.125rem] left-10 h-0.5 transition-all duration-1000 ${service?.status === "completed" || service?.status === "approved"
                                         ? "bg-emerald-500"
                                         : (isWarning ? (service?.status === "update_required" ? "bg-red-500" : "bg-amber-500") : "bg-blue-900")
-                                }`}
+                                    }`}
                                 style={{ width: `calc((100% - 5rem) * ${(currentStep - 1) / 4})` }}
                             />
 
@@ -437,13 +435,12 @@ export function ServiceApplicationDetailView() {
                                             <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold border-2 transition-all duration-500 ${circleClasses}`}>
                                                 {isStepCompleted ? <i className="fas fa-check text-[10px]" /> : step.id}
                                             </div>
-                                            <span className={`text-[10px] font-bold uppercase tracking-wide text-center max-w-[80px] ${
-                                                isActive
+                                            <span className={`text-[10px] font-bold uppercase tracking-wide text-center max-w-[80px] ${isActive
                                                     ? (isCurrent && isWarning
                                                         ? (service?.status === "update_required" ? "text-red-600" : "text-amber-600")
                                                         : (isStepCompleted ? "text-emerald-600" : "text-blue-900"))
                                                     : "text-slate-300"
-                                            }`}>
+                                                }`}>
                                                 {step.label}
                                             </span>
                                         </div>

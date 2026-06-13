@@ -232,7 +232,7 @@ export const fetchAdminStats = createAsyncThunk(
             isPendingApplicationStatus(item?.status)
           ).length,
           approved: applications.filter(
-            (item: any) => item?.status === "completed"
+            (item: any) => item?.status === "completed" || item?.status === "approved"
           ).length,
           rejected: applications.filter(
             (item: any) => item?.status === "rejected" || item?.status === "cancelled"
