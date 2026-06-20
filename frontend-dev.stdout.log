@@ -1,0 +1,50 @@
+
+> doorstep-frontend@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.4 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.137.1:3000
+- Environments: .env.local
+✓ Ready in 9.7s
+Creating turbopack project {
+  dir: 'D:\\project\\doorstepfilings\\doorstepfilings-frontend',
+  testMode: true
+}
+
+○ Compiling / ...
+ GET /login?redirect=%2Fadmin%2Fservice-applications 200 in 131ms (next.js: 9ms, proxy.ts: 14ms, application-code: 108ms)
+ GET /rm/dashboard 200 in 10.7s (next.js: 8.8s, proxy.ts: 893ms, application-code: 988ms)
+ GET / 200 in 67s (next.js: 67s, application-code: 488ms)
+ GET /dashboard/documents?status=success&message=Payment+successfully+done.+You+can+upload+your+documents+now.&payment_id=29&order_id=order_T3jirzPOAv9qAb&service_ids=30 200 in 34.0s (next.js: 32.4s, proxy.ts: 20ms, application-code: 1532ms)
+ GET /admin/service-applications/30 200 in 39.1s (next.js: 37.5s, proxy.ts: 45ms, application-code: 1593ms)
+✓ Finished writing to filesystem cache in 11.6s
+ GET /api/auth/session 200 in 3.6s (next.js: 3.6s, application-code: 61ms)
+ GET /api/auth/session 200 in 34ms (next.js: 15ms, application-code: 18ms)
+ GET /api/auth/session 200 in 48ms (next.js: 26ms, application-code: 22ms)
+ GET /api/auth/session 200 in 54ms (next.js: 4ms, application-code: 49ms)
+ GET /api/auth/session 200 in 32ms (next.js: 5ms, application-code: 27ms)
+ GET /api/auth/session 200 in 32ms (next.js: 11ms, application-code: 22ms)
+ GET /api/auth/session 200 in 16ms (next.js: 4ms, application-code: 12ms)
+ GET /api/auth/session 200 in 44ms (next.js: 22ms, application-code: 22ms)
+ GET /api/auth/session 200 in 30ms (next.js: 13ms, application-code: 17ms)
+ GET /api/auth/session 200 in 38ms (next.js: 20ms, application-code: 18ms)
+ GET /api/auth/session 200 in 12ms (next.js: 6ms, application-code: 7ms)
+ GET /api/auth/session 200 in 17ms (next.js: 3ms, application-code: 14ms)
+ GET /api/auth/session 200 in 26ms (next.js: 13ms, application-code: 13ms)
+ GET /api/auth/session 200 in 11ms (next.js: 4ms, application-code: 7ms)
+ GET /api/auth/session 200 in 55ms (next.js: 32ms, application-code: 24ms)
+ GET /api/auth/session 200 in 35ms (next.js: 6ms, application-code: 29ms)
+ GET /api/auth/session 200 in 57ms (next.js: 30ms, application-code: 27ms)
+ GET /api/auth/session 200 in 60ms (next.js: 37ms, application-code: 23ms)
+ GET /api/auth/session 200 in 74ms (next.js: 61ms, application-code: 13ms)
+ GET /api/auth/session 200 in 20ms (next.js: 7ms, application-code: 13ms)
+ GET /api/auth/session 200 in 1298ms (next.js: 612ms, application-code: 687ms)
+ GET /api/auth/session 200 in 318ms (next.js: 65ms, application-code: 253ms)
+ GET /api/auth/session 200 in 151ms (next.js: 70ms, application-code: 81ms)
+ GET /api/auth/session 200 in 55ms (next.js: 13ms, application-code: 42ms)
+✓ Compiled in 955ms
+ GET / 200 in 575ms (next.js: 474ms, application-code: 101ms)
+ GET /admin/service-applications/30 200 in 863ms (next.js: 228ms, proxy.ts: 314ms, application-code: 322ms)
+ GET /rm/dashboard 200 in 434ms (next.js: 45ms, proxy.ts: 37ms, application-code: 352ms)
+ GET /dashboard/documents?status=success&message=Payment+successfully+done.+You+can+upload+your+documents+now.&payment_id=29&order_id=order_T3jirzPOAv9qAb&service_ids=30 200 in 434ms (next.js: 254ms, proxy.ts: 33ms, application-code: 146ms)

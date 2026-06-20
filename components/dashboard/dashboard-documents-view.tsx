@@ -14,7 +14,6 @@ import {
   MessageSquareText,
   Search,
   SlidersHorizontal,
-  SquareArrowOutUpRight,
   Trash2,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
@@ -35,13 +34,16 @@ import { useStoredUser } from "@/lib/auth/hooks";
 import {
   deleteMyDocument,
   fetchMyServices,
+  respondToDocumentApproval,
   uploadMyDocuments,
 } from "@/lib/features/services/services-slice";
 import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
 import {
   ensureDocumentAccessible,
   formatFileSize,
-  getClientUploadedDocuments,
+  getClientApprovalDocuments,
+  getClientArchiveDocuments,
+  getClientApprovalStatus,
   getDocumentIcon,
   getDocumentNoteText,
   getDocumentSourceUrl,
@@ -66,6 +68,14 @@ type DashboardDocumentArchiveItem = {
   file_size?: number | null;
   file_url?: string | null;
   id: number | string;
+  requires_client_approval?: boolean | number | string | null;
+  requiresClientApproval?: boolean | number | string | null;
+  client_approval_status?: string | null;
+  clientApprovalStatus?: string | null;
+  client_approval_note?: string | null;
+  clientApprovalNote?: string | null;
+  client_approval_requested_at?: string | null;
+  client_approval_responded_at?: string | null;
   mime_type?: string | null;
   notes?: string | null;
   rejection_reason?: string | null;
@@ -170,6 +180,9 @@ const formatDocumentTimestamp = (doc: DashboardDocumentArchiveItem) => {
 const isFinalizedDocument = (status?: string | null) =>
   ["verified", "approved"].includes(String(status || "").toLowerCase());
 
+const NOTE_AUTHOR_PATTERN =
+  /^(Accountant|Admin|Super_Admin|SuperAdmin|Super\s+Admin|You|User|Client|System)(?:\s*\(.*?\))?:/i;
+
 
 export function DashboardDocumentsView({
   paymentFeedback,
@@ -196,6 +209,9 @@ export function DashboardDocumentsView({
   const [isDeletingDocument, setIsDeletingDocument] = useState(false);
   const [viewingNoteDoc, setViewingNoteDoc] =
     useState<DashboardDocumentArchiveItem | null>(null);
+  const [correctionDoc, setCorrectionDoc] =
+    useState<DashboardDocumentArchiveItem | null>(null);
+  const [approvalActionId, setApprovalActionId] = useState<string | null>(null);
 
   useEffect(() => {
     void dispatch(fetchMyServices());
@@ -241,7 +257,23 @@ export function DashboardDocumentsView({
   const flatDocuments = useMemo(
     () =>
       (myServices || []).flatMap((service) =>
-        getClientUploadedDocuments(
+        getClientArchiveDocuments(
+          service.request_documents || [],
+          user?.id ?? null,
+        ).map((doc: DashboardDocumentArchiveItem) => ({
+          ...doc,
+          serviceId: service.id,
+          serviceName: service.service?.name,
+          serviceStatus: service.status,
+        })),
+      ),
+    [myServices, user?.id],
+  );
+
+  const approvalDocuments = useMemo(
+    () =>
+      (myServices || []).flatMap((service) =>
+        getClientApprovalDocuments(
           service.request_documents || [],
           user?.id ?? null,
         ).map((doc: DashboardDocumentArchiveItem) => ({
@@ -493,6 +525,56 @@ export function DashboardDocumentsView({
     }
   };
 
+  const handleClientApproval = async (
+    doc: DashboardDocumentArchiveItem,
+    action: "approved" | "correction",
+    note?: string,
+  ) => {
+    if (action === "correction" && !note?.trim()) {
+      toast.error("Please add a correction note");
+      return;
+    }
+
+    const normalizedNote = note?.trim();
+    const formattedNote =
+      action === "correction" && normalizedNote
+        ? NOTE_AUTHOR_PATTERN.test(normalizedNote)
+          ? normalizedNote
+          : user?.name
+            ? `Client (${user.name}): ${normalizedNote}`
+            : `Client: ${normalizedNote}`
+        : normalizedNote;
+
+    setApprovalActionId(`${doc.serviceId}-${doc.id}-${action}`);
+    try {
+      await dispatch(
+        respondToDocumentApproval({
+          serviceId: doc.serviceId,
+          docId: doc.id,
+          action,
+          note: formattedNote,
+        }),
+      ).unwrap();
+      toast.success(
+        action === "approved"
+          ? "Document approved"
+          : "Correction request sent",
+      );
+      setCorrectionDoc(null);
+      void dispatch(fetchMyServices());
+    } catch (error: unknown) {
+      const message =
+        typeof error === "string"
+          ? error
+          : error instanceof Error
+            ? error.message
+            : "Approval update failed";
+      toast.error(message);
+    } finally {
+      setApprovalActionId(null);
+    }
+  };
+
   const handleDeleteClick = (doc: DashboardDocumentArchiveItem) => {
     setDocumentToDelete(doc);
   };
@@ -734,6 +816,130 @@ export function DashboardDocumentsView({
       </div>
 
       {/* ── Archive ──────────────────────────────────────────────── */}
+      {/* Approval Queue */}
+      {approvalDocuments.length > 0 && (
+        <section className="overflow-hidden rounded-3xl border border-amber-200/70 bg-white shadow-sm">
+          <div className="border-b border-amber-100 bg-amber-50/60 px-6 py-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-4">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-amber-500 text-white shadow-lg shadow-amber-500/20">
+                  <Hourglass className="size-5" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-slate-900">
+                    Documents for Approval
+                  </h2>
+                  <p className="text-xs font-medium text-slate-500">
+                    Review accountant-sent documents and approve or request corrections.
+                  </p>
+                </div>
+              </div>
+              <span className="w-fit rounded-full border border-amber-200 bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-amber-700">
+                {approvalDocuments.length} pending
+              </span>
+            </div>
+          </div>
+
+          <div className="divide-y divide-slate-100">
+            {approvalDocuments.map((doc) => {
+              const iconConfig = getDocumentIcon(
+                doc.mime_type || undefined,
+                doc.file_name || undefined,
+              );
+              const approvalStatus = getClientApprovalStatus(doc);
+              const approveKey = `${doc.serviceId}-${doc.id}-approved`;
+              const correctionKey = `${doc.serviceId}-${doc.id}-correction`;
+              const isApproving = approvalActionId === approveKey;
+              const isCorrecting = approvalActionId === correctionKey;
+
+              return (
+                <div
+                  key={`${doc.serviceId}-${doc.id}`}
+                  className="flex flex-col gap-5 p-6 lg:flex-row lg:items-center lg:justify-between"
+                >
+                  <div className="flex min-w-0 flex-1 items-start gap-4">
+                    <div
+                      className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-slate-100 ${iconConfig.bg}`}
+                    >
+                      <i
+                        className={`fas ${iconConfig.icon} ${iconConfig.color} text-lg`}
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="truncate text-sm font-bold text-slate-900">
+                          {getArchiveDocumentLabel(doc)}
+                        </h3>
+                        <Badge className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-700">
+                          {approvalStatus === "pending"
+                            ? "Awaiting Approval"
+                            : "Client Approval"}
+                        </Badge>
+                      </div>
+                      <p className="mt-1 truncate text-xs text-slate-500">
+                        {doc.file_name || "Unnamed file"}
+                      </p>
+                      <p className="mt-1 text-[11px] font-medium text-slate-400">
+                        {doc.serviceName || "Service unavailable"} - sent by{" "}
+                        {doc.uploaded_by?.name || "Accountant"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+                    <button
+                      type="button"
+                      onClick={() => void handleOpenDocument(doc)}
+                      className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
+                    >
+                      <Eye className="size-3.5" />
+                      View
+                    </button>
+                    {getDocumentNoteText(doc) ? (
+                      <button
+                        type="button"
+                        onClick={() => setViewingNoteDoc(doc)}
+                        className="inline-flex h-10 items-center gap-2 rounded-xl border border-blue-100 bg-blue-50 px-4 text-xs font-bold text-blue-700 transition hover:bg-blue-100"
+                      >
+                        <MessageSquareText className="size-3.5" />
+                        Notes
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      disabled={approvalActionId !== null}
+                      onClick={() => void handleClientApproval(doc, "approved")}
+                      className="inline-flex h-10 items-center gap-2 rounded-xl bg-emerald-600 px-4 text-xs font-bold text-white shadow-lg shadow-emerald-600/15 transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {isApproving ? (
+                        <i className="fas fa-circle-notch animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="size-3.5" />
+                      )}
+                      Approve
+                    </button>
+                    <button
+                      type="button"
+                      disabled={approvalActionId !== null}
+                      onClick={() => setCorrectionDoc(doc)}
+                      className="inline-flex h-10 items-center gap-2 rounded-xl bg-rose-600 px-4 text-xs font-bold text-white shadow-lg shadow-rose-600/15 transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {isCorrecting ? (
+                        <i className="fas fa-circle-notch animate-spin" />
+                      ) : (
+                        <AlertCircle className="size-3.5" />
+                      )}
+                      Correction
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* Document Archive */}
       <div className="space-y-0">
         {loading ? (
           <PageLogoLoader label="Loading documents..." />
@@ -1144,6 +1350,40 @@ export function DashboardDocumentsView({
             }
             : undefined
         }
+      />
+
+      <ChatNoteModal
+        isOpen={correctionDoc !== null}
+        onClose={() => {
+          if (approvalActionId === null) {
+            setCorrectionDoc(null);
+          }
+        }}
+        title="Request Correction"
+        noteText={getDocumentNoteText(correctionDoc)}
+        contextName={
+          correctionDoc?.document_name ||
+          (correctionDoc?.document_category
+            ? correctionDoc.document_category.charAt(0).toUpperCase() +
+            correctionDoc.document_category.slice(1)
+            : null) ||
+          correctionDoc?.file_name ||
+          "Document"
+        }
+        userType="user"
+        uploadedBy={
+          correctionDoc?.uploaded_by
+            ? {
+              id: correctionDoc.uploaded_by.id ?? undefined,
+              name: correctionDoc.uploaded_by.name ?? undefined,
+              role: correctionDoc.uploaded_by.role ?? undefined,
+            }
+            : undefined
+        }
+        onSubmitNote={async (note: string) => {
+          if (!correctionDoc) return;
+          await handleClientApproval(correctionDoc, "correction", note);
+        }}
       />
 
       <ConfirmationModal
