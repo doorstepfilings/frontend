@@ -136,14 +136,14 @@ export function HomeHero() {
             <div className="relative">
               <div className="absolute -inset-8 rounded-[3rem] bg-gradient-to-r from-amber-500/30 via-amber-600/20 to-blue-600/20 blur-3xl" />
 
-              <div className="relative overflow-hidden rounded-3xl border border-slate-700/50 shadow-2xl">
+              <div className="relative h-[500px] overflow-hidden rounded-3xl border border-slate-700/50 shadow-2xl">
                 <Image
                   src="/assets/images/home-hero.jpg"
                   alt="Professional financial consultation"
-                  width={900}
-                  height={500}
+                  fill
+                  sizes="45vw"
                   priority
-                  className="h-[500px] w-full object-cover"
+                  className="object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent" />
                 <div className="absolute inset-0 bg-gradient-to-r from-slate-950/40 to-transparent" />

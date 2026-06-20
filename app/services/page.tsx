@@ -8,22 +8,9 @@ import { Button } from "@/components/ui/button";
 import { PublicShell } from "@/components/layout/public-shell";
 import { PanelLogoLoader } from "@/components/ui/logo-loader";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { getServicePurchasePrice } from "@/lib/utils/pricing";
 
 const priceFormatter = new Intl.NumberFormat("en-IN");
-
-const resolveServicePrice = (service: any) => {
-  const basePrice = Number(service?.price || 0);
-  const plans = Array.isArray(service?.pricing_plans) ? service.pricing_plans : [];
-  const planPrices = plans
-    .map((plan: any) => Number(plan?.price || 0))
-    .filter((price: number) => Number.isFinite(price) && price > 0);
-
-  if (planPrices.length > 0) {
-    return Math.min(...planPrices);
-  }
-
-  return basePrice > 0 ? basePrice : null;
-};
 
 const sortServices = (services: any[], sortBy: string) => {
   const sorted = [...services];
@@ -68,7 +55,7 @@ export default function ServicesDirectoryPage() {
         categoryName: category.category,
         categorySlug: category.slug,
         categoryIcon: category.icon || "fa-layer-group",
-        priceFrom: resolveServicePrice(service),
+        priceFrom: getServicePurchasePrice(service),
         destination: `/services/${service.slug}`,
       }));
     });
@@ -246,7 +233,9 @@ export default function ServicesDirectoryPage() {
                       <div>
                         <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Starts From</p>
                         <p className="mt-1 text-xl font-extrabold text-blue-900">
-                          {service.priceFrom ? `₹${priceFormatter.format(service.priceFrom)}` : "Contact"}
+                          {service.priceFrom
+                            ? `₹${priceFormatter.format(service.priceFrom)}`
+                            : "Request Quote"}
                         </p>
                       </div>
                       <div className="h-10 w-10 rounded-full bg-slate-900 text-white flex items-center justify-center transition-all duration-300 group-hover:bg-blue-900 group-hover:scale-110">

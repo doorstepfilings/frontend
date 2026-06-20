@@ -22,6 +22,7 @@ import { getStatusConfig, getMilestoneState } from "@/lib/utils/status-helpers";
 import { ChatNoteModal } from "@/components/ui/chat-note-modal";
 import { useStoredUser } from "@/lib/auth/hooks";
 import { parseApiError } from "@/lib/utils/error-parser";
+import { apiClient } from "@/lib/api/client";
 
 const MILESTONES = [
   { id: 1, label: "Submission" },
@@ -67,6 +68,32 @@ export function ApplicationDetailView() {
       dispatch(fetchAdminApplicationDetail(id));
     } else {
       toast.error("Update failed");
+    }
+  };
+
+  const handleReplaceApprovalDoc = async (
+    doc: any,
+    file: File,
+    notes?: string,
+  ) => {
+    const formData = new FormData();
+    formData.append("document", file);
+    if (notes) {
+      formData.append("notes", notes);
+    }
+
+    try {
+      await apiClient.post(
+        `/admin/service-applications/${id}/documents/${doc.id}/replace`,
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        },
+      );
+      toast.success("Document update sent for client approval");
+      dispatch(fetchAdminApplicationDetail(id));
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Document update failed");
     }
   };
 
@@ -347,6 +374,7 @@ export function ApplicationDetailView() {
                       documents={clientDocs}
                       onDelete={() => { }}
                       onUpdateStatus={handleUpdateDocStatus}
+                      onReplaceDocument={handleReplaceApprovalDoc}
                       canUpload={false}
                       clientName={app.user?.name}
                       accountantName={app.accountant?.name || currentUser?.name}
@@ -357,6 +385,7 @@ export function ApplicationDetailView() {
                       onDelete={() => { }}
                       onUpdateStatus={handleUpdateDocStatus}
                       allowInternalStatusUpdate
+                      onReplaceDocument={handleReplaceApprovalDoc}
                       canUpload={false}
                       clientName={app.user?.name}
                       accountantName={app.accountant?.name || currentUser?.name}

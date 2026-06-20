@@ -12,6 +12,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  CONTACT_REQUEST_EVENT,
+  type ContactRequestDetails,
+} from "@/lib/utils/contact-request";
 
 export function ContactFloatingButton() {
   const dispatch = useAppDispatch();
@@ -27,12 +31,31 @@ export function ContactFloatingButton() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [requestMode, setRequestMode] = useState<"contact" | "quote">("contact");
 
   useEffect(() => {
     if (isOpen && (!servicesData || servicesData.length === 0)) {
       dispatch(fetchServices());
     }
   }, [isOpen, servicesData, dispatch]);
+
+  useEffect(() => {
+    const handleContactRequest = (event: Event) => {
+      const details = (event as CustomEvent<ContactRequestDetails>).detail ?? {};
+      setRequestMode(details.mode ?? "contact");
+      setSubmitted(false);
+      setError(null);
+      setFormData((current) => ({
+        ...current,
+        service: details.service ?? current.service,
+        message: details.message ?? current.message,
+      }));
+      setIsOpen(true);
+    };
+
+    window.addEventListener(CONTACT_REQUEST_EVENT, handleContactRequest);
+    return () => window.removeEventListener(CONTACT_REQUEST_EVENT, handleContactRequest);
+  }, []);
 
   const allServices = Array.isArray(servicesData)
     ? servicesData.flatMap((category) => category.services || [])
@@ -92,7 +115,9 @@ export function ContactFloatingButton() {
 
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Get Expert Consultation</DialogTitle>
+          <DialogTitle>
+            {requestMode === "quote" ? "Request a Service Quote" : "Get Expert Consultation"}
+          </DialogTitle>
         </DialogHeader>
 
         <div className="bg-white">
@@ -107,8 +132,9 @@ export function ContactFloatingButton() {
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <p className="mb-4 text-sm text-gray-500">
-                Fill out the form below and our experts will contact you
-                shortly.
+                {requestMode === "quote"
+                  ? "Share your requirements and our team will send you a tailored quote."
+                  : "Fill out the form below and our experts will contact you shortly."}
               </p>
 
               {error && (

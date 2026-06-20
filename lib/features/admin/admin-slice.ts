@@ -98,6 +98,25 @@ function normalizeApplicationDocumentRecord(document: any) {
     file_size: document.file_size ?? document.fileSize ?? null,
     mime_type: document.mime_type ?? document.mimeType ?? null,
     is_final: document.is_final ?? document.isFinal ?? false,
+    requires_client_approval:
+      document.requires_client_approval ??
+      document.requiresClientApproval ??
+      false,
+    client_approval_status:
+      document.client_approval_status ??
+      document.clientApprovalStatus ??
+      document.approval_status ??
+      null,
+    client_approval_note:
+      document.client_approval_note ?? document.clientApprovalNote ?? null,
+    client_approval_requested_at:
+      document.client_approval_requested_at ??
+      document.clientApprovalRequestedAt ??
+      null,
+    client_approval_responded_at:
+      document.client_approval_responded_at ??
+      document.clientApprovalRespondedAt ??
+      null,
     uploaded_by: normalizePersonRecord(
       document.uploaded_by ?? document.uploadedBy ?? null,
     ),
@@ -155,12 +174,8 @@ function normalizeApplicationRecord(application: any) {
 
 function sortApplicationsLatestFirst(applications: any[]) {
   return [...applications].sort((left, right) => {
-    const rightDate = new Date(
-      right?.order_created_at ?? right?.created_at ?? 0,
-    ).getTime();
-    const leftDate = new Date(
-      left?.order_created_at ?? left?.created_at ?? 0,
-    ).getTime();
+    const rightDate = new Date(right?.created_at ?? 0).getTime();
+    const leftDate = new Date(left?.created_at ?? 0).getTime();
 
     if (rightDate !== leftDate) {
       return rightDate - leftDate;
@@ -365,12 +380,32 @@ export const fetchAdminServices = createAsyncThunk(
   }
 );
 
+type AdminApplicationFilters = {
+  applicationDate?: string;
+  status?: string;
+  timezoneOffset?: number;
+};
+
 // Async thunk to fetch all service applications
-export const fetchAdminApplications = createAsyncThunk(
+export const fetchAdminApplications = createAsyncThunk<
+  any[],
+  AdminApplicationFilters | void,
+  { rejectValue: string }
+>(
   "admin/fetchApplications",
-  async (_, { rejectWithValue }) => {
+  async (filters, { rejectWithValue }) => {
     try {
-      const response = await apiClient.get("/admin/service-applications");
+      const response = await apiClient.get("/admin/service-applications", {
+        params: {
+          ...(filters?.applicationDate
+            ? {
+                application_date: filters.applicationDate,
+                timezone_offset: filters.timezoneOffset ?? 0,
+              }
+            : {}),
+          ...(filters?.status ? { status: filters.status } : {}),
+        },
+      });
       return response.data?.data ?? response.data;
     } catch (error: any) {
       return rejectWithValue(
@@ -536,11 +571,13 @@ export const uploadDocument = createAsyncThunk(
       applicationId,
       document,
       document_type,
+      requires_client_approval,
       notes,
     }: {
       applicationId: string | number;
       document: File;
       document_type: string;
+      requires_client_approval?: boolean;
       notes?: string;
     },
     { rejectWithValue }
@@ -549,6 +586,10 @@ export const uploadDocument = createAsyncThunk(
       const formData = new FormData();
       formData.append("document", document);
       formData.append("document_type", document_type);
+      formData.append(
+        "requires_client_approval",
+        requires_client_approval ? "1" : "0",
+      );
       if (notes) {
         formData.append("notes", notes);
       }

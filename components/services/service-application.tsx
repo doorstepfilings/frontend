@@ -18,9 +18,16 @@ import {
   SLOT_TIMES,
   formatTimeSlot,
   isWorkingDay,
+  normalizeSlotTime,
+  resolveSlotState,
 } from "@/lib/utils/slot-helpers";
 import { parseApiError } from "@/lib/utils/error-parser";
-import { formatPrice } from "@/lib/utils/pricing";
+import {
+  formatPrice,
+  hasPositivePrice,
+  isServicePurchasable,
+} from "@/lib/utils/pricing";
+import { openContactRequest } from "@/lib/utils/contact-request";
 
 const COUNTRIES = [
   { iso: 'in', name: 'India', dialCode: '91', flag: 'https://flagcdn.com/24x18/in.png' },
@@ -214,6 +221,8 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
   const [includeAppointment, setIncludeAppointment] = useState(false);
   const [slots, setSlots] = useState<Slot[]>([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
+  const [slotLoadError, setSlotLoadError] = useState("");
+  const [slotClock, setSlotClock] = useState(() => Date.now());
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -235,12 +244,16 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
   const [fileErrors, setFileErrors] = useState<Record<number, string>>({});
   const selectedPlanDetails =
     selectedService?.pricing_plans?.find((plan) => plan.name === selectedPricingPlan) ?? null;
-  const hasMultiplePackages = (selectedService?.pricing_plans?.length ?? 0) > 1;
+  const purchasablePlans =
+    selectedService?.pricing_plans?.filter((plan) => hasPositivePrice(plan.price)) ?? [];
+  const hasMultiplePackages = purchasablePlans.length > 1;
 
   const applySelectedService = useCallback((service: Service | null) => {
     setSelectedService(service);
     setDocumentRows(createRowsFromService(service));
-    setSelectedPricingPlan(service?.pricing_plans?.[0]?.name ?? "");
+    setSelectedPricingPlan(
+      service?.pricing_plans?.find((plan) => hasPositivePrice(plan.price))?.name ?? "",
+    );
     setFileErrors({});
     setSelectedDate(null);
     setSelectedTimeSlot("");
@@ -251,6 +264,17 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
       services.find((service) => String(service.id) === String(serviceId)) ?? null;
 
     if (nextService) {
+      if (!isServicePurchasable(nextService)) {
+        openContactRequest({
+          mode: "quote",
+          service: nextService.name,
+          message: `I would like to request a quote for ${nextService.name}.`,
+        });
+        localStorage.removeItem("selectedService");
+        applySelectedService(null);
+        return;
+      }
+
       localStorage.setItem("selectedService", JSON.stringify(nextService));
     } else {
       localStorage.removeItem("selectedService");
@@ -336,68 +360,43 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
   }, [authStatus, preselectedService, applySelectedService]);
 
   useEffect(() => {
-    if (!selectedService || !selectedDate || !includeAppointment) {
-      setTimeout(() => setSlots([]), 0);
+    if (!includeAppointment || !selectedDate) {
       return;
     }
-    const fetchSlots = async () => {
-      setSlotsLoading(true);
-      try {
-        const dateStr = [
-          selectedDate.getFullYear(),
-          String(selectedDate.getMonth() + 1).padStart(2, '0'),
-          String(selectedDate.getDate()).padStart(2, '0')
-        ].join('-');
-        const res = await apiClient.get<{ data: Slot[] }>("/service/slot-availability", {
-          params: { service_id: selectedService.id, date: dateStr },
-        });
-        setSlots(res.data.data);
-      } catch { setSlots([]); } finally { setSlotsLoading(false); }
-    };
-    fetchSlots();
-  }, [selectedService, selectedDate, includeAppointment]);
+
+    const timer = window.setInterval(() => {
+      setSlotClock(Date.now());
+    }, 30_000);
+
+    return () => window.clearInterval(timer);
+  }, [includeAppointment, selectedDate]);
 
   const localSlots = SLOT_TIMES.map(time => {
-    const backendSlot = slots.find(s => s.time === time);
-    let isPastLocal = backendSlot?.is_past ?? false;
-    const isFullLocal = backendSlot?.is_full ?? false;
+    const backendSlot = slots.find(
+      (slot) => normalizeSlotTime(slot.time) === normalizeSlotTime(time),
+    );
 
-    if (selectedDate) {
-      const now = new Date();
-      if (
-        selectedDate.getFullYear() === now.getFullYear() &&
-        selectedDate.getMonth() === now.getMonth() &&
-        selectedDate.getDate() === now.getDate()
-      ) {
-        const [hour, min] = time.split(':').map(Number);
-        if (now.getHours() > hour || (now.getHours() === hour && now.getMinutes() >= min)) {
-          isPastLocal = true;
-        }
-      } else if (selectedDate < new Date(now.setHours(0, 0, 0, 0))) {
-        isPastLocal = true;
-      }
-    }
-
-    return {
+    return resolveSlotState({
       time,
-      is_past: isPastLocal,
-      is_full: isFullLocal,
-      booked: backendSlot?.booked ?? 0,
-      remaining: backendSlot?.remaining ?? 0
-    };
+      selectedDate,
+      backendSlot,
+      now: new Date(slotClock),
+    });
   });
 
   const getSlotRecovery = () => {
-    if (!selectedDate || slotsLoading || slots.length === 0) return null;
+    if (!selectedDate || slotsLoading) return null;
 
     const selectedSlotState = selectedTimeSlot ? localSlots.find(s => s.time === selectedTimeSlot) : null;
-    const availableSlots = localSlots.filter(s => !s.is_past && !s.is_full);
+    const availableSlots = localSlots.filter(
+      (slot) => slot.is_available && !slot.is_past && !slot.is_full,
+    );
 
     const nextSlot = localSlots.find(s => {
       if (selectedTimeSlot) {
-        return s.time > selectedTimeSlot && !s.is_past && !s.is_full;
+        return s.time > selectedTimeSlot && s.is_available && !s.is_past && !s.is_full;
       }
-      return !s.is_past && !s.is_full;
+      return s.is_available && !s.is_past && !s.is_full;
     });
 
     const formatSlotDate = (date: Date) => {
@@ -428,7 +427,7 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
       };
     }
 
-    if (availableSlots.length === 0) {
+    if (!slotLoadError && availableSlots.length === 0) {
       return {
         title: 'No slots are available for this day.',
         description: 'Please choose another day to continue booking.',
@@ -460,10 +459,83 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
     updateDocumentRow(index, { file });
   };
 
+  const fetchSlotAvailability = useCallback(
+    async (serviceId: number, date: Date) => {
+      setSlotsLoading(true);
+      setSlotLoadError("");
+      setSlots([]);
+
+      try {
+        const dateStr = [
+          date.getFullYear(),
+          String(date.getMonth() + 1).padStart(2, "0"),
+          String(date.getDate()).padStart(2, "0"),
+        ].join("-");
+        const response = await apiClient.get<{ data: Slot[] }>(
+          "/service/slot-availability",
+          {
+            params: { service_id: serviceId, date: dateStr },
+          },
+        );
+        const nextSlots = Array.isArray(response.data.data) ? response.data.data : [];
+        setSlots(nextSlots);
+        return nextSlots;
+      } catch {
+        setSlots([]);
+        setSlotLoadError("Unable to load live slot availability. Please try again.");
+        return null;
+      } finally {
+        setSlotsLoading(false);
+      }
+    },
+    [],
+  );
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedService) return setError("Select a service");
+    if (!isServicePurchasable(selectedService)) {
+      openContactRequest({
+        mode: "quote",
+        service: selectedService.name,
+        message: `I would like to request a quote for ${selectedService.name}.`,
+      });
+      return setError("This service requires a custom quote.");
+    }
+    if (
+      selectedService.pricing_plans?.length &&
+      (!selectedPlanDetails || !hasPositivePrice(selectedPlanDetails.price))
+    ) {
+      return setError("Select a paid package to continue.");
+    }
     if (includeAppointment && (!selectedDate || !selectedTimeSlot)) return setError("Select appointment");
+
+    if (includeAppointment && selectedDate && selectedTimeSlot) {
+      const latestSlots = await fetchSlotAvailability(selectedService.id, selectedDate);
+      const latestBackendSlot = latestSlots?.find(
+        (slot) => normalizeSlotTime(slot.time) === normalizeSlotTime(selectedTimeSlot),
+      );
+      const latestSlotState = resolveSlotState({
+        time: selectedTimeSlot,
+        selectedDate,
+        backendSlot: latestBackendSlot,
+      });
+
+      if (
+        !latestSlots ||
+        !latestSlotState.is_available ||
+        latestSlotState.is_past ||
+        latestSlotState.is_full
+      ) {
+        setSelectedTimeSlot("");
+        setError(
+          latestSlotState.is_past
+            ? "That appointment time has already passed. Please choose a future slot."
+            : "That appointment slot is no longer available. Please choose another slot.",
+        );
+        return;
+      }
+    }
 
     setSubmitLoading(true);
     setError("");
@@ -480,8 +552,8 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
         phone: `+${formData.dialCode}${formData.phone}`,
         appointment_request: includeAppointment ? "yes" : "no",
         pricing_plan: selectedPricingPlan || null,
-        scheduled_date: dateStr,
-        scheduled_time: selectedTimeSlot || null,
+        scheduled_date: includeAppointment ? dateStr : null,
+        scheduled_time: includeAppointment ? selectedTimeSlot : null,
       };
 
       payload.append("service_id", String(selectedService.id));
@@ -552,10 +624,12 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
                         <SearchableSelect
                             value={selectedService ? String(selectedService.id) : ""}
                             onChange={(e) => handleServiceSelectionChange(e.target.value)}
-                            options={services.map((service) => ({
+                            options={services
+                              .filter((service) => isServicePurchasable(service))
+                              .map((service) => ({
                                 value: String(service.id),
                                 label: service.name,
-                            }))}
+                              }))}
                             placeholder="Select a service"
                             required
                         />
@@ -563,7 +637,7 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
                 )}
             </div>
 
-            {selectedService && (selectedService.pricing_plans?.length ?? 0) > 0 && (
+            {selectedService && purchasablePlans.length > 0 && (
                 <div className="mb-8">
                     <div className="flex items-center gap-2 mb-4">
                         <i className="fas fa-box-open text-blue-900"></i>
@@ -574,7 +648,7 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
                     <div className="h-px bg-gray-200 w-full mb-6"></div>
 
                     <div className="grid gap-4 md:grid-cols-2">
-                        {selectedService.pricing_plans?.map((plan) => {
+                        {purchasablePlans.map((plan) => {
                             const isActive = selectedPricingPlan === plan.name;
 
                             return (
@@ -803,14 +877,23 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
                         <div className="flex bg-white rounded-lg border border-gray-200 p-1">
                             <button 
                                 type="button"
-                                onClick={() => setIncludeAppointment(true)}
+                                onClick={() => {
+                                  setIncludeAppointment(true);
+                                  setSlotClock(Date.now());
+                                }}
                                 className={`px-6 py-1.5 rounded-md text-sm font-bold transition-all ${includeAppointment ? 'bg-blue-900 text-white' : 'text-gray-500 hover:bg-gray-50'}`}
                             >
                                 Yes
                             </button>
                             <button 
                                 type="button"
-                                onClick={() => setIncludeAppointment(false)}
+                                onClick={() => {
+                                  setIncludeAppointment(false);
+                                  setSelectedDate(null);
+                                  setSelectedTimeSlot("");
+                                  setSlots([]);
+                                  setSlotLoadError("");
+                                }}
                                 className={`px-6 py-1.5 rounded-md text-sm font-bold transition-all ${!includeAppointment ? 'bg-blue-900 text-white' : 'text-gray-500 hover:bg-gray-50'}`}
                             >
                                 No
@@ -828,7 +911,16 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
                                     </span>
                                     <DatePicker
                                         selected={selectedDate}
-                                        onChange={(d: Date | null) => { setSelectedDate(d); setSelectedTimeSlot(''); }}
+                                        onChange={(date: Date | null) => {
+                                          setSelectedDate(date);
+                                          setSelectedTimeSlot("");
+                                          setSlots([]);
+                                          setSlotLoadError("");
+                                          setSlotClock(Date.now());
+                                          if (date && selectedService) {
+                                            void fetchSlotAvailability(selectedService.id, date);
+                                          }
+                                        }}
                                         minDate={new Date()}
                                         filterDate={isWorkingDay}
                                         dateFormat="dd/MM/yyyy"
@@ -845,7 +937,11 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
                                     {SLOT_TIMES.map((time) => {
                                         const status = localSlots.find(s => s.time === time);
                                         const isSelected = selectedTimeSlot === time;
-                                        const isDisabled = !!status?.is_full || !!status?.is_past;
+                                        const isDisabled =
+                                          slotsLoading ||
+                                          !status?.is_available ||
+                                          !!status?.is_full ||
+                                          !!status?.is_past;
                                         return (
                                             <button
                                                 key={time}
@@ -863,6 +959,29 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
                                         );
                                     })}
                                 </div>
+                                {slotsLoading ? (
+                                  <p className="mt-3 text-xs font-semibold text-slate-500">
+                                    Checking live availability...
+                                  </p>
+                                ) : null}
+                                {slotLoadError ? (
+                                  <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-rose-100 bg-rose-50 p-3">
+                                    <p className="text-xs font-semibold text-rose-700">
+                                      {slotLoadError}
+                                    </p>
+                                    {selectedService && selectedDate ? (
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          void fetchSlotAvailability(selectedService.id, selectedDate)
+                                        }
+                                        className="shrink-0 text-xs font-black text-rose-800 underline"
+                                      >
+                                        Retry
+                                      </button>
+                                    ) : null}
+                                  </div>
+                                ) : null}
                                 {slotRecovery && (
                                     <div className="mt-4 p-4 rounded-xl bg-amber-50 border border-amber-100">
                                         <p className="text-xs font-bold text-amber-900">{slotRecovery.title}</p>

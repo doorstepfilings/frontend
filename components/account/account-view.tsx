@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { apiClient } from "@/lib/api/client";
-import { setStoredUser, type AuthUser } from "@/lib/auth/storage";
+import { setStoredUser } from "@/lib/auth/storage";
+import { AccountantType, type AuthUser } from "@/lib/auth/types";
 import { usePincodeLookup } from "@/lib/hooks/use-pincode-lookup";
 import {
   AUTH_ERROR_MESSAGES,
@@ -28,6 +29,25 @@ type RegionalManagerResponse = {
   message?: string;
 };
 
+const ACCOUNTANT_TYPE_OPTIONS = [
+  {
+    value: AccountantType.Salaried,
+    label: "Salaried",
+    icon: "fa-id-badge",
+  },
+  {
+    value: AccountantType.Enterprise,
+    label: "Enterprise",
+    icon: "fa-building",
+  },
+] as const;
+
+function normalizeAccountantType(value: unknown) {
+  return String(value ?? "").toLowerCase() === AccountantType.Enterprise
+    ? AccountantType.Enterprise
+    : AccountantType.Salaried;
+}
+
 export function AccountView() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"profile" | "security" | "rm">("profile");
@@ -41,6 +61,7 @@ export function AccountView() {
     city: "",
     state: "",
     pincode: "",
+    accountant_type: AccountantType.Salaried,
   });
   const [passwordData, setPasswordData] = useState({
     current_password: "",
@@ -85,6 +106,7 @@ export function AccountView() {
           city: String(resolvedUser.city ?? ""),
           state: String(resolvedUser.state ?? ""),
           pincode: String(resolvedUser.pincode ?? ""),
+          accountant_type: normalizeAccountantType(resolvedUser.accountant_type),
         });
       } catch (requestError) {
         if (!isMounted) {
@@ -300,6 +322,14 @@ export function AccountView() {
                       value={profileData.mobile_number}
                       onChange={(value) => setProfileData((prev) => ({ ...prev, mobile_number: value }))}
                       placeholder="+91 00000 00000"
+                    />
+                  </FormField>
+                  <FormField label="Accountant Type">
+                    <AccountantTypeToggle
+                      value={profileData.accountant_type}
+                      onChange={(value) =>
+                        setProfileData((prev) => ({ ...prev, accountant_type: value }))
+                      }
                     />
                   </FormField>
                   <FormField
@@ -532,6 +562,38 @@ export function AccountView() {
         </div>
       )}
     </>
+  );
+}
+
+function AccountantTypeToggle({
+  value,
+  onChange,
+}: {
+  value: AccountantType;
+  onChange: (value: AccountantType) => void;
+}) {
+  return (
+    <div className="grid h-14 grid-cols-2 rounded-2xl border border-slate-100 bg-slate-50/50 p-1">
+      {ACCOUNTANT_TYPE_OPTIONS.map((option) => {
+        const isSelected = option.value === value;
+
+        return (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => onChange(option.value)}
+            className={`flex items-center justify-center gap-2 rounded-xl px-3 text-[10px] font-black uppercase tracking-widest transition-all ${
+              isSelected
+                ? "bg-blue-900 text-white shadow-lg shadow-blue-900/20"
+                : "text-slate-400 hover:bg-white hover:text-slate-900"
+            }`}
+          >
+            <i className={`fas ${option.icon}`} />
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 

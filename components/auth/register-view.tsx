@@ -578,7 +578,7 @@ export function RegisterView() {
             <div className="mb-4 flex items-center gap-4">
               <img src="/assets/images/testimonials/Ravishankar_Water_Coat.png" alt="Client" className="h-12 w-12 rounded-full border-2 border-amber-500 object-cover" />
               <div>
-                <p className="font-semibold">Rahul Sharma</p>
+                <p className="font-semibold">Ravishankar Shukla</p>
                 <p className="text-sm text-blue-200">Business Owner</p>
               </div>
             </div>

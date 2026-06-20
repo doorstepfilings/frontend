@@ -1,13 +1,18 @@
 "use client";
 
-import { getSession, signOut } from "next-auth/react";
 import { getDefaultRedirectPath as resolveDefaultRedirectPath } from "@/lib/auth/redirects";
+import type { Session } from "next-auth";
 import type { AuthUser } from "@/lib/auth/types";
 
 export type { AuthUser } from "@/lib/auth/types";
 
+const AUTH_BASE_PATH = "/api/auth";
 const USER_OVERRIDE_KEY = "dsf_user_override";
 const AUTH_EVENT = "dsf-auth-change";
+
+type CsrfResponse = {
+  csrfToken?: string;
+};
 
 function isBrowser() {
   return typeof window !== "undefined";
@@ -27,6 +32,16 @@ function emitAuthChange() {
   }
 
   window.dispatchEvent(new Event(AUTH_EVENT));
+}
+
+function broadcastSessionChange(trigger: string) {
+  if (!isBrowser() || typeof BroadcastChannel === "undefined") {
+    return;
+  }
+
+  const channel = new BroadcastChannel("next-auth");
+  channel.postMessage({ event: "session", data: { trigger } });
+  channel.close();
 }
 
 let cachedUserOverride: AuthUser | null = null;
@@ -56,6 +71,63 @@ function readUserOverride() {
     lastRawValue = rawValue;
     cachedUserOverride = null;
     return null;
+  }
+}
+
+async function fetchAuthJson<T>(path: string, init: RequestInit = {}) {
+  if (!isBrowser()) {
+    return null;
+  }
+
+  try {
+    const headers = new Headers(init.headers);
+    if (!headers.has("Accept")) {
+      headers.set("Accept", "application/json");
+    }
+
+    const response = await fetch(`${AUTH_BASE_PATH}/${path}`, {
+      ...init,
+      headers,
+      credentials: "same-origin",
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    return (await response.json().catch(() => null)) as T | null;
+  } catch {
+    return null;
+  }
+}
+
+async function readSession(): Promise<Session | null> {
+  return fetchAuthJson<Session>("session");
+}
+
+async function requestSignOut() {
+  const csrf = await fetchAuthJson<CsrfResponse>("csrf");
+  if (!csrf?.csrfToken || !isBrowser()) {
+    return;
+  }
+
+  try {
+    const headers = new Headers();
+    headers.set("Content-Type", "application/x-www-form-urlencoded");
+    headers.set("X-Auth-Return-Redirect", "1");
+
+    await fetch(`${AUTH_BASE_PATH}/signout`, {
+      method: "POST",
+      headers,
+      credentials: "same-origin",
+      body: new URLSearchParams({
+        csrfToken: csrf.csrfToken,
+        callbackUrl: window.location.href,
+      }),
+    });
+  } catch {
+    return;
   }
 }
 
@@ -95,18 +167,19 @@ export function clearStoredUserOverride() {
 }
 
 export async function getStoredToken() {
-  const session = await getSession();
+  const session = await readSession();
   return session?.accessToken ?? null;
 }
 
 export async function getStoredUser() {
-  const session = await getSession();
+  const session = await readSession();
   return mergeAuthUsers(session?.user ?? null, readUserOverride());
 }
 
 export async function clearStoredAuth() {
   clearStoredUserOverride();
-  await signOut({ redirect: false });
+  await requestSignOut();
+  broadcastSessionChange("signout");
 }
 
 export function setStoredUser(user: AuthUser) {

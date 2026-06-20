@@ -1,6 +1,9 @@
 import Link from "next/link";
 import type { ServiceCategory, ServiceItem } from "@/lib/features/services/types";
-import { formatCurrency } from "@/lib/utils/pricing";
+import {
+  formatCurrency,
+  getServicePurchasePrice,
+} from "@/lib/utils/pricing";
 import { CategoryIcon } from "@/components/ui/category-icon";
 
 interface HomeServicesProps {
@@ -165,14 +168,18 @@ export function HomeServices({
                         </h3>
                       </div>
 
-                      {service.price ? (
+                      {getServicePurchasePrice(service) ? (
                         <div className="text-right">
                           <div className="text-lg font-bold text-blue-900">
-                            Rs.{formatCurrency(service.price)}
+                            Rs.{formatCurrency(getServicePurchasePrice(service))}
                           </div>
                           <div className="text-xs text-gray-400">+ GST | Govt. fee extra</div>
                         </div>
-                      ) : null}
+                      ) : (
+                        <div className="text-right text-xs font-black uppercase tracking-wider text-amber-600">
+                          Request Quote
+                        </div>
+                      )}
                     </div>
 
                     <p className="mb-4 line-clamp-2 text-sm leading-relaxed text-gray-600">

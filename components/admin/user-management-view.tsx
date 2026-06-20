@@ -1096,13 +1096,13 @@ export function UserManagementView({
 
             <div className="overflow-x-auto">
               {currentType === "users" ? (
-                <table className="min-w-[1120px] w-full table-fixed text-left">
+                <table className="min-w-[1180px] w-full table-fixed text-left">
                   <colgroup>
                     <col className="w-[27%]" />
-                    <col className="w-[18%]" />
-                    <col className="w-[22%]" />
-                    <col className="w-[22%]" />
-                    <col className="w-[11%]" />
+                    <col className="w-[15%]" />
+                    <col className="w-[23%]" />
+                    <col className="w-[23%]" />
+                    <col className="w-[12%]" />
                   </colgroup>
                   <thead className="bg-gray-50">
                     <tr>
@@ -1149,7 +1149,7 @@ export function UserManagementView({
 
                         return (
                           <tr key={String(item.id)} className="transition-colors hover:bg-blue-50/40">
-                            <td className="px-6 py-4 align-top">
+                            <td className="whitespace-normal px-5 py-4 align-top">
                               <div className="flex items-center gap-3">
                                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 font-black text-blue-700">
                                   {String(item.name ?? "U").charAt(0).toUpperCase()}
@@ -1165,9 +1165,9 @@ export function UserManagementView({
                                 </div>
                               </div>
                             </td>
-                            <td className="px-6 py-4 align-top">
-                              <div className="space-y-2">
-                                <span className="inline-flex rounded-full bg-blue-900 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-white">
+                            <td className="whitespace-normal px-5 py-4 align-top">
+                              <div className="flex min-w-0 flex-col items-start gap-2">
+                                <span className="inline-flex max-w-full truncate rounded-full bg-blue-900 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-white">
                                   {getIdentityLabel(currentType, item)}
                                 </span>
                                 <select
@@ -1176,7 +1176,7 @@ export function UserManagementView({
                                     handleRoleSelection(item, event.target.value);
                                   }}
                                   disabled={isProtectedRole || isRowBusy}
-                                  className={`w-full min-w-0 rounded-lg px-3 py-2 text-[10px] font-black uppercase tracking-widest ${isProtectedRole
+                                  className={`block w-full min-w-0 max-w-full rounded-lg px-3 py-2 text-[10px] font-black uppercase tracking-widest ${isProtectedRole
                                     ? "cursor-not-allowed border-0 bg-indigo-50 text-indigo-700"
                                     : "border-0 bg-blue-50 text-blue-700 hover:bg-blue-100"
                                     }`}
@@ -1191,7 +1191,7 @@ export function UserManagementView({
                                 </select>
                               </div>
                             </td>
-                            <td className="px-6 py-4 align-top">
+                            <td className="whitespace-normal px-5 py-4 align-top">
                               {canManageAssignments && typeof item.id === "number" ? (
                                 <SearchSelect
                                   options={[
@@ -1213,7 +1213,7 @@ export function UserManagementView({
                                 </span>
                               )}
                             </td>
-                            <td className="px-6 py-4 align-top">
+                            <td className="whitespace-normal px-5 py-4 align-top">
                               {canManageAssignments && typeof item.id === "number" ? (
                                 <select
                                   value={String(accountant?.id ?? "")}
@@ -1224,7 +1224,7 @@ export function UserManagementView({
                                     )
                                   }
                                   disabled={isRowBusy}
-                                  className="w-full min-w-0 rounded-lg bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-700 focus:outline-none focus:ring-4 focus:ring-blue-500/10"
+                                  className="block w-full min-w-0 max-w-full rounded-lg bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-700 focus:outline-none focus:ring-4 focus:ring-blue-500/10"
                                 >
                                   <option value="">No Accountant</option>
                                   {assignedAccountantOptions.map((option) => (
@@ -1239,7 +1239,7 @@ export function UserManagementView({
                                 </span>
                               )}
                             </td>
-                            <td className="px-6 py-4 align-top">
+                            <td className="whitespace-normal px-5 py-4 align-top">
                               <div className="flex flex-wrap justify-end gap-2">
                                 <Link
                                   href={routeMeta[currentType].detailHref(String(item.id ?? ""))}

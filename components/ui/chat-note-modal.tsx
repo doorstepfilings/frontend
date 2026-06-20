@@ -70,11 +70,11 @@ export function ChatNoteModal({
         return { role: normalizedRole, sender: resolvedSender, text: match[3].trim() };
       }
       
-      // Fallback: determine role based on who is viewing + uploadedBy metadata
-      let role = fallbackRole || "Accountant";
-      let sender = fallbackSender || "Accountant";
-      
-      if (uploadedBy) {
+      // Fallback: prefer explicit context from the caller, then use uploader metadata.
+      let role = fallbackRole || uploadedBy?.role || "Accountant";
+      let sender = fallbackSender || uploadedBy?.name || role;
+
+      if (!fallbackRole && !fallbackSender && uploadedBy) {
         role = uploadedBy.role || "User";
         sender = uploadedBy.name || role;
       }
@@ -94,7 +94,7 @@ export function ChatNoteModal({
       }
       
       let resolvedSender = sender;
-      if (uploadedBy && uploadedBy.name) {
+      if (!fallbackSender && uploadedBy && uploadedBy.name) {
         resolvedSender = uploadedBy.name;
       } else if (["you", "accountant", "admin", "super_admin", "superadmin", "super admin", "user", "client", "customer"].includes(resolvedSender.toLowerCase())) {
         if (normalizedRole === "Accountant" && accountantName) {
@@ -132,7 +132,7 @@ export function ChatNoteModal({
     try {
       await onSubmitNote(inputValue);
       setInputValue("");
-    } catch (err) {
+    } catch {
       toast.error("Failed to add note");
     } finally {
       setIsSubmitting(false);

@@ -7,6 +7,100 @@ const getDocumentType = (doc: any) =>
 const getDocumentCategory = (doc: any) =>
   normalizeDocumentField(doc?.document_category);
 
+const getBooleanDocumentField = (value: unknown) =>
+  value === true ||
+  value === 1 ||
+  value === "1" ||
+  normalizeDocumentField(value) === "true" ||
+  normalizeDocumentField(value) === "yes";
+
+export const getClientApprovalStatus = (doc: any) => {
+  const status = normalizeDocumentField(doc?.status);
+  const type = getDocumentType(doc);
+  const role = getUploaderRole(doc);
+  const isStaffRole = isStaffUploaderRole(role);
+
+  const explicitStatus =
+    doc?.client_approval_status ??
+    doc?.clientApprovalStatus ??
+    doc?.approval_status ??
+    null;
+  const normalized = normalizeDocumentField(explicitStatus);
+
+  if (
+    [
+      "pending",
+      "approved",
+      "correction_requested",
+      "not_required",
+    ].includes(normalized)
+  ) {
+    return normalized;
+  }
+
+  if (
+    [
+      "client_approval_pending",
+      "pending_client_approval",
+      "awaiting_client_approval",
+    ].includes(normalized)
+  ) {
+    return "pending";
+  }
+
+  if (["correction", "rejected", "changes_requested"].includes(normalized)) {
+    return "correction_requested";
+  }
+
+  if (
+    getBooleanDocumentField(
+      doc?.requires_client_approval ?? doc?.requiresClientApproval,
+    )
+  ) {
+    if (["approved", "verified"].includes(status)) return "approved";
+    if (["rejected", "correction", "correction_requested"].includes(status)) {
+      return "correction_requested";
+    }
+    return "pending";
+  }
+
+  if (isStaffRole && ["client", "client_document"].includes(type)) {
+    if (["approved", "verified"].includes(status)) {
+      return "approved";
+    }
+
+    if (
+      ["rejected", "correction", "correction_requested"].includes(status)
+    ) {
+      return "correction_requested";
+    }
+
+    if (status === "pending") {
+      return "pending";
+    }
+  }
+
+  return "not_required";
+};
+
+export const requiresClientApprovalDocument = (doc: any) => {
+  if (getBooleanDocumentField(doc?.requires_client_approval ?? doc?.requiresClientApproval)) {
+    return true;
+  }
+
+  return getClientApprovalStatus(doc) !== "not_required";
+};
+
+export const isClientApprovalPendingDocument = (doc: any) =>
+  requiresClientApprovalDocument(doc) && getClientApprovalStatus(doc) === "pending";
+
+export const isClientApprovalApprovedDocument = (doc: any) =>
+  requiresClientApprovalDocument(doc) && getClientApprovalStatus(doc) === "approved";
+
+export const isClientApprovalCorrectionRequestedDocument = (doc: any) =>
+  requiresClientApprovalDocument(doc) &&
+  getClientApprovalStatus(doc) === "correction_requested";
+
 const hasInternalDocumentMarker = (doc: any) => {
   const type = getDocumentType(doc);
   const category = getDocumentCategory(doc);
@@ -24,6 +118,19 @@ const hasClientDocumentMarker = (doc: any) => {
   return (
     ["client", "client_document"].includes(type) ||
     ["client_document", "client_visible"].includes(category)
+  );
+};
+
+const isImplicitClientApprovalDocument = (
+  doc: any,
+  userId: number | string | null,
+) => {
+  const status = normalizeDocumentField(doc?.status);
+
+  return (
+    status === "pending" &&
+    hasClientDocumentMarker(doc) &&
+    !isClientUploadedDocument(doc, userId)
   );
 };
 
@@ -86,6 +193,13 @@ export const isClientDocument = (doc: any) => {
 
   // 1. Explicit Internal markers (Sole Source of Truth - hide always)
   if (hasInternalDocumentMarker(doc)) {
+    return false;
+  }
+
+  if (
+    requiresClientApprovalDocument(doc) &&
+    !isClientApprovalApprovedDocument(doc)
+  ) {
     return false;
   }
 
@@ -173,10 +287,45 @@ export const isInternalDocument = (doc: any) => {
 export const splitDocumentsByOwner = (docs: any[], clientUserId: number | string | null) => {
   if (!Array.isArray(docs)) return { clientDocs: [], internalDocs: [] };
 
+  const currentDocuments = docs.filter(
+    (doc) =>
+      !["replaced", "superseded"].includes(
+        normalizeDocumentField(doc?.status),
+      ),
+  );
+
   return {
-    clientDocs: docs.filter((doc) => isClientManagedDocument(doc)),
-    internalDocs: docs.filter((doc) => isInternalDocument(doc)),
+    clientDocs: currentDocuments.filter((doc) => isClientManagedDocument(doc)),
+    internalDocs: currentDocuments.filter((doc) => isInternalDocument(doc)),
   };
+};
+
+export const getClientApprovalDocuments = (
+  docs: any[],
+  userId: number | string | null = null,
+) => {
+  if (!Array.isArray(docs)) return [];
+  return docs.filter(
+    (doc) =>
+      isClientApprovalPendingDocument(doc) ||
+      isImplicitClientApprovalDocument(doc, userId),
+  );
+};
+
+export const getClientArchiveDocuments = (
+  docs: any[],
+  userId: number | string | null,
+) => {
+  if (!Array.isArray(docs)) return [];
+
+  return docs.filter((doc) => {
+    if (isClientApprovalPendingDocument(doc)) return false;
+    if (isImplicitClientApprovalDocument(doc, userId)) return false;
+    if (isClientApprovalCorrectionRequestedDocument(doc)) return false;
+    if (isClientUploadedDocument(doc, userId)) return true;
+    if (isClientApprovalApprovedDocument(doc)) return true;
+    return isClientDocument(doc);
+  });
 };
 
 export const looksLikeCertificate = (doc: any) => {

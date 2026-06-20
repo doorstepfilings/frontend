@@ -7,8 +7,13 @@ import { useRouter } from "next/navigation";
 import { PublicShell } from "@/components/layout/public-shell";
 import { apiClient } from "@/lib/api/client";
 import { useStoredUser } from "@/lib/auth/hooks";
-import { formatPrice } from "@/lib/utils/pricing";
+import {
+  formatPrice,
+  hasPositivePrice,
+  isServicePurchasable,
+} from "@/lib/utils/pricing";
 import { ApplyServiceModal } from "./apply-service-modal";
+import { QuoteRequestButton } from "./quote-request-button";
 import { PageLogoLoader } from "@/components/ui/logo-loader";
 
 type ServiceDetailResponse = {
@@ -54,6 +59,7 @@ export function ServiceDetailView({ slug }: { slug: string }) {
   const [showModal, setShowModal] = useState(false);
   const user = useStoredUser();
   const canApply = !user || user.role === "user";
+  const canPurchaseService = isServicePurchasable(service);
 
   useEffect(() => {
     let isMounted = true;
@@ -187,12 +193,15 @@ export function ServiceDetailView({ slug }: { slug: string }) {
                       Select Your Plan
                     </h2>
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {service.pricing_plans.map((plan, idx) => (
+                      {service.pricing_plans.map((plan, idx) => {
+                        const canPurchasePlan = hasPositivePrice(plan.price);
+
+                        return (
                         <div key={idx} className="bg-white rounded-[2rem] border border-slate-100 overflow-hidden flex flex-col hover:shadow-xl transition-all hover:-translate-y-1 group">
                           <div className="p-8 bg-blue-900 text-white text-center">
                             <h4 className="font-bold text-sm uppercase tracking-widest mb-2">{plan.name}</h4>
                             <div className="text-3xl font-black text-white-200">
-                              {`₹${formatPrice(plan.price)}`}
+                              {canPurchasePlan ? `₹${formatPrice(plan.price)}` : "Custom Quote"}
                             </div>
                           </div>
                           <div className="p-8 flex-1 flex flex-col">
@@ -204,17 +213,23 @@ export function ServiceDetailView({ slug }: { slug: string }) {
                                 </li>
                               ))}
                             </ul>
-                            {canApply && (
+                            {canApply && canPurchasePlan ? (
                               <button
                                 onClick={() => handleApplyNow(plan.name)}
                                 className="w-full py-4 bg-slate-50 text-blue-900 font-black uppercase tracking-widest text-[10px] rounded-xl group-hover:bg-orange-500 group-hover:text-white transition-all"
                               >
                                 Select Plan
                               </button>
-                            )}
+                            ) : !canPurchasePlan ? (
+                              <QuoteRequestButton
+                                serviceName={`${service.name} - ${plan.name}`}
+                                className="flex w-full items-center justify-center gap-2 rounded-xl bg-amber-500 py-4 text-[10px] font-black uppercase tracking-widest text-white transition-all hover:bg-amber-600"
+                              />
+                            ) : null}
                           </div>
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -286,17 +301,31 @@ export function ServiceDetailView({ slug }: { slug: string }) {
                 {/* Application Card */}
                 <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-200 overflow-hidden sticky top-24 z-20">
                   <div className="p-6 md:p-8">
-                    {service.price && (
+                    {canPurchaseService ? (
                       <div className="flex flex-col gap-1 mb-8">
                         <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">Starting at</p>
                         <div className="flex items-baseline gap-2">
-                          <span className="text-4xl md:text-5xl font-black text-blue-900 tracking-tight">₹{formatPrice(service.price)}</span>
+                          <span className="text-4xl md:text-5xl font-black text-blue-900 tracking-tight">
+                            ₹{formatPrice(
+                              service.price ||
+                                service.pricing_plans?.find((plan) =>
+                                  hasPositivePrice(plan.price),
+                                )?.price,
+                            )}
+                          </span>
                           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">+ GST</span>
                         </div>
                       </div>
+                    ) : (
+                      <div className="mb-8">
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+                          Pricing
+                        </p>
+                        <p className="mt-2 text-2xl font-black text-blue-900">Custom Quote</p>
+                      </div>
                     )}
 
-                    {canApply && (
+                    {canApply && canPurchaseService ? (
                       <button
                         onClick={() => handleApplyNow()}
                         className="w-full h-14 bg-amber-500 text-white font-black uppercase tracking-widest text-[11px] rounded-2xl hover:bg-amber-600 hover:-translate-y-0.5 transition-all duration-300 shadow-[0_8px_20px_rgb(245,158,11,0.25)] flex items-center justify-center gap-3"
@@ -304,7 +333,12 @@ export function ServiceDetailView({ slug }: { slug: string }) {
                         <i className="fas fa-rocket text-sm"></i>
                         Apply Now
                       </button>
-                    )}
+                    ) : !canPurchaseService ? (
+                      <QuoteRequestButton
+                        serviceName={service.name}
+                        className="flex h-14 w-full items-center justify-center gap-3 rounded-2xl bg-amber-500 text-[11px] font-black uppercase tracking-widest text-white shadow-[0_8px_20px_rgb(245,158,11,0.25)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-amber-600"
+                      />
+                    ) : null}
                   </div>
                 </div>
 

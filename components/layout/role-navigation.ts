@@ -22,7 +22,6 @@ export function getDashboardNavItems(roleInput?: string | null) {
       { path: "/accountant/dashboard", label: "Dashboard", icon: "fa-th-large" },
       { path: "/accountant/assigned-users", label: "Clients", icon: "fa-users" },
       { path: "/accountant/service-requests", label: "Services", icon: "fa-clipboard-list" },
-      { path: "/accountant/documents", label: "Documents", icon: "fa-folder" },
     ] satisfies DashboardNavItem[];
   }
 

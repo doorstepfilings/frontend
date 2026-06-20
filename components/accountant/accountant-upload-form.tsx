@@ -27,6 +27,7 @@ export const AccountantUploadForm = ({
     notes: "",
     document_type: "internal",
     document_category: "",
+    requires_client_approval: false,
   });
 
   const [rows, setRows] = useState<any[]>([buildEmptyRow()]);
@@ -61,6 +62,12 @@ export const AccountantUploadForm = ({
     setRows(newRows);
   };
 
+  const updateRowFields = (index: number, values: Record<string, any>) => {
+    const newRows = [...rows];
+    newRows[index] = { ...newRows[index], ...values };
+    setRows(newRows);
+  };
+
   const handleUpload = async () => {
     const validRows = rows.filter((r) => r.file && r.type);
     if (validRows.length === 0) {
@@ -75,7 +82,14 @@ export const AccountantUploadForm = ({
       formData.append(`documents[${index}][file]`, row.file);
       formData.append(`documents[${index}][type]`, row.type);
       formData.append(`documents[${index}][notes]`, row.notes || "");
-      formData.append(`documents[${index}][document_type]`, row.document_type);
+      formData.append(
+        `documents[${index}][document_type]`,
+        row.requires_client_approval ? "client" : row.document_type,
+      );
+      formData.append(
+        `documents[${index}][requires_client_approval]`,
+        row.requires_client_approval ? "1" : "0",
+      );
       if (row.document_category) {
         formData.append(`documents[${index}][document_category]`, row.document_category);
       }
@@ -104,11 +118,19 @@ export const AccountantUploadForm = ({
         </label>
         <div className="relative">
           <SearchableSelect
-            value={row.document_type}
-            onChange={(e) => updateRow(index, "document_type", e.target.value)}
+            value={row.requires_client_approval ? "approval" : row.document_type}
+            onChange={(e) => {
+              const value = e.target.value;
+              updateRowFields(index, {
+                document_type: value === "approval" ? "client" : value,
+                requires_client_approval: value === "approval",
+                document_category: value === "approval" ? "" : row.document_category,
+              });
+            }}
             options={[
               { value: "internal", label: "Internal Only" },
-              { value: "client", label: "Visible to Client" }
+              { value: "client", label: "Visible to Client" },
+              { value: "approval", label: "Send for Client Approval" }
             ]}
             placeholder="Select Visibility"
             size="sm"
@@ -116,7 +138,7 @@ export const AccountantUploadForm = ({
         </div>
       </div>
 
-      {row.document_type === "client" && (
+      {row.document_type === "client" && !row.requires_client_approval && (
         <div className="flex-1 space-y-2 animate-in fade-in slide-in-from-top-1">
           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">
             Category

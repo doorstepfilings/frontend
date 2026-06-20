@@ -38,6 +38,41 @@ async function readBlobErrorMessage(blob: Blob) {
   }
 }
 
+function getApiErrorMessage(error: unknown, fallback: string) {
+  if (!isAxiosError(error)) {
+    return fallback;
+  }
+
+  const data = error.response?.data;
+
+  if (typeof data === "string") {
+    return data;
+  }
+
+  if (data && typeof data === "object") {
+    const message = (data as { message?: unknown }).message;
+    if (typeof message === "string" && message.trim()) {
+      return message;
+    }
+
+    const errorMessage = (data as { error?: unknown }).error;
+    if (typeof errorMessage === "string" && errorMessage.trim()) {
+      return errorMessage;
+    }
+  }
+
+  return fallback;
+}
+
+function canFallbackDocumentApproval(error: unknown) {
+  if (!isAxiosError(error)) {
+    return false;
+  }
+
+  const status = error.response?.status;
+  return status === 404 || status === 405 || status === 422;
+}
+
 export const fetchServices = createAsyncThunk<
   ServiceCategory[],
   void,
@@ -173,6 +208,81 @@ export const deleteMyDocument = createAsyncThunk<
     return rejectWithValue(error.response?.data?.message || "Failed to delete document");
   }
 });
+
+export const respondToDocumentApproval = createAsyncThunk<
+  unknown,
+  {
+    serviceId: number | string;
+    docId: number | string;
+    action: "approved" | "correction";
+    note?: string;
+  },
+  { rejectValue: string }
+>(
+  "services/respondToDocumentApproval",
+  async ({ serviceId, docId, action, note }, { rejectWithValue }) => {
+    const normalizedNote = note?.trim();
+    const approvalStatus = action === "approved" ? "approved" : "correction_requested";
+    const documentStatus = action === "approved" ? "approved" : "rejected";
+    const approvalPayload = {
+      action,
+      status: approvalStatus,
+      client_approval_status: approvalStatus,
+      ...(normalizedNote ? { note: normalizedNote, correction_note: normalizedNote } : {}),
+    };
+    const statusPayload = {
+      status: documentStatus,
+      ...(normalizedNote ? { note: normalizedNote, remark: normalizedNote } : {}),
+    };
+    const fallbackRequests = [
+      () =>
+        apiClient.patch(
+          `/service/my-services/${serviceId}/documents/${docId}/status`,
+          statusPayload,
+        ),
+      () =>
+        apiClient.post(
+          `/service/my-services/${serviceId}/documents/${docId}/status`,
+          statusPayload,
+        ),
+      () =>
+        apiClient.patch(
+          `/service/my-services/${serviceId}/documents/${docId}`,
+          approvalPayload,
+        ),
+    ];
+
+    try {
+      const response = await apiClient.patch(
+        `/service/my-services/${serviceId}/documents/${docId}/client-approval`,
+        approvalPayload,
+      );
+      return response.data?.data ?? response.data;
+    } catch (error: unknown) {
+      if (!canFallbackDocumentApproval(error)) {
+        return rejectWithValue(getApiErrorMessage(error, "Failed to update document approval"));
+      }
+
+      let lastError: unknown = error;
+
+      for (const request of fallbackRequests) {
+        try {
+          const response = await request();
+          return response.data?.data ?? response.data;
+        } catch (fallbackError) {
+          lastError = fallbackError;
+          if (!canFallbackDocumentApproval(fallbackError)) {
+            break;
+          }
+        }
+      }
+
+      return rejectWithValue(
+        getApiErrorMessage(lastError, "Failed to update document approval"),
+      );
+    }
+  },
+);
 
 export const downloadInvoice = createAsyncThunk<
   Blob,
@@ -410,6 +520,17 @@ const servicesSlice = createSlice({
         }
       })
       .addCase(deleteMyDocument.rejected, (state, action) => {
+        state.applyLoading = false;
+        state.applyError = action.payload as string;
+      })
+      .addCase(respondToDocumentApproval.pending, (state) => {
+        state.applyLoading = true;
+        state.applyError = null;
+      })
+      .addCase(respondToDocumentApproval.fulfilled, (state) => {
+        state.applyLoading = false;
+      })
+      .addCase(respondToDocumentApproval.rejected, (state, action) => {
         state.applyLoading = false;
         state.applyError = action.payload as string;
       })

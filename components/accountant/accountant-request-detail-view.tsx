@@ -8,7 +8,10 @@ import { AuthGuard } from "@/components/auth/auth-guard";
 import { StatusIndicator } from "@/components/ui/status-indicator";
 import { apiClient } from "@/lib/api/client";
 import { toast } from "react-hot-toast";
-import { splitDocumentsByOwner } from "@/lib/utils/document-helpers";
+import {
+  isClientUploadedDocument,
+  isInternalDocument,
+} from "@/lib/utils/document-helpers";
 import { format } from "date-fns";
 import { getMilestoneState } from "@/lib/utils/status-helpers";
 import { AccountantDocumentList } from "./accountant-document-list";
@@ -49,7 +52,7 @@ export function AccountantRequestDetailView() {
     update_note: "",
     rejection_reason: "",
   });
-  const [activeDocTab, setActiveDocTab] = useState<"client" | "internal">("client");
+  const [activeDocTab, setActiveDocTab] = useState<"client" | "sent" | "internal">("client");
   const [viewingNoteService, setViewingNoteService] = useState(false);
 
   const noteCount = useMemo(() => {
@@ -136,6 +139,16 @@ export function AccountantRequestDetailView() {
 
 
   const handleDeleteDoc = async (docId: string | number) => {
+    const isConfirmed = await confirm({
+      title: "Delete Document",
+      message:
+        "Are you sure you want to permanently delete this document sent to the client?",
+    });
+
+    if (!isConfirmed) {
+      return;
+    }
+
     try {
       await apiClient.delete(`/accountant/service-requests/${id}/documents/${docId}`);
       toast.success("Deleted document successfully");
@@ -161,6 +174,32 @@ export function AccountantRequestDetailView() {
     }
   };
 
+  const handleReplaceApprovalDoc = async (
+    doc: any,
+    file: File,
+    notes?: string,
+  ) => {
+    const formData = new FormData();
+    formData.append("document", file);
+    if (notes) {
+      formData.append("notes", notes);
+    }
+
+    try {
+      await apiClient.post(
+        `/accountant/service-requests/${id}/documents/${doc.id}/replace`,
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        },
+      );
+      toast.success("Document update sent for client approval");
+      fetchData();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Document update failed");
+    }
+  };
+
   if (loading || !req) {
     return (
       <AdminLayout>
@@ -169,7 +208,33 @@ export function AccountantRequestDetailView() {
     );
   }
 
-  const { clientDocs, internalDocs } = splitDocumentsByOwner(req.request_documents || [], req.user?.id);
+  const requestDocuments = Array.isArray(req.request_documents)
+    ? req.request_documents.filter(
+        (doc: any) =>
+          !["replaced", "superseded"].includes(
+            String(doc.status || "").toLowerCase(),
+          ),
+      )
+    : [];
+  const clientDocs = requestDocuments.filter((doc: any) =>
+    isClientUploadedDocument(doc, req.user?.id),
+  );
+  const sentToClientDocs = requestDocuments.filter(
+    (doc: any) =>
+      !isClientUploadedDocument(doc, req.user?.id) &&
+      !isInternalDocument(doc),
+  );
+  const internalDocs = requestDocuments.filter(
+    (doc: any) =>
+      !isClientUploadedDocument(doc, req.user?.id) &&
+      isInternalDocument(doc),
+  );
+  const activeDocuments =
+    activeDocTab === "client"
+      ? clientDocs
+      : activeDocTab === "sent"
+        ? sentToClientDocs
+        : internalDocs;
   const canUpload = !["cancelled", "approved", "completed", "rejected"].includes(req.status);
 
   return (
@@ -505,12 +570,18 @@ export function AccountantRequestDetailView() {
               )}
 
               {/* Repository Filter */}
-              <div className="flex p-1 bg-slate-100/80 rounded-xl max-w-md">
+              <div className="grid grid-cols-3 p-1 bg-slate-100/80 rounded-xl max-w-2xl">
                 <button
                   onClick={() => setActiveDocTab("client")}
                   className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${activeDocTab === "client" ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}
                 >
                   Client Submissions ({clientDocs.length})
+                </button>
+                <button
+                  onClick={() => setActiveDocTab("sent")}
+                  className={`py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${activeDocTab === "sent" ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}
+                >
+                  Sent to Client ({sentToClientDocs.length})
                 </button>
                 <button
                   onClick={() => setActiveDocTab("internal")}
@@ -522,10 +593,25 @@ export function AccountantRequestDetailView() {
 
               <div className="animate-in fade-in duration-500">
                 <AccountantDocumentList
-                  title={activeDocTab === "client" ? "Client Documents" : "Internal Documents"}
-                  documents={activeDocTab === "client" ? clientDocs : internalDocs}
+                  title={
+                    activeDocTab === "client"
+                      ? "Client Documents"
+                      : activeDocTab === "sent"
+                        ? "Documents Sent to Client"
+                        : "Internal Documents"
+                  }
+                  documents={activeDocuments}
                   onDelete={handleDeleteDoc}
-                  onUpdateStatus={handleUpdateDocStatus}
+                  onUpdateStatus={
+                    activeDocTab === "internal"
+                      ? undefined
+                      : handleUpdateDocStatus
+                  }
+                  onReplaceDocument={
+                    activeDocTab === "sent"
+                      ? handleReplaceApprovalDoc
+                      : undefined
+                  }
                   clientName={req.user?.name}
                   accountantName={currentUser?.name}
                 />

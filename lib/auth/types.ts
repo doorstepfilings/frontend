@@ -1,9 +1,15 @@
+export enum AccountantType {
+  Salaried = "salaried",
+  Enterprise = "enterprise",
+}
+
 export type AuthUser = {
   id?: number | string;
   user_id?: number;
   name?: string;
   email?: string;
   role?: string;
+  accountant_type?: AccountantType | null;
   mobile_number?: string;
   referral_code?: string | null;
   rm_id?: number | null;

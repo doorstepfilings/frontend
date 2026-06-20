@@ -97,6 +97,28 @@ export function AccountantDocumentsView() {
         }
     };
 
+    const handleReplaceApprovalDoc = async (doc: any, file: File, notes?: string) => {
+        try {
+            const formData = new FormData();
+            formData.append("document", file);
+            if (notes) {
+                formData.append("notes", notes);
+            }
+
+            await apiClient.post(
+                `/accountant/service-requests/${doc.requestId}/documents/${doc.id}/replace`,
+                formData,
+                {
+                    headers: { "Content-Type": "multipart/form-data" },
+                },
+            );
+            toast.success("Document update sent for client approval");
+            dispatch(fetchAccountantDashboard());
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || "Document update failed");
+        }
+    };
+
     return (
         <AuthGuard allowedRoles={["accountant"]}>
             <AdminLayout>
@@ -196,6 +218,7 @@ export function AccountantDocumentsView() {
                                     if (doc) handleDeleteDoc(docId, doc.requestId);
                                 }}
                                 onUpdateStatus={activeTab === "client" ? handleUpdateDocStatus : undefined}
+                                onReplaceDocument={activeTab === "client" ? handleReplaceApprovalDoc : undefined}
                                 canUpload={false}
                             />
                         </div>

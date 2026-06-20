@@ -11,18 +11,26 @@ import {
   isImageDocument,
   resolveStorageUrl,
   isInternalDocument,
+  getClientApprovalStatus,
+  isClientApprovalCorrectionRequestedDocument,
+  requiresClientApprovalDocument,
 } from "@/lib/utils/document-helpers";
 import { format } from "date-fns";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { useStoredUser } from "@/lib/auth/hooks";
 import { ImageLightbox, type ImageLightboxSlide } from "@/components/ui/image-lightbox";
 import { ChatNoteModal } from "@/components/ui/chat-note-modal";
+import { Modal } from "@/components/ui/modal";
+
+const NOTE_AUTHOR_PATTERN =
+  /^(Accountant|Admin|Super_Admin|SuperAdmin|Super\s+Admin|You|User|Client|System)(?:\s*\(.*?\))?:/i;
 
 const DOC_STATUS: any = {
   pending: { cls: "bg-amber-50 text-amber-700 border-amber-200", icon: "fa-clock", label: "Pending" },
   approved: { cls: "bg-emerald-50 text-emerald-700 border-emerald-100", icon: "fa-check", label: "Verified" },
   verified: { cls: "bg-emerald-50 text-emerald-700 border-emerald-100", icon: "fa-check", label: "Verified" },
   rejected: { cls: "bg-rose-50 text-rose-700 border-rose-100", icon: "fa-times-circle", label: "Correction" },
+  replaced: { cls: "bg-slate-100 text-slate-500 border-slate-200", icon: "fa-clock-rotate-left", label: "Replaced" },
 };
 
 interface AccountantDocumentListProps {
@@ -31,6 +39,7 @@ interface AccountantDocumentListProps {
   canUpload?: boolean;
   onDelete: (id: string | number) => void;
   onUpdateStatus?: (doc: any, status: string, remark?: string) => Promise<void>;
+  onReplaceDocument?: (doc: any, file: File, notes?: string) => Promise<void>;
   allowInternalStatusUpdate?: boolean;
   clientName?: string;
   accountantName?: string;
@@ -42,6 +51,7 @@ export const AccountantDocumentList = ({
   canUpload = true,
   onDelete,
   onUpdateStatus,
+  onReplaceDocument,
   allowInternalStatusUpdate = false,
   clientName,
   accountantName,
@@ -52,10 +62,14 @@ export const AccountantDocumentList = ({
   const [remark, setRemark] = useState("");
   const [lightboxIndex, setLightboxIndex] = useState(-1);
   const [viewingNoteDoc, setViewingNoteDoc] = useState<any | null>(null);
+  const [replacementDoc, setReplacementDoc] = useState<any | null>(null);
+  const [replacementFile, setReplacementFile] = useState<File | null>(null);
+  const [replacementNote, setReplacementNote] = useState("");
+  const [isReplacing, setIsReplacing] = useState(false);
 
   const formatCurrentUserNote = (note: string) => {
     const trimmedNote = note.trim();
-    if (/^(Accountant|Admin|Super_Admin|SuperAdmin|Super\s+Admin|You|User|Client|System)(?:\s*\(.*?\))?:/i.test(trimmedNote)) {
+    if (NOTE_AUTHOR_PATTERN.test(trimmedNote)) {
       return trimmedNote;
     }
 
@@ -103,13 +117,44 @@ export const AccountantDocumentList = ({
 
   const submitRemark = async (doc: any) => {
     if (!onUpdateStatus) return;
+    if (!remark.trim()) {
+      toast.error("Please add a correction note");
+      return;
+    }
+
+    const formattedNote = formatCurrentUserNote(remark);
+    const currentNoteText = getDocumentNoteText(doc);
+    const newNoteText = currentNoteText
+      ? `${currentNoteText}\n\n${formattedNote}`
+      : formattedNote;
+
     setUpdatingId(doc.id);
     try {
-      await onUpdateStatus(doc, "rejected", remark);
+      await onUpdateStatus(doc, "rejected", newNoteText);
       setRemarkingId(null);
       setRemark("");
     } finally {
       setUpdatingId(null);
+    }
+  };
+
+  const submitReplacement = async () => {
+    if (!replacementDoc || !replacementFile || !onReplaceDocument) return;
+
+    const maxBytes = 1024 * 1024;
+    if (replacementFile.size > maxBytes) {
+      toast.error("File size exceeds 1 MB limit.");
+      return;
+    }
+
+    setIsReplacing(true);
+    try {
+      await onReplaceDocument(replacementDoc, replacementFile, replacementNote);
+      setReplacementDoc(null);
+      setReplacementFile(null);
+      setReplacementNote("");
+    } finally {
+      setIsReplacing(false);
     }
   };
 
@@ -154,9 +199,41 @@ export const AccountantDocumentList = ({
             const ds = DOC_STATUS[doc.status] || DOC_STATUS.pending;
             const iconConfig = getDocumentIcon(doc.mime_type, doc.file_name);
             const isRemarking = remarkingId === doc.id;
+            const isHistoricalVersion = ["replaced", "superseded"].includes(
+              String(doc.status || "").toLowerCase(),
+            );
+            const approvalStatus = getClientApprovalStatus(doc);
+            const isClientApprovedReadOnly =
+              requiresClientApprovalDocument(doc) &&
+              approvalStatus === "approved";
+            const uploaderRole = String(
+              doc.uploaded_by?.role || "",
+            ).toLowerCase();
+            const isStaffUploadedDocument = [
+              "accountant",
+              "admin",
+              "super_admin",
+              "regional_manager",
+              "rm",
+              "employee",
+            ].includes(uploaderRole);
+            const canDeleteDocument =
+              canUpload &&
+              !isHistoricalVersion &&
+              !isClientApprovedReadOnly &&
+              (isStaffUploadedDocument ||
+                (currentUser?.id &&
+                  String(doc.uploaded_by?.id ?? doc.uploaded_by) ===
+                    String(currentUser.id)));
             const canUpdateStatus =
               Boolean(onUpdateStatus) &&
+              !isHistoricalVersion &&
+              !isClientApprovedReadOnly &&
               (allowInternalStatusUpdate || !isInternalDocument(doc));
+            const canReplaceDocument =
+              Boolean(onReplaceDocument) &&
+              !isClientApprovedReadOnly &&
+              isClientApprovalCorrectionRequestedDocument(doc);
 
             return (
               <div key={doc.id} className="p-6 transition-colors hover:bg-slate-50/50">
@@ -181,6 +258,23 @@ export const AccountantDocumentList = ({
                         {doc.is_final && (
                           <span className="ml-2 rounded bg-blue-900 px-2 py-0.5 text-[8px] font-bold text-white uppercase tracking-wider">
                             <i className="fas fa-check mr-1" /> Final Delivery
+                          </span>
+                        )}
+                        {requiresClientApprovalDocument(doc) && (
+                          <span
+                            className={`ml-2 rounded px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider ${
+                              approvalStatus === "approved"
+                                ? "bg-emerald-50 text-emerald-700"
+                                : approvalStatus === "correction_requested"
+                                  ? "bg-rose-50 text-rose-700"
+                                  : "bg-amber-50 text-amber-700"
+                            }`}
+                          >
+                            {approvalStatus === "approved"
+                              ? "Client Approved"
+                              : approvalStatus === "correction_requested"
+                                ? "Correction Requested"
+                                : "Client Approval Pending"}
                           </span>
                         )}
                       </div>
@@ -243,6 +337,23 @@ export const AccountantDocumentList = ({
                     )}
 
                     <div className="flex items-center gap-2 rounded-lg bg-white border border-slate-100 p-1 shadow-sm">
+                      {canReplaceDocument && (
+                        <>
+                          <button
+                            onClick={() => {
+                              setReplacementDoc(doc);
+                              setReplacementFile(null);
+                              setReplacementNote("");
+                            }}
+                            className="flex h-7 w-7 items-center justify-center rounded-lg text-amber-500 hover:bg-amber-600 hover:text-white transition-all"
+                            title="Update document"
+                            type="button"
+                          >
+                            <i className="fas fa-file-arrow-up text-[10px]" />
+                          </button>
+                          <div className="h-4 w-px bg-slate-100" />
+                        </>
+                      )}
                       <button
                         onClick={() => void handleOpenDocument(doc)}
                         className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-900 hover:text-white transition-all"
@@ -251,7 +362,7 @@ export const AccountantDocumentList = ({
                       >
                         <i className="fas fa-eye text-[10px]" />
                       </button>
-                      {canUpload && currentUser?.id && String(doc.uploaded_by?.id ?? doc.uploaded_by) === String(currentUser.id) && (
+                      {canDeleteDocument && (
                         <>
                           <div className="h-4 w-px bg-slate-100" />
                           <button
@@ -327,10 +438,25 @@ export const AccountantDocumentList = ({
           "Document"
         }
         userType="accountant"
+        fallbackSender={
+          viewingNoteDoc && isClientApprovalCorrectionRequestedDocument(viewingNoteDoc)
+            ? clientName || "Client"
+            : undefined
+        }
+        fallbackRole={
+          viewingNoteDoc && isClientApprovalCorrectionRequestedDocument(viewingNoteDoc)
+            ? "Client"
+            : undefined
+        }
         uploadedBy={viewingNoteDoc?.uploaded_by}
         clientName={clientName}
         accountantName={accountantName}
-        onSubmitNote={async (note: string) => {
+        onSubmitNote={
+          viewingNoteDoc &&
+          requiresClientApprovalDocument(viewingNoteDoc) &&
+          getClientApprovalStatus(viewingNoteDoc) === "approved"
+            ? undefined
+            : async (note: string) => {
           if (!viewingNoteDoc || !onUpdateStatus) return;
           const formattedNote = formatCurrentUserNote(note);
           const currentNoteText = getDocumentNoteText(viewingNoteDoc);
@@ -339,6 +465,89 @@ export const AccountantDocumentList = ({
           setViewingNoteDoc({ ...viewingNoteDoc, notes: newNoteText });
         }}
       />
+
+      <Modal
+        isOpen={replacementDoc !== null}
+        onClose={() => {
+          if (!isReplacing) {
+            setReplacementDoc(null);
+            setReplacementFile(null);
+            setReplacementNote("");
+          }
+        }}
+        title="Update Document"
+      >
+        <div className="space-y-5">
+          <div className="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3">
+            <p className="text-[10px] font-black uppercase tracking-widest text-amber-700">
+              Client correction requested
+            </p>
+            <p className="mt-1 text-xs font-medium leading-relaxed text-amber-800">
+              Upload the corrected file here. It will be sent back to the client for approval on the same document record.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <label className="ml-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+              Corrected File
+            </label>
+            <input
+              type="file"
+              accept=".pdf,.jpg,.jpeg,.png"
+              disabled={isReplacing}
+              onChange={(event) =>
+                setReplacementFile(event.target.files?.[0] || null)
+              }
+              className="w-full text-xs text-slate-500 file:mr-4 file:rounded-xl file:border-0 file:bg-slate-100 file:px-4 file:py-2 file:text-[10px] file:font-bold file:uppercase file:tracking-wider file:text-slate-900 hover:file:bg-slate-200 cursor-pointer disabled:opacity-50"
+            />
+            {replacementFile && (
+              <p className="text-[11px] font-medium text-slate-500">
+                {replacementFile.name} - {formatFileSize(replacementFile.size)}
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <label className="ml-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+              Note to Client
+            </label>
+            <textarea
+              value={replacementNote}
+              disabled={isReplacing}
+              onChange={(event) => setReplacementNote(event.target.value)}
+              placeholder="Add what changed in this version..."
+              className="min-h-[90px] w-full rounded-xl border border-slate-200 bg-white p-3 text-sm font-medium text-slate-700 outline-none transition-all focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 disabled:opacity-50"
+            />
+          </div>
+
+          <div className="flex gap-3 pt-1">
+            <button
+              type="button"
+              disabled={isReplacing}
+              onClick={() => {
+                setReplacementDoc(null);
+                setReplacementFile(null);
+                setReplacementNote("");
+              }}
+              className="h-11 flex-1 rounded-xl border border-slate-200 bg-white text-xs font-bold uppercase tracking-wider text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={!replacementFile || isReplacing}
+              onClick={() => void submitReplacement()}
+              className="h-11 flex-1 rounded-xl bg-amber-600 text-xs font-bold uppercase tracking-wider text-white shadow-lg shadow-amber-600/15 transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isReplacing ? (
+                <i className="fas fa-circle-notch animate-spin" />
+              ) : (
+                "Send Update"
+              )}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

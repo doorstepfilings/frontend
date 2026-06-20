@@ -10,7 +10,6 @@ function sourceFor(parts: string[]) {
     users: "resources/js/pages/Accountant/AssignedUsers.jsx",
     "service-requests": "resources/js/pages/Accountant/ServiceRequests.jsx",
     "service-requests/[id]": "resources/js/pages/Accountant/RequestDetail.jsx",
-    documents: "resources/js/pages/Accountant/Documents.jsx",
     "client-upload": "resources/js/pages/Accountant/ClientDocumentUpload.jsx",
   };
 
@@ -40,8 +39,8 @@ export default async function AccountantCatchAllPage({
   const { slug } = await params;
   const joined = slug.join("/");
 
-  if (joined === "client-documents") {
-    redirect("/accountant/documents");
+  if (joined === "documents" || joined === "client-documents") {
+    redirect("/accountant/service-requests");
   }
 
   if (joined === "service-requests") {

@@ -54,6 +54,7 @@ export const StatusManagement = ({ application }: StatusManagementProps) => {
   const [uploadForm, setUploadForm] = useState({
     document: null as File | null,
     document_type: "internal",
+    requires_client_approval: false,
     notes: "",
   });
 
@@ -104,7 +105,10 @@ export const StatusManagement = ({ application }: StatusManagementProps) => {
       uploadDocument({
         applicationId: application.id,
         document: uploadForm.document,
-        document_type: uploadForm.document_type,
+        document_type: uploadForm.requires_client_approval
+          ? "client"
+          : uploadForm.document_type,
+        requires_client_approval: uploadForm.requires_client_approval,
         notes: uploadForm.notes,
       })
     );
@@ -112,7 +116,12 @@ export const StatusManagement = ({ application }: StatusManagementProps) => {
     if (uploadDocument.fulfilled.match(resultAction)) {
       toast.success("Artifact archived successfully");
       setShowUploadModal(false);
-      setUploadForm({ document: null, document_type: "internal", notes: "" });
+      setUploadForm({
+        document: null,
+        document_type: "internal",
+        requires_client_approval: false,
+        notes: "",
+      });
       dispatch(fetchAdminApplicationDetail(application.id));
     } else {
       toast.error(parseApiError(resultAction.payload));
@@ -256,11 +265,19 @@ export const StatusManagement = ({ application }: StatusManagementProps) => {
           </div>
           <FormSelect
             label="Visibility"
-            value={uploadForm.document_type}
-            onChange={(e) => setUploadForm({ ...uploadForm, document_type: e.target.value })}
+            value={uploadForm.requires_client_approval ? "approval" : uploadForm.document_type}
+            onChange={(e) => {
+              const value = e.target.value;
+              setUploadForm({
+                ...uploadForm,
+                document_type: value === "approval" ? "client" : value,
+                requires_client_approval: value === "approval",
+              });
+            }}
             options={[
               { value: "internal", label: "Internal Only" },
               { value: "client", label: "Visible to Client" },
+              { value: "approval", label: "Send for Client Approval" },
               { value: "certificate", label: "Final Certificate" },
             ]}
           />

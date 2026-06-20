@@ -21,6 +21,36 @@ function toCurrencyNumber(amount: number | string | null | undefined) {
   return Number.isFinite(numericAmount) ? numericAmount : 0;
 }
 
+export function hasPositivePrice(
+  amount: number | string | null | undefined,
+) {
+  return toCurrencyNumber(amount) > 0;
+}
+
+export function getServicePurchasePrice(service?: ServiceLike | null) {
+  if (!service) {
+    return null;
+  }
+
+  const pricingPlans = service.service?.pricing_plans ?? service.pricing_plans ?? [];
+  const positivePlanPrices = pricingPlans
+    .map((plan) => toCurrencyNumber(plan.price))
+    .filter((price) => price > 0);
+  const basePrice = toCurrencyNumber(
+    service.service?.price ?? service.price ?? service.amount,
+  );
+  const positivePrices = [
+    ...(basePrice > 0 ? [basePrice] : []),
+    ...positivePlanPrices,
+  ];
+
+  return positivePrices.length > 0 ? Math.min(...positivePrices) : null;
+}
+
+export function isServicePurchasable(service?: ServiceLike | null) {
+  return getServicePurchasePrice(service) !== null;
+}
+
 export function roundCurrency(amount: number | string | null | undefined) {
   return Math.round((toCurrencyNumber(amount) + Number.EPSILON) * 100) / 100;
 }

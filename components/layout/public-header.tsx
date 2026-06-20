@@ -196,7 +196,9 @@ export function PublicHeader() {
                         {user.name}
                       </p>
                       <p className="text-xs text-gray-500">
-                        {normalizedRole.replace(/_/g, " ")}
+                        {normalizedRole === "regional_manager"
+                          ? "Relationship Manager"
+                          : normalizedRole.replace(/_/g, " ")}
                       </p>
                     </div>
                     <i

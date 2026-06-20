@@ -82,18 +82,6 @@ export function RMDashboardView() {
     };
   }, [requests, users]);
 
-  const recentUsers = useMemo(
-    () =>
-      [...users]
-        .sort((left, right) => {
-          const leftTime = left.created_at ? new Date(left.created_at).getTime() : 0;
-          const rightTime = right.created_at ? new Date(right.created_at).getTime() : 0;
-          return rightTime - leftTime;
-        })
-        .slice(0, 5),
-    [users],
-  );
-
   const recentRequests = useMemo(() => requests.slice(0, 4), [requests]);
 
   return (
@@ -120,61 +108,7 @@ export function RMDashboardView() {
 
           <div className="grid grid-cols-1 gap-10 xl:grid-cols-3">
             <div className="space-y-6 xl:col-span-2">
-              <div className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-sm sm:p-6 lg:rounded-[3rem] lg:p-10">
-                <div className="mb-6 flex items-center justify-between gap-3 sm:mb-8">
-                  <h3 className="text-xl font-black tracking-tight text-slate-900">
-                    Recent Onboardings
-                  </h3>
-                  <Link
-                    href="/rm/assigned-users"
-                    className="text-[10px] font-black uppercase tracking-widest text-blue-600 hover:text-blue-800"
-                  >
-                    View All
-                  </Link>
-                </div>
 
-                <div className="space-y-4">
-                  {loading ? (
-                    <div className="py-8">
-                      <LogoLoader size={40} label="Loading Onboardings..." />
-                    </div>
-                  ) : recentUsers.length === 0 ? (
-                    <div className="rounded-[2rem] bg-slate-50 p-8 text-center text-sm font-bold uppercase tracking-widest text-slate-400">
-                      No assigned users found
-                    </div>
-                  ) : (
-                    recentUsers.map((account, index) => (
-                      <div
-                        key={buildCollectionKey(account, index, "rm-dashboard-user", [
-                          account.email,
-                          account.mobile_number,
-                        ])}
-                        className="flex flex-col gap-4 rounded-[2rem] bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6"
-                      >
-                        <div className="flex min-w-0 items-center gap-4">
-                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-slate-100 bg-white font-black text-slate-500">
-                            {account.name?.charAt(0)?.toUpperCase() || "U"}
-                          </div>
-                          <div className="min-w-0">
-                            <h4 className="break-words text-sm font-black text-slate-900">
-                              {account.name}
-                            </h4>
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                              Joined{" "}
-                              {account.created_at
-                                ? new Date(account.created_at).toLocaleDateString()
-                                : "recently"}
-                            </p>
-                          </div>
-                        </div>
-                        <span className="w-fit rounded-lg bg-blue-100 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-blue-700">
-                          {account.accountant ? "Mapped" : "Pending"}
-                        </span>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
 
               <div className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-sm sm:p-6 lg:rounded-[3rem] lg:p-10">
                 <div className="mb-6 flex items-center justify-between gap-3 sm:mb-8">

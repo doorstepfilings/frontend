@@ -21,14 +21,20 @@ import { apiClient } from "@/lib/api/client";
 import { PageLogoLoader } from "@/components/ui/logo-loader";
 import { parseApiError } from "@/lib/utils/error-parser";
 import { getDocumentIcon } from "@/lib/utils/document-helpers";
-import { formatPrice } from "@/lib/utils/pricing";
+import {
+  formatPrice,
+  hasPositivePrice,
+  isServicePurchasable,
+} from "@/lib/utils/pricing";
+import { QuoteRequestButton } from "@/components/services/quote-request-button";
 import {
   SLOT_TIMES,
   formatTimeSlot,
   isWorkingDay,
   findNextWorkingDay,
-  getAvailableSlots,
   getNextAvailableSlot,
+  normalizeSlotTime,
+  resolveSlotState,
 } from "@/lib/utils/slot-helpers";
 import {
   fetchServiceDetails,
@@ -137,6 +143,8 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
   const [selectedPricingPlan, setSelectedPricingPlan] = useState("");
   const [slotAvailability, setSlotAvailability] = useState<Record<string, any>>({});
   const [slotLoading, setSlotLoading] = useState(false);
+  const [slotLoadError, setSlotLoadError] = useState("");
+  const [slotClock, setSlotClock] = useState(() => Date.now());
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
   const [includeAppointment, setIncludeAppointment] = useState(false);
   const user = useStoredUser();
@@ -218,6 +226,10 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
     }
 
     if (serviceDetails) {
+      if (!isServicePurchasable(serviceDetails)) {
+        return;
+      }
+
       const parsedPhone = parsePhoneNumber(String(user.mobile_number ?? ""));
       setApplyFormData((prev) => ({
         ...prev,
@@ -249,7 +261,15 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
       setFileErrors({});
       setSelectedDate(null);
       setSelectedTimeSlot("");
-      setSelectedPricingPlan(preselectedPlan || serviceDetails.pricing_plans?.[0]?.name || "");
+      const selectedPaidPlan =
+        serviceDetails.pricing_plans?.find(
+          (plan: any) =>
+            plan.name === preselectedPlan && hasPositivePrice(plan.price),
+        ) ??
+        serviceDetails.pricing_plans?.find((plan: any) =>
+          hasPositivePrice(plan.price),
+        );
+      setSelectedPricingPlan(selectedPaidPlan?.name || "");
       setIncludeAppointment(false);
       setSlotAvailability({});
       dispatch(clearApplyStatus());
@@ -315,6 +335,8 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
 
     try {
       setSlotLoading(true);
+      setSlotLoadError("");
+      setSlotAvailability({});
       const token = await getStoredToken();
       const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/service/slot-availability`, {
         params: {
@@ -326,21 +348,63 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
 
       const data = response?.data?.data || [];
       const mapped = data.reduce((acc: any, slot: any) => {
-        acc[slot.time] = slot;
+        const normalizedTime = normalizeSlotTime(slot.time);
+        if (normalizedTime) {
+          acc[normalizedTime] = slot;
+        }
         return acc;
       }, {});
       setSlotAvailability(mapped);
       return mapped;
-    } catch (err) {
+    } catch {
       setSlotAvailability({});
-      return {};
+      setSlotLoadError("Unable to load live slot availability. Please try again.");
+      return null;
     } finally {
       setSlotLoading(false);
     }
   }, []);
 
+  useEffect(() => {
+    if (!includeAppointment || !selectedDate) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setSlotClock(Date.now());
+    }, 30_000);
+
+    return () => window.clearInterval(timer);
+  }, [includeAppointment, selectedDate]);
+
+  const resolvedSlotAvailability = SLOT_TIMES.reduce<Record<string, any>>(
+    (availability, slot) => {
+      availability[slot] = resolveSlotState({
+        time: slot,
+        selectedDate,
+        backendSlot: slotAvailability[slot],
+        now: new Date(slotClock),
+      });
+      return availability;
+    },
+    {},
+  );
+
   const handleApplySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!isServicePurchasable(serviceDetails)) {
+      toast.error("This service requires a custom quote.");
+      return;
+    }
+
+    if (
+      serviceDetails?.pricing_plans?.length &&
+      (!selectedPlanDetails || !hasPositivePrice(selectedPlanDetails.price))
+    ) {
+      toast.error("Please select a paid package.");
+      return;
+    }
 
     if (includeAppointment && (!selectedDate || !selectedTimeSlot)) {
       toast.error("Please select both a date and a time slot for your appointment");
@@ -354,6 +418,30 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
     }
 
     if (!serviceDetails?.id) return;
+
+    if (includeAppointment && selectedDate && selectedTimeSlot) {
+      const latestAvailability = await fetchSlotAvailability(serviceDetails.id, selectedDate);
+      const latestSlotState = resolveSlotState({
+        time: selectedTimeSlot,
+        selectedDate,
+        backendSlot: latestAvailability?.[normalizeSlotTime(selectedTimeSlot)],
+      });
+
+      if (
+        !latestAvailability ||
+        !latestSlotState.is_available ||
+        latestSlotState.is_past ||
+        latestSlotState.is_full
+      ) {
+        setSelectedTimeSlot("");
+        toast.error(
+          latestSlotState.is_past
+            ? "That appointment time has already passed. Please choose a future slot."
+            : "That appointment slot is no longer available. Please choose another slot.",
+        );
+        return;
+      }
+    }
 
     const fullMobile = `+${applyFormData.dialCode}${applyFormData.phone}`;
 
@@ -405,9 +493,11 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
       return null;
     }
 
-    const selectedSlotState = selectedTimeSlot ? availabilityMap[selectedTimeSlot] : null;
+    const selectedSlotState = selectedTimeSlot
+      ? resolvedSlotAvailability[selectedTimeSlot]
+      : null;
     const nextSlot = getNextAvailableSlot({
-      slotAvailability: availabilityMap,
+      slotAvailability: resolvedSlotAvailability,
       selectedTimeSlot,
       slotTimes: SLOT_TIMES,
     });
@@ -464,6 +554,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
   }
 
   const service = serviceDetails;
+  const canPurchaseService = isServicePurchasable(service);
 
   return (
     <>
@@ -523,11 +614,16 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
                       Pricing Plans
                     </h2>
                     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                      {service.pricing_plans.map((plan: any, index: number) => (
+                      {service.pricing_plans.map((plan: any, index: number) => {
+                        const canPurchasePlan = hasPositivePrice(plan.price);
+
+                        return (
                         <div key={index} className="flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition-all hover:shadow-md">
                           <div className="bg-blue-900 p-6 text-center text-white">
                             <h4 className="mb-1 text-lg font-bold">{plan.name}</h4>
-                            <div className="text-2xl font-black text-blue-200">₹{formatPrice(plan.price)}</div>
+                            <div className="text-2xl font-black text-blue-200">
+                              {canPurchasePlan ? `₹${formatPrice(plan.price)}` : "Custom Quote"}
+                            </div>
                           </div>
                           <div className="flex flex-1 flex-col p-6">
                             <ul className="mb-6 flex-1 space-y-3">
@@ -538,16 +634,24 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
                                 </li>
                               ))}
                             </ul>
-                            <Button
-                              onClick={() => handleApplyNow(plan.name)}
-                              variant="outline"
-                              className="w-full rounded-lg border-blue-100 bg-blue-50 font-bold text-blue-900 hover:bg-blue-900 hover:text-white"
-                            >
-                              Select Plan
-                            </Button>
+                            {canPurchasePlan ? (
+                              <Button
+                                onClick={() => handleApplyNow(plan.name)}
+                                variant="outline"
+                                className="w-full rounded-lg border-blue-100 bg-blue-50 font-bold text-blue-900 hover:bg-blue-900 hover:text-white"
+                              >
+                                Select Plan
+                              </Button>
+                            ) : (
+                              <QuoteRequestButton
+                                serviceName={`${service.name} - ${plan.name}`}
+                                className="flex w-full items-center justify-center gap-2 rounded-lg bg-amber-500 px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-amber-600"
+                              />
+                            )}
                           </div>
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -587,26 +691,49 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
               <div className="lg:w-1/3">
                 <div className="sticky top-24 space-y-6">
                   <div className="rounded-2xl border-t-4 border-amber-500 bg-white p-6 shadow-lg">
-                    {service?.price && (
+                    {canPurchaseService ? (
                       <div className="mb-4 text-center">
                         <p className="text-sm text-gray-500">Starting from</p>
-                        <p className="text-4xl font-bold text-blue-900">₹{formatPrice(service.price)}</p>
+                        <p className="text-4xl font-bold text-blue-900">
+                          ₹{formatPrice(
+                            service?.price ||
+                              service?.pricing_plans?.find((plan: any) =>
+                                hasPositivePrice(plan.price),
+                              )?.price,
+                          )}
+                        </p>
                         <p className="text-[10px] text-gray-400 uppercase tracking-widest">+ GST | Govt. fee extra</p>
                       </div>
+                    ) : (
+                      <div className="mb-4 text-center">
+                        <p className="text-sm text-gray-500">Pricing</p>
+                        <p className="text-3xl font-bold text-blue-900">Custom Quote</p>
+                      </div>
                     )}
-                    <h3 className="mb-2 text-xl font-bold text-gray-900">Apply for Service</h3>
+                    <h3 className="mb-2 text-xl font-bold text-gray-900">
+                      {canPurchaseService ? "Apply for Service" : "Request Pricing"}
+                    </h3>
                     <p className="mb-6 text-sm text-gray-600">
-                      Get started with your {service?.name?.toLowerCase()} application today.
+                      {canPurchaseService
+                        ? `Get started with your ${service?.name?.toLowerCase()} application today.`
+                        : "Tell us what you need and our team will prepare a tailored quote."}
                     </p>
 
                     <div className="space-y-3">
-                      <Button
-                        onClick={() => handleApplyNow()}
-                        className="w-full rounded-xl bg-amber-500 py-6 text-base font-bold text-white shadow-lg shadow-amber-500/20 hover:bg-amber-600"
-                      >
-                        <i className="fas fa-bolt mr-2"></i>
-                        Apply Now
-                      </Button>
+                      {canPurchaseService ? (
+                        <Button
+                          onClick={() => handleApplyNow()}
+                          className="w-full rounded-xl bg-amber-500 py-6 text-base font-bold text-white shadow-lg shadow-amber-500/20 hover:bg-amber-600"
+                        >
+                          <i className="fas fa-bolt mr-2"></i>
+                          Apply Now
+                        </Button>
+                      ) : (
+                        <QuoteRequestButton
+                          serviceName={service?.name || "this service"}
+                          className="flex w-full items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-4 text-base font-bold text-white shadow-lg shadow-amber-500/20 transition-colors hover:bg-amber-600"
+                        />
+                      )}
                       <Link href="/contact" className="block">
                         <Button variant="outline" className="w-full rounded-xl border-2 border-blue-900 py-6 text-base font-bold text-blue-900 hover:bg-blue-900 hover:text-white">
                           <i className="fas fa-phone mr-2"></i>
@@ -664,14 +791,17 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
         size="xl"
       >
         <form onSubmit={handleApplySubmit} className="space-y-8">
-          {service?.pricing_plans && service.pricing_plans.length > 0 && (
+          {service?.pricing_plans &&
+            service.pricing_plans.some((plan: any) => hasPositivePrice(plan.price)) && (
             <div className="space-y-4">
               <h4 className="flex items-center gap-2 border-b pb-2 text-base font-semibold text-gray-800">
                 <i className="fas fa-box-open text-blue-900"></i>
                 {service.pricing_plans.length > 1 ? "Choose Package" : "Selected Package"}
               </h4>
               <div className="grid gap-4 md:grid-cols-2">
-                {service.pricing_plans.map((plan: any, index: number) => {
+                {service.pricing_plans
+                  .filter((plan: any) => hasPositivePrice(plan.price))
+                  .map((plan: any, index: number) => {
                   const isSelected = selectedPricingPlan === plan.name;
 
                   return (
@@ -702,7 +832,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
                       </div>
                     </button>
                   );
-                })}
+                  })}
               </div>
 
               {selectedPlanDetails && (
@@ -861,14 +991,23 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
               <div className="flex items-center rounded-lg border border-blue-100 bg-white p-1">
                 <button
                   type="button"
-                  onClick={() => setIncludeAppointment(true)}
+                  onClick={() => {
+                    setIncludeAppointment(true);
+                    setSlotClock(Date.now());
+                  }}
                   className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${includeAppointment ? "bg-blue-900 text-white shadow-md" : "text-gray-400 hover:text-blue-900"}`}
                 >
                   Yes
                 </button>
                 <button
                   type="button"
-                  onClick={() => setIncludeAppointment(false)}
+                  onClick={() => {
+                    setIncludeAppointment(false);
+                    setSelectedDate(null);
+                    setSelectedTimeSlot("");
+                    setSlotAvailability({});
+                    setSlotLoadError("");
+                  }}
                   className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${!includeAppointment ? "bg-blue-900 text-white shadow-md" : "text-gray-400 hover:text-blue-900"}`}
                 >
                   No
@@ -887,8 +1026,10 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
                       onChange={(date: Date | null) => {
                         setSelectedDate(date);
                         setSelectedTimeSlot("");
+                        setSlotAvailability({});
+                        setSlotLoadError("");
+                        setSlotClock(Date.now());
                         if (!date || !serviceDetails?.id) {
-                          setSlotAvailability({});
                           return;
                         }
                         void fetchSlotAvailability(serviceDetails.id, date);
@@ -907,9 +1048,12 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
                     <label className="text-sm font-semibold text-gray-700">Available Slots *</label>
                     <div className="grid grid-cols-2 gap-3 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5">
                       {SLOT_TIMES.map((slot) => {
-                        const isPast = !!slotAvailability[slot]?.is_past;
-                        const isFull = !!slotAvailability[slot]?.is_full;
-                        const isDisabled = isPast || isFull;
+                        const slotState = resolvedSlotAvailability[slot];
+                        const isDisabled =
+                          slotLoading ||
+                          !slotState?.is_available ||
+                          !!slotState?.is_past ||
+                          !!slotState?.is_full;
 
                         return (
                           <button
@@ -929,6 +1073,29 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
                         );
                       })}
                     </div>
+                    {slotLoading ? (
+                      <p className="text-xs font-semibold text-slate-500">
+                        Checking live availability...
+                      </p>
+                    ) : null}
+                    {slotLoadError ? (
+                      <div className="flex items-center justify-between gap-3 rounded-xl border border-rose-100 bg-rose-50 p-3">
+                        <p className="text-xs font-semibold text-rose-700">
+                          {slotLoadError}
+                        </p>
+                        {serviceDetails?.id && selectedDate ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              void fetchSlotAvailability(serviceDetails.id, selectedDate)
+                            }
+                            className="shrink-0 text-xs font-black text-rose-800 underline"
+                          >
+                            Retry
+                          </button>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </div>
                 )}
 
