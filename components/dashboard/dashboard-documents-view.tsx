@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
+import { useRouter } from "next/navigation";
 
 import {
   AlertCircle,
@@ -188,13 +189,17 @@ export function DashboardDocumentsView({
   paymentFeedback,
 }: DashboardDocumentsViewProps) {
   const dispatch = useAppDispatch();
+  const router = useRouter();
   const { myServices, loading } = useAppSelector((state) => state.services);
   const user = useStoredUser();
   const successMessageHandled = useRef(false);
+  const initialPaymentServiceId = paymentFeedback?.serviceIds?.[0] || "";
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [uploadServiceId, setUploadServiceId] = useState("");
-  const [archiveServiceId, setArchiveServiceId] = useState("all");
+  const [uploadServiceId, setUploadServiceId] = useState(initialPaymentServiceId);
+  const [archiveServiceId, setArchiveServiceId] = useState(
+    initialPaymentServiceId || "all",
+  );
   const [archiveStatus, setArchiveStatus] = useState("all");
   const [archiveType, setArchiveType] = useState("all");
   const [rowsPerPage, setRowsPerPage] = useState("10");
@@ -227,23 +232,8 @@ export function DashboardDocumentsView({
 
     successMessageHandled.current = true;
     toast.success(paymentFeedback?.message || "Payment successfully done.");
-  }, [paymentFeedback?.message, paymentFeedback?.status]);
-
-  useEffect(() => {
-    if (uploadServiceId || (paymentFeedback?.serviceIds?.length ?? 0) === 0) {
-      return;
-    }
-
-    const nextServiceId = paymentFeedback?.serviceIds?.[0] || "";
-
-    if (nextServiceId) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setUploadServiceId((current) => current || nextServiceId);
-      setArchiveServiceId((current) =>
-        current === "all" ? nextServiceId || "all" : current,
-      );
-    }
-  }, [paymentFeedback?.serviceIds, uploadServiceId]);
+    router.replace("/dashboard/documents", { scroll: false });
+  }, [paymentFeedback?.message, paymentFeedback?.status, router]);
 
   const uploadableServices = useMemo(
     () =>

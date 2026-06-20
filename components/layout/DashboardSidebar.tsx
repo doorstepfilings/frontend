@@ -150,7 +150,9 @@ export default function DashboardSidebar({
                 </Link>
               ))}
 
-              <div className="pt-5">
+              {/* bookkeeping section is currently hidden as it's not fully implemented yet. Uncomment when ready. */}
+
+              {/* <div className="pt-5">
                 <button
                   type="button"
                   onClick={() => setIsBookkeepingOpen((current) => !current)}
@@ -188,7 +190,7 @@ export default function DashboardSidebar({
                     ))}
                   </div>
                 ) : null}
-              </div>
+              </div> */}
             </nav>
 
             <div className="mt-8 border-t border-gray-100 pt-6">

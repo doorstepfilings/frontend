@@ -1,10 +1,14 @@
 "use client";
 
 import { useEffect } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import {useRouter } from "next/navigation";
 import { normalizeRole } from "@/lib/auth/redirects";
 import { getDefaultRedirectPath } from "@/lib/auth/storage";
-import { useAuthStatus, useStoredToken, useStoredUser } from "@/lib/auth/hooks";
+import { useAuthStatus,
+  useSessionExpiryRedirecting,
+  useStoredToken,
+  useStoredUser,
+} from "@/lib/auth/hooks";
 import { GlobalLogoLoader } from "@/components/ui/logo-loader";
 
 type AuthGuardProps = {
@@ -17,8 +21,8 @@ export function AuthGuard({
   allowedRoles = [],
 }: AuthGuardProps) {
   const router = useRouter();
-  const pathname = usePathname();
   const authStatus = useAuthStatus();
+  const isSessionExpiryRedirecting = useSessionExpiryRedirecting();
   const token = useStoredToken();
   const user = useStoredUser();
   const normalizedAllowedRoles = allowedRoles.map((role) => normalizeRole(role));
@@ -33,13 +37,12 @@ export function AuthGuard({
       : normalizedAllowedRoles.includes(normalizedUserRole);
 
   useEffect(() => {
-    if (authStatus === "loading") {
+    if (authStatus === "loading" || isSessionExpiryRedirecting) {
       return;
     }
 
     if (!hasAuth) {
-      const redirectTarget = pathname ? `?redirect=${encodeURIComponent(pathname)}` : "";
-      router.replace(`/login${redirectTarget}`);
+      router.replace("/");
       return;
     }
 
@@ -47,9 +50,22 @@ export function AuthGuard({
       router.replace(getDefaultRedirectPath(user));
       return;
     }
-  }, [authStatus, hasAuth, hasRole, pathname, roleKey, router, user]);
+  }, [
+    authStatus,
+    hasAuth,
+    hasRole,
+    isSessionExpiryRedirecting,
+    roleKey,
+    router,
+    user,
+  ]);
 
-  if (authStatus === "loading" || !hasAuth || !hasRole) {
+  if (
+    authStatus === "loading" ||
+    isSessionExpiryRedirecting ||
+    !hasAuth ||
+    !hasRole
+  ) {
     return <GlobalLogoLoader label="Preparing your secure workspace..." />;
   }
 

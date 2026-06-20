@@ -1,5 +1,8 @@
 import axios from "axios";
-import { clearStoredAuth, getStoredToken } from "@/lib/auth/storage";
+import {
+  getStoredToken,
+  redirectExpiredSessionToHome,
+} from "@/lib/auth/storage";
 
 export const apiClient = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || "/api",
@@ -22,12 +25,19 @@ apiClient.interceptors.request.use(async (config) => {
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
+    const headers = error?.config?.headers;
+    const authorizationHeader =
+      typeof headers?.get === "function"
+        ? headers.get("Authorization")
+        : headers?.Authorization;
+
     if (
       typeof window !== "undefined" &&
       error?.response?.status === 401 &&
-      window.location.pathname !== "/login"
+      Boolean(authorizationHeader) &&
+      window.location.pathname !== "/"
     ) {
-      void clearStoredAuth();
+      void redirectExpiredSessionToHome();
     }
 
     return Promise.reject(error);

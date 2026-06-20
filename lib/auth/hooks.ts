@@ -4,6 +4,7 @@ import { useSyncExternalStore } from "react";
 import { useSession } from "next-auth/react";
 import type { AuthUser } from "@/lib/auth/types";
 import {
+  getSessionExpiryRedirecting,
   getStoredUserOverride,
   mergeAuthUsers,
   subscribeToAuth,
@@ -31,4 +32,12 @@ export function useStoredToken() {
 
 export function useAuthStatus() {
   return useStoredSession().status;
+}
+
+export function useSessionExpiryRedirecting() {
+  return useSyncExternalStore(
+    subscribeToAuth,
+    getSessionExpiryRedirecting,
+    () => false,
+  );
 }

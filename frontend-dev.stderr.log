@@ -32,3 +32,597 @@ Image with src "/assets/images/testimonials/Sagar_Nesrise.png" is using quality 
 Read more: https://nextjs.org/docs/messages/next-image-unconfigured-qualities
 [browser] Image with src "/assets/images/logo.png" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
 Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+[browser] Image with src "/assets/images/logo.png" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio.
+[browser] SerializableStateInvariantMiddleware took 79ms, which is more than the warning threshold of 32ms. 
+If your state or actions are very large, you may want to disable the middleware as it might cause too much of a slowdown in development mode. See https://redux-toolkit.js.org/api/getDefaultMiddleware for instructions.
+It is disabled in production builds, so you don't need to worry about that. (components/dashboard/dashboard-documents-view.tsx:217:10)
+[browser] SerializableStateInvariantMiddleware took 68ms, which is more than the warning threshold of 32ms. 
+If your state or actions are very large, you may want to disable the middleware as it might cause too much of a slowdown in development mode. See https://redux-toolkit.js.org/api/getDefaultMiddleware for instructions.
+It is disabled in production builds, so you don't need to worry about that.
+[browser] SerializableStateInvariantMiddleware took 48ms, which is more than the warning threshold of 32ms. 
+If your state or actions are very large, you may want to disable the middleware as it might cause too much of a slowdown in development mode. See https://redux-toolkit.js.org/api/getDefaultMiddleware for instructions.
+It is disabled in production builds, so you don't need to worry about that.
+[browser] Image with src "/assets/images/logo.png" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio.
+Failed to proxy http://127.0.0.1:4000/api/service/my-services Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api/service/my-services Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+[browser] Image with src "/assets/images/logo.png" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio.
+[browser] Image with src "/assets/images/logo.png" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+Failed to proxy http://127.0.0.1:4000/api/service/my-services Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api/service/my-services Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api/service/my-services Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api/service/my-services Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api/service/my-services Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api/admin/service-applications/30 Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api/admin/service-applications/30 Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api/admin/service-applications/30 Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api/admin/service-applications/30 Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api/service/my-services Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api/admin/service-applications/30 Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api/service/my-services Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api/service/my-services Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api/services Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api/services Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api/services Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api/services Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api/services Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api/services Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api/services Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api/services Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api/services Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api/services Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api/admin/service-applications/30 Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api/admin/service-applications/30 Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api/service/my-services Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api/service/my-services Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api/services Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api/services Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api/services Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api/services Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+[browser] ImmutableStateInvariantMiddleware took 585ms, which is more than the warning threshold of 32ms. 
+If your state or actions are very large, you may want to disable the middleware as it might cause too much of a slowdown in development mode. See https://redux-toolkit.js.org/api/getDefaultMiddleware for instructions.
+It is disabled in production builds, so you don't need to worry about that.
+[browser] Image with src "/assets/images/logo.png" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio.
+Failed to proxy http://127.0.0.1:4000/api/service/my-services Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api/service/my-services Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Failed to proxy http://127.0.0.1:4000/api/admin/service-applications/30 Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}
+Error: connect ECONNREFUSED 127.0.0.1:4000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:4000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 4000
+}

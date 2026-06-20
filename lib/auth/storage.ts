@@ -46,6 +46,8 @@ function broadcastSessionChange(trigger: string) {
 
 let cachedUserOverride: AuthUser | null = null;
 let lastRawValue: string | null = null;
+let sessionExpiryRedirecting = false;
+let sessionExpiryRedirectPromise: Promise<void> | null = null;
 
 function readUserOverride() {
   if (!isBrowser()) {
@@ -180,6 +182,29 @@ export async function clearStoredAuth() {
   clearStoredUserOverride();
   await requestSignOut();
   broadcastSessionChange("signout");
+}
+
+export function getSessionExpiryRedirecting() {
+  return sessionExpiryRedirecting;
+}
+
+export function redirectExpiredSessionToHome() {
+  if (!isBrowser()) {
+    return Promise.resolve();
+  }
+
+  if (sessionExpiryRedirectPromise) {
+    return sessionExpiryRedirectPromise;
+  }
+
+  sessionExpiryRedirecting = true;
+  emitAuthChange();
+
+  sessionExpiryRedirectPromise = clearStoredAuth().finally(() => {
+    window.location.replace("/");
+  });
+
+  return sessionExpiryRedirectPromise;
 }
 
 export function setStoredUser(user: AuthUser) {

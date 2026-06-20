@@ -6,8 +6,13 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAppSelector } from "@/lib/store/hooks";
 import DashboardSidebar from "@/components/layout/DashboardSidebar";
 import { getDefaultRedirectPath } from "@/lib/auth/redirects";
-import { useAuthStatus, useStoredToken, useStoredUser } from "@/lib/auth/hooks";
-import { PageLogoLoader } from "@/components/ui/logo-loader";
+import {
+  useAuthStatus,
+  useSessionExpiryRedirecting,
+  useStoredToken,
+  useStoredUser,
+} from "@/lib/auth/hooks";
+import { GlobalLogoLoader } from "@/components/ui/logo-loader";
 
 const pageItems = [
   { path: "/dashboard", label: "Dashboard" },
@@ -36,6 +41,7 @@ export function UserDashboardShell({
   const pathname = usePathname();
   const loading = useAppSelector((state) => state.auth.loading);
   const authStatus = useAuthStatus();
+  const isSessionExpiryRedirecting = useSessionExpiryRedirecting();
   const user = useStoredUser();
   const token = useStoredToken();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -45,37 +51,45 @@ export function UserDashboardShell({
   );
 
   useEffect(() => {
-    if (loading || authStatus === "loading") {
+    if (
+      loading ||
+      authStatus === "loading" ||
+      isSessionExpiryRedirecting
+    ) {
       return;
     }
 
     if (!token) {
-      router.replace("/login");
+      router.replace("/");
       return;
     }
 
     if (shouldRedirectToRolePanel) {
       router.replace(redirectPath);
     }
-  }, [authStatus, loading, redirectPath, router, shouldRedirectToRolePanel, token]);
+  }, [
+    authStatus,
+    isSessionExpiryRedirecting,
+    loading,
+    redirectPath,
+    router,
+    shouldRedirectToRolePanel,
+    token,
+  ]);
 
   const currentPage =
     pageItems.find((item) =>
       item.path === "/dashboard" ? pathname === item.path : pathname.startsWith(item.path),
     )?.label || "Dashboard";
 
-  if (loading || authStatus === "loading") {
+  if (loading || authStatus === "loading" || isSessionExpiryRedirecting) {
     return (
-      <PageLogoLoader
-        className="min-h-screen bg-slate-50"
-        label="Authenticating customer workspace..."
-        size={64}
-      />
+      <GlobalLogoLoader label="Checking your session..." size={64} />
     );
   }
 
   if (!token || shouldRedirectToRolePanel) {
-    return null;
+    return <GlobalLogoLoader label="Redirecting securely..." size={64} />;
   }
 
   return (

@@ -17,9 +17,7 @@ export const proxy = auth((request) => {
   const isAuthPage = authPaths.some(path => pathname.startsWith(path));
 
   if (isProtected && !token) {
-    const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("redirect", pathname);
-    return NextResponse.redirect(loginUrl);
+    return NextResponse.redirect(new URL("/", request.url));
   }
 
   if (isProtected && token) {
