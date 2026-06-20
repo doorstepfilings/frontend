@@ -23,7 +23,7 @@ const nextConfig: NextConfig = {
       // Let local Next.js route handlers like /api/auth/* resolve first.
       fallback: [
         {
-          source: "/api/:path*",
+          source: "/api/:path((?!auth(?:/|$)).*)",
           destination: `${backendUrl}/api/:path*`,
         },
         {
