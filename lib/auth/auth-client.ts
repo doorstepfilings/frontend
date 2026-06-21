@@ -53,6 +53,12 @@ type RegisterPayload = {
   role?: string;
 };
 
+type CredentialSignInResult = {
+  error?: string;
+  code?: string;
+  ok?: boolean;
+};
+
 function normalizeSignedInUser(user: AuthUser): User {
   return {
     ...user,
@@ -82,7 +88,10 @@ async function resolveSessionAfterSignIn() {
   return { token, user: normalizeSignedInUser(user) };
 }
 
-function getCredentialErrorMessage(result: { error?: string; code?: string } | undefined, fallback: string) {
+function getCredentialErrorMessage(
+  result: CredentialSignInResult | undefined,
+  fallback: string,
+) {
   if (result?.code && result.code !== "credentials") {
     return result.code;
   }
@@ -119,8 +128,13 @@ export async function signInWithPassword({
       redirectTo: redirectTo ?? undefined,
     });
 
-    if (!result?.ok) {
-      const rawError = getCredentialErrorMessage(result, "INVALID_CREDENTIALS");
+    // Auth.js credential failures can arrive in a successful HTTP response.
+    // Check its parsed error before trying to resolve the new session.
+    if (result?.error || !result?.ok) {
+      const rawError = getCredentialErrorMessage(
+        result,
+        AUTH_ERROR_CODES.INVALID_CREDENTIALS,
+      );
       throw new Error(rawError);
     }
 
@@ -144,8 +158,11 @@ export async function signInWithMobileOtp({
       redirectTo: redirectTo ?? undefined,
     });
 
-    if (!result?.ok) {
-      const rawError = getCredentialErrorMessage(result, "INVALID_CREDENTIALS");
+    if (result?.error || !result?.ok) {
+      const rawError = getCredentialErrorMessage(
+        result,
+        AUTH_ERROR_CODES.INVALID_VERIFICATION_CODE,
+      );
       throw new Error(rawError);
     }
 

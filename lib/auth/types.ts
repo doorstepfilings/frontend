@@ -44,6 +44,7 @@ export type BackendAuthPayload = {
 };
 
 export type BackendAuthResponse = {
+  code?: string;
   data?: BackendAuthPayload;
   message?: string | string[];
 };

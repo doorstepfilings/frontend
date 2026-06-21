@@ -1,16 +1,21 @@
 export const AUTH_ERROR_MESSAGES = {
-  INVALID_CREDENTIALS: "Invalid username or password.",
+  INVALID_CREDENTIALS: "Please check your email and password.",
+  EMAIL_NOT_FOUND: "Email not found. Please try again.",
+  INCORRECT_PASSWORD: "Incorrect password. Please try again.",
   ACCOUNT_NOT_FOUND: "Account not found.",
   ACCOUNT_INACTIVE: "Your account is inactive. Please contact support.",
   ACCESS_DENIED: "You do not have permission to access this area.",
   LOGIN_FAILED: "Login failed. Please try again.",
   NETWORK_ERROR: "Unable to connect. Please check your internet connection and try again.",
   GENERIC: "Something went wrong. Please try again.",
-  INVALID_VERIFICATION_CODE: "Invalid verification code.",
+  INVALID_VERIFICATION_CODE: "The verification code is incorrect.",
+  VERIFICATION_CODE_EXPIRED: "The verification code has expired. Please request a new one.",
 } as const;
 
 export const AUTH_ERROR_CODES = {
   INVALID_CREDENTIALS: "INVALID_CREDENTIALS",
+  EMAIL_NOT_FOUND: "EMAIL_NOT_FOUND",
+  INCORRECT_PASSWORD: "INCORRECT_PASSWORD",
   USER_NOT_FOUND: "USER_NOT_FOUND",
   ACCOUNTANT_NOT_FOUND: "ACCOUNTANT_NOT_FOUND",
   ACCOUNT_INACTIVE: "ACCOUNT_INACTIVE",
@@ -19,6 +24,7 @@ export const AUTH_ERROR_CODES = {
   NETWORK_ERROR: "NETWORK_ERROR",
   GENERIC: "GENERIC",
   INVALID_VERIFICATION_CODE: "INVALID_VERIFICATION_CODE",
+  VERIFICATION_CODE_EXPIRED: "VERIFICATION_CODE_EXPIRED",
 } as const;
 
 type AuthErrorCode = (typeof AUTH_ERROR_CODES)[keyof typeof AUTH_ERROR_CODES];
@@ -30,6 +36,10 @@ function getCodeForApprovedMessage(message: string): AuthErrorCode | null {
   switch (message) {
     case AUTH_ERROR_MESSAGES.INVALID_CREDENTIALS:
       return AUTH_ERROR_CODES.INVALID_CREDENTIALS;
+    case AUTH_ERROR_MESSAGES.EMAIL_NOT_FOUND:
+      return AUTH_ERROR_CODES.EMAIL_NOT_FOUND;
+    case AUTH_ERROR_MESSAGES.INCORRECT_PASSWORD:
+      return AUTH_ERROR_CODES.INCORRECT_PASSWORD;
     case AUTH_ERROR_MESSAGES.ACCOUNT_NOT_FOUND:
       return AUTH_ERROR_CODES.USER_NOT_FOUND;
     case AUTH_ERROR_MESSAGES.ACCOUNT_INACTIVE:
@@ -42,6 +52,8 @@ function getCodeForApprovedMessage(message: string): AuthErrorCode | null {
       return AUTH_ERROR_CODES.NETWORK_ERROR;
     case AUTH_ERROR_MESSAGES.INVALID_VERIFICATION_CODE:
       return AUTH_ERROR_CODES.INVALID_VERIFICATION_CODE;
+    case AUTH_ERROR_MESSAGES.VERIFICATION_CODE_EXPIRED:
+      return AUTH_ERROR_CODES.VERIFICATION_CODE_EXPIRED;
     case AUTH_ERROR_MESSAGES.GENERIC:
       return AUTH_ERROR_CODES.GENERIC;
     default:
@@ -184,6 +196,22 @@ export function getAuthErrorCode(
   }
 
   if (
+    normalized.includes("email not found") ||
+    normalized.includes("email address not found") ||
+    normalized.includes("email is not registered") ||
+    normalized.includes("email not registered") ||
+    normalized.includes("email does not exist") ||
+    normalized.includes("email address does not exist") ||
+    normalized.includes("unregistered email") ||
+    normalized.includes("no account for this email") ||
+    normalized.includes("no account with this email") ||
+    normalized.includes("no user found with this email") ||
+    normalized.includes("no user found for this email")
+  ) {
+    return AUTH_ERROR_CODES.EMAIL_NOT_FOUND;
+  }
+
+  if (
     normalized.includes("user not found") ||
     normalized.includes("account not found") ||
     normalized.includes("accountant not found") ||
@@ -198,20 +226,42 @@ export function getAuthErrorCode(
   }
 
   if (
+    normalized.includes("incorrect password") ||
+    normalized.includes("wrong password") ||
+    normalized.includes("password is incorrect") ||
+    normalized.includes("invalid password") ||
+    normalized.includes("password does not match")
+  ) {
+    return AUTH_ERROR_CODES.INCORRECT_PASSWORD;
+  }
+
+  if (
     normalized.includes("credentials signin") ||
     normalized.includes("credentialssignin") ||
     normalized.includes("invalid credentials") ||
     normalized.includes("invalid credential") ||
     normalized.includes("bad credentials") ||
+    normalized.includes("incorrect credentials") ||
+    normalized.includes("provided credentials are incorrect") ||
+    normalized.includes("credentials do not match") ||
+    normalized.includes("credentials don't match") ||
     normalized.includes("invalid email or password") ||
+    normalized.includes("incorrect email or password") ||
+    normalized.includes("email or password is incorrect") ||
+    normalized.includes("email or password are incorrect") ||
     normalized.includes("invalid username or password") ||
-    normalized.includes("incorrect password") ||
-    normalized.includes("wrong password") ||
-    normalized.includes("password is incorrect") ||
-    normalized.includes("invalid password") ||
     normalized === "credentials"
   ) {
     return AUTH_ERROR_CODES.INVALID_CREDENTIALS;
+  }
+
+  if (
+    normalized.includes("otp expired") ||
+    normalized.includes("verification code expired") ||
+    normalized.includes("verification code has expired") ||
+    normalized.includes("expired verification code")
+  ) {
+    return AUTH_ERROR_CODES.VERIFICATION_CODE_EXPIRED;
   }
 
   if (
@@ -219,7 +269,6 @@ export function getAuthErrorCode(
     normalized.includes("invalid verification code") ||
     normalized.includes("incorrect otp") ||
     normalized.includes("wrong otp") ||
-    normalized.includes("otp expired") ||
     normalized.includes("verification code")
   ) {
     return AUTH_ERROR_CODES.INVALID_VERIFICATION_CODE;
@@ -281,6 +330,10 @@ export function getAuthErrorMessageForCode(code: AuthErrorCode): AuthErrorMessag
   switch (code) {
     case AUTH_ERROR_CODES.INVALID_CREDENTIALS:
       return AUTH_ERROR_MESSAGES.INVALID_CREDENTIALS;
+    case AUTH_ERROR_CODES.EMAIL_NOT_FOUND:
+      return AUTH_ERROR_MESSAGES.EMAIL_NOT_FOUND;
+    case AUTH_ERROR_CODES.INCORRECT_PASSWORD:
+      return AUTH_ERROR_MESSAGES.INCORRECT_PASSWORD;
     case AUTH_ERROR_CODES.USER_NOT_FOUND:
     case AUTH_ERROR_CODES.ACCOUNTANT_NOT_FOUND:
       return AUTH_ERROR_MESSAGES.ACCOUNT_NOT_FOUND;
@@ -294,6 +347,8 @@ export function getAuthErrorMessageForCode(code: AuthErrorCode): AuthErrorMessag
       return AUTH_ERROR_MESSAGES.NETWORK_ERROR;
     case AUTH_ERROR_CODES.INVALID_VERIFICATION_CODE:
       return AUTH_ERROR_MESSAGES.INVALID_VERIFICATION_CODE;
+    case AUTH_ERROR_CODES.VERIFICATION_CODE_EXPIRED:
+      return AUTH_ERROR_MESSAGES.VERIFICATION_CODE_EXPIRED;
     case AUTH_ERROR_CODES.GENERIC:
     default:
       return AUTH_ERROR_MESSAGES.GENERIC;
