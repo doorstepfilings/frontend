@@ -174,8 +174,12 @@ function normalizeApplicationRecord(application: any) {
 
 function sortApplicationsLatestFirst(applications: any[]) {
   return [...applications].sort((left, right) => {
-    const rightDate = new Date(right?.created_at ?? 0).getTime();
-    const leftDate = new Date(left?.created_at ?? 0).getTime();
+    const rightDate = new Date(
+      right?.order_created_at ?? right?.created_at ?? 0,
+    ).getTime();
+    const leftDate = new Date(
+      left?.order_created_at ?? left?.created_at ?? 0,
+    ).getTime();
 
     if (rightDate !== leftDate) {
       return rightDate - leftDate;
@@ -278,7 +282,9 @@ export const fetchRecentActivity = createAsyncThunk(
           : [];
       const applications =
         results[1].status === "fulfilled"
-          ? normalizeAdminList(results[1].value.data?.data ?? results[1].value.data)
+          ? normalizeAdminList(
+              results[1].value.data?.data ?? results[1].value.data,
+            ).map(normalizeApplicationRecord)
           : [];
 
       return [
@@ -291,11 +297,22 @@ export const fetchRecentActivity = createAsyncThunk(
           activityType: "application",
         })),
       ]
-        .sort(
-          (a: any, b: any) =>
-            new Date(b?.created_at || 0).getTime() -
-            new Date(a?.created_at || 0).getTime(),
-        )
+        .sort((a: any, b: any) => {
+          const rightDate =
+            b.activityType === "application"
+              ? new Date(
+                  b?.order_created_at ?? b?.created_at ?? 0,
+                ).getTime()
+              : new Date(b?.created_at || 0).getTime();
+          const leftDate =
+            a.activityType === "application"
+              ? new Date(
+                  a?.order_created_at ?? a?.created_at ?? 0,
+                ).getTime()
+              : new Date(a?.created_at || 0).getTime();
+
+          return rightDate - leftDate;
+        })
         .slice(0, 8);
     } catch (error: any) {
       return rejectWithValue(

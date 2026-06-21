@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback, use } from "react";
+import React, { useEffect, useState, useCallback, use, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
@@ -147,6 +147,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
   const [slotClock, setSlotClock] = useState(() => Date.now());
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
   const [includeAppointment, setIncludeAppointment] = useState(false);
+  const slotRequestIdRef = useRef(0);
   const user = useStoredUser();
 
   const [applyFormData, setApplyFormData] = useState({
@@ -189,8 +190,10 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
   }, []);
 
   const handleCloseApplyModal = useCallback(() => {
+    slotRequestIdRef.current += 1;
     setShowApplyModal(false);
     setSlotAvailability({});
+    setSlotLoading(false);
     setSelectedTimeSlot("");
   }, []);
 
@@ -327,16 +330,24 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
     return `${year}-${month}-${day}`;
   };
 
-  const fetchSlotAvailability = useCallback(async (serviceId: number | string, date: Date) => {
+  const fetchSlotAvailability = useCallback(async (
+    serviceId: number | string,
+    date: Date,
+    options: { silent?: boolean } = {},
+  ) => {
     if (!serviceId || !date) {
       setSlotAvailability({});
       return {};
     }
 
+    const requestId = ++slotRequestIdRef.current;
+    const { silent = false } = options;
+
     try {
-      setSlotLoading(true);
-      setSlotLoadError("");
-      setSlotAvailability({});
+      if (!silent) {
+        setSlotLoading(true);
+        setSlotLoadError("");
+      }
       const token = await getStoredToken();
       const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/service/slot-availability`, {
         params: {
@@ -354,28 +365,76 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
         }
         return acc;
       }, {});
-      setSlotAvailability(mapped);
+      if (requestId === slotRequestIdRef.current) {
+        setSlotAvailability(mapped);
+        setSlotLoadError("");
+        setSelectedTimeSlot((currentSlot) => {
+          if (!currentSlot) {
+            return currentSlot;
+          }
+
+          const slotState = resolveSlotState({
+            time: currentSlot,
+            selectedDate: date,
+            backendSlot: mapped[normalizeSlotTime(currentSlot)],
+          });
+
+          return slotState.is_available &&
+            !slotState.is_past &&
+            !slotState.is_full
+            ? currentSlot
+            : "";
+        });
+      }
       return mapped;
     } catch {
-      setSlotAvailability({});
-      setSlotLoadError("Unable to load live slot availability. Please try again.");
+      if (requestId === slotRequestIdRef.current && !silent) {
+        setSlotLoadError("Unable to load live slot availability. Please try again.");
+      }
       return null;
     } finally {
-      setSlotLoading(false);
+      if (requestId === slotRequestIdRef.current) {
+        setSlotLoading(false);
+      }
     }
   }, []);
 
+  const handleAppointmentDateChange = useCallback(
+    (date: Date | null) => {
+      slotRequestIdRef.current += 1;
+      setSelectedDate(date);
+      setSelectedTimeSlot("");
+      setSlotAvailability({});
+      setSlotLoading(false);
+      setSlotLoadError("");
+      setSlotClock(Date.now());
+
+      if (date && serviceDetails?.id) {
+        void fetchSlotAvailability(serviceDetails.id, date);
+      }
+    },
+    [fetchSlotAvailability, serviceDetails],
+  );
+
   useEffect(() => {
-    if (!includeAppointment || !selectedDate) {
+    if (!includeAppointment || !selectedDate || !serviceDetails?.id) {
       return;
     }
 
     const timer = window.setInterval(() => {
       setSlotClock(Date.now());
+      void fetchSlotAvailability(serviceDetails.id, selectedDate, {
+        silent: true,
+      });
     }, 30_000);
 
     return () => window.clearInterval(timer);
-  }, [includeAppointment, selectedDate]);
+  }, [
+    fetchSlotAvailability,
+    includeAppointment,
+    selectedDate,
+    serviceDetails?.id,
+  ]);
 
   const resolvedSlotAvailability = SLOT_TIMES.reduce<Record<string, any>>(
     (availability, slot) => {
@@ -502,6 +561,14 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
       slotTimes: SLOT_TIMES,
     });
     const nextDate = findNextWorkingDay(selectedDate);
+    const hasAvailableSlot = SLOT_TIMES.some((slot) => {
+      const slotState = resolvedSlotAvailability[slot];
+      return (
+        slotState?.is_available &&
+        !slotState.is_full &&
+        !slotState.is_past
+      );
+    });
 
     if (selectedSlotState?.is_full || selectedSlotState?.is_past) {
       return {
@@ -510,6 +577,15 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
         nextDate,
       };
     }
+
+    if (!slotLoadError && !hasAvailableSlot) {
+      return {
+        title: "No appointments are available for this date.",
+        nextSlot: null,
+        nextDate,
+      };
+    }
+
     return null;
   };
 
@@ -1003,9 +1079,11 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
                   type="button"
                   onClick={() => {
                     setIncludeAppointment(false);
+                    slotRequestIdRef.current += 1;
                     setSelectedDate(null);
                     setSelectedTimeSlot("");
                     setSlotAvailability({});
+                    setSlotLoading(false);
                     setSlotLoadError("");
                   }}
                   className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${!includeAppointment ? "bg-blue-900 text-white shadow-md" : "text-gray-400 hover:text-blue-900"}`}
@@ -1023,17 +1101,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
                     <i className="fas fa-calendar-alt absolute left-4 top-1/2 z-10 -translate-y-1/2 text-gray-400"></i>
                     <DatePicker
                       selected={selectedDate}
-                      onChange={(date: Date | null) => {
-                        setSelectedDate(date);
-                        setSelectedTimeSlot("");
-                        setSlotAvailability({});
-                        setSlotLoadError("");
-                        setSlotClock(Date.now());
-                        if (!date || !serviceDetails?.id) {
-                          return;
-                        }
-                        void fetchSlotAvailability(serviceDetails.id, date);
-                      }}
+                      onChange={handleAppointmentDateChange}
                       minDate={new Date()}
                       filterDate={isWorkingDay}
                       dateFormat="dd/MM/yyyy"
@@ -1051,6 +1119,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
                         const slotState = resolvedSlotAvailability[slot];
                         const isDisabled =
                           slotLoading ||
+                          !!slotLoadError ||
                           !slotState?.is_available ||
                           !!slotState?.is_past ||
                           !!slotState?.is_full;
@@ -1111,6 +1180,18 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
                           className="bg-blue-900 text-xs text-white"
                         >
                           Move to {formatTimeSlot(slotRecovery.nextSlot)}
+                        </Button>
+                      )}
+                      {!slotRecovery.nextSlot && slotRecovery.nextDate && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() =>
+                            handleAppointmentDateChange(slotRecovery.nextDate)
+                          }
+                          className="bg-blue-900 text-xs text-white"
+                        >
+                          Check next working day
                         </Button>
                       )}
                     </div>

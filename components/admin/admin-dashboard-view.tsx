@@ -19,6 +19,8 @@ type ActivityItem = {
   message?: string | null;
   created_at?: string | Date | null;
   createdAt?: string | Date | null;
+  order_created_at?: string | Date | null;
+  orderCreatedAt?: string | Date | null;
   date?: string | Date | null;
   user?: {
     name?: string | null;
@@ -139,7 +141,15 @@ function getActivityStatus(item: ActivityItem) {
 }
 
 function formatActivityDate(item: ActivityItem) {
-  const rawDate = item.created_at ?? item.createdAt ?? item.date ?? null;
+  const rawDate =
+    getActivityType(item) === "application"
+      ? item.order_created_at ??
+        item.orderCreatedAt ??
+        item.created_at ??
+        item.createdAt ??
+        item.date ??
+        null
+      : item.created_at ?? item.createdAt ?? item.date ?? null;
   if (!rawDate) {
     return "Unknown time";
   }
@@ -153,7 +163,15 @@ function formatActivityDate(item: ActivityItem) {
 function getActivityKey(item: ActivityItem, index: number) {
   const activityType = getActivityType(item);
   const rawId = item.id ?? "row";
-  const rawDate = item.created_at ?? item.createdAt ?? item.date ?? "unknown-time";
+  const rawDate =
+    activityType === "application"
+      ? item.order_created_at ??
+        item.orderCreatedAt ??
+        item.created_at ??
+        item.createdAt ??
+        item.date ??
+        "unknown-time"
+      : item.created_at ?? item.createdAt ?? item.date ?? "unknown-time";
 
   return `${activityType}-${String(rawId)}-${String(rawDate)}-${index}`;
 }

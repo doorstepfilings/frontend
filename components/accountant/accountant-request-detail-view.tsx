@@ -11,6 +11,8 @@ import { toast } from "react-hot-toast";
 import {
   isClientUploadedDocument,
   isInternalDocument,
+  requiresClientApprovalDocument,
+  getClientApprovalStatus,
 } from "@/lib/utils/document-helpers";
 import { format } from "date-fns";
 import { getMilestoneState } from "@/lib/utils/status-helpers";
@@ -85,6 +87,34 @@ export function AccountantRequestDetailView() {
 
   const progress = Math.round(((currentStep) / MILESTONES.length) * 100);
 
+  const hasUnapprovedDocs = useMemo(() => {
+    if (!req || !Array.isArray(req.request_documents)) return false;
+
+    const activeDocs = req.request_documents.filter(
+      (doc: any) =>
+        !["replaced", "superseded"].includes(
+          String(doc.status || "").toLowerCase(),
+        ),
+    );
+
+    return activeDocs.some((doc: any) => {
+      if (isInternalDocument(doc)) return false;
+
+      const isClientUploaded = isClientUploadedDocument(doc, req.user?.id);
+      const requiresApproval = requiresClientApprovalDocument(doc);
+
+      if (isClientUploaded) {
+        const status = String(doc.status || "").toLowerCase();
+        return status !== "approved" && status !== "verified";
+      } else if (requiresApproval) {
+        const approvalStatus = getClientApprovalStatus(doc);
+        return approvalStatus !== "approved";
+      }
+
+      return false;
+    });
+  }, [req?.request_documents, req?.user?.id]);
+
   const handleUpdateStatus = async (eOrData?: React.FormEvent | { status: string; update_note?: string; ca_notes?: string; rejection_reason?: string }) => {
     let data: any = statusForm;
 
@@ -115,8 +145,47 @@ export function AccountantRequestDetailView() {
 
     if (!data.status) return toast.error("Please select a target status");
 
-    // Explicit confirmation when finalizing
+    // Check for unapproved documents before completing service
     if (data.status === "completed") {
+      const activeDocs = Array.isArray(req?.request_documents)
+        ? req.request_documents.filter(
+            (doc: any) =>
+              !["replaced", "superseded"].includes(
+                String(doc.status || "").toLowerCase(),
+              ),
+          )
+        : [];
+
+      const pendingOrCorrectionDocs = activeDocs.filter((doc: any) => {
+        // Exclude internal documents
+        if (isInternalDocument(doc)) return false;
+
+        const isClientUploaded = isClientUploadedDocument(doc, req.user?.id);
+        const requiresApproval = requiresClientApprovalDocument(doc);
+
+        if (isClientUploaded) {
+          // Client uploaded documents must be approved/verified
+          const status = String(doc.status || "").toLowerCase();
+          return status !== "approved" && status !== "verified";
+        } else if (requiresApproval) {
+          // Accountant uploaded documents requiring client approval must be approved by client
+          const approvalStatus = getClientApprovalStatus(doc);
+          return approvalStatus !== "approved";
+        }
+
+        return false;
+      });
+
+      if (pendingOrCorrectionDocs.length > 0) {
+        const docNames = pendingOrCorrectionDocs
+          .map((doc: any) => doc.document_name || doc.file_name || "Unnamed Document")
+          .join(", ");
+        toast.error(
+          `Cannot complete service: some documents are pending or need correction (${docNames}).`
+        );
+        return;
+      }
+
       const isConfirmed = await confirm({
         title: "Finalize Service",
         message: "Are you absolutely sure you want to mark this service as Completed? Please double-check that ALL related filings, documents, and tasks have been finished. Once finalized, completion notifications will be sent to the client.",
@@ -384,10 +453,17 @@ export function AccountantRequestDetailView() {
                 <div className="space-y-4">
                   <div>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">
-                      Submission Date
+                      Order Date
                     </p>
                     <p className="text-sm font-black text-slate-900 tracking-tight">
-                      {req.created_at ? format(new Date(req.created_at), "MMMM d, yyyy") : "---"}
+                      {req.order_created_at || req.created_at
+                        ? format(
+                            new Date(
+                              req.order_created_at || req.created_at,
+                            ),
+                            "MMMM d, yyyy",
+                          )
+                        : "---"}
                     </p>
                   </div>
                   <div>
@@ -449,9 +525,23 @@ export function AccountantRequestDetailView() {
               </div>
             </div>
 
-            <hr className="border-slate-100" />
-
             {/* 3. Task Management controls */}
+            {hasUnapprovedDocs && !["completed", "approved", "cancelled", "rejected"].includes(req.status) && (
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 flex items-start gap-4 shadow-sm animate-in fade-in slide-in-from-top-1">
+                <div className="w-10 h-10 rounded-xl bg-amber-100 border border-amber-200 flex items-center justify-center text-amber-600 shrink-0">
+                  <i className="fas fa-exclamation-triangle text-sm"></i>
+                </div>
+                <div className="flex-1 space-y-1">
+                  <h4 className="text-sm font-bold text-amber-800 tracking-tight">
+                    Document Approval Required
+                  </h4>
+                  <p className="text-xs text-amber-700 font-medium leading-relaxed">
+                    Some documents are currently pending approval or require correction. You must approve/verify all client-facing documents before you can mark this service as completed.
+                  </p>
+                </div>
+              </div>
+            )}
+
             <div className="bg-slate-50 border border-slate-100 rounded-2xl p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div className="space-y-1">
                 <h3 className="text-base font-black tracking-tight text-slate-900">

@@ -141,7 +141,11 @@ export function DashboardOrdersView() {
                       Order Placed
                     </p>
                     <p className="text-sm font-bold text-gray-700">
-                      {formatDateWithPattern(order.created_at, "d MMM yyyy", "N/A")}
+                      {formatDateWithPattern(
+                        order.created_at,
+                        "d MMM yyyy",
+                        "N/A",
+                      )}
                     </p>
                   </div>
                   <div className="flex gap-8 border-l border-gray-200 pl-8">

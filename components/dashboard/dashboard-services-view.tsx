@@ -39,6 +39,7 @@ type DashboardService = {
   application_unique_id?: string | null;
   certificate_url?: string | null;
   created_at?: string;
+  order_created_at?: string | null;
   form_data?: {
     pricing_plan?: string | null;
   } | null;
@@ -152,17 +153,27 @@ export function DashboardServicesView() {
 
 
   const filteredServices = useMemo(() => {
-    return (myServices as DashboardService[]).filter((service) => {
-      if (statusFilter === "all") {
-        return true;
-      }
+    return (myServices as DashboardService[])
+      .filter((service) => {
+        if (statusFilter === "all") {
+          return true;
+        }
 
-      if (statusFilter === "in_progress") {
-        return ACTIVE_STATUSES.has(String(service.status || "").toLowerCase());
-      }
+        if (statusFilter === "in_progress") {
+          return ACTIVE_STATUSES.has(String(service.status || "").toLowerCase());
+        }
 
-      return HISTORY_STATUSES.has(String(service.status || "").toLowerCase());
-    });
+        return HISTORY_STATUSES.has(String(service.status || "").toLowerCase());
+      })
+      .sort(
+        (left, right) =>
+          new Date(
+            right.order_created_at || right.created_at || 0,
+          ).getTime() -
+          new Date(
+            left.order_created_at || left.created_at || 0,
+          ).getTime(),
+      );
   }, [myServices, statusFilter]);
 
   const stats = useMemo(() => {
@@ -431,7 +442,10 @@ export function DashboardServicesView() {
                             </h4>
                             <div className="mt-0.5 flex items-center gap-2">
                               <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                                {formatDate(service.created_at)}
+                                {formatDate(
+                                  service.order_created_at ||
+                                    service.created_at,
+                                )}
                               </span>
                               <span className="h-1 w-1 rounded-full bg-gray-200" />
                               <span className="font-mono text-[10px] tracking-tighter text-gray-400">

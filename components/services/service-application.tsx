@@ -209,6 +209,7 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
   const user = useStoredUser();
   const isServiceSelectionLocked = Boolean(preselectedService);
   const touchedFieldsRef = useRef<Set<string>>(new Set());
+  const slotRequestIdRef = useRef(0);
 
   const [services, setServices] = useState<Service[]>([]);
   const [selectedService, setSelectedService] = useState<Service | null>(preselectedService);
@@ -249,6 +250,7 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
   const hasMultiplePackages = purchasablePlans.length > 1;
 
   const applySelectedService = useCallback((service: Service | null) => {
+    slotRequestIdRef.current += 1;
     setSelectedService(service);
     setDocumentRows(createRowsFromService(service));
     setSelectedPricingPlan(
@@ -257,6 +259,9 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
     setFileErrors({});
     setSelectedDate(null);
     setSelectedTimeSlot("");
+    setSlots([]);
+    setSlotsLoading(false);
+    setSlotLoadError("");
   }, []);
 
   const handleServiceSelectionChange = useCallback((serviceId: string) => {
@@ -359,18 +364,6 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
     if (authStatus === "authenticated") loadData();
   }, [authStatus, preselectedService, applySelectedService]);
 
-  useEffect(() => {
-    if (!includeAppointment || !selectedDate) {
-      return;
-    }
-
-    const timer = window.setInterval(() => {
-      setSlotClock(Date.now());
-    }, 30_000);
-
-    return () => window.clearInterval(timer);
-  }, [includeAppointment, selectedDate]);
-
   const localSlots = SLOT_TIMES.map(time => {
     const backendSlot = slots.find(
       (slot) => normalizeSlotTime(slot.time) === normalizeSlotTime(time),
@@ -460,10 +453,18 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
   };
 
   const fetchSlotAvailability = useCallback(
-    async (serviceId: number, date: Date) => {
-      setSlotsLoading(true);
-      setSlotLoadError("");
-      setSlots([]);
+    async (
+      serviceId: number,
+      date: Date,
+      options: { silent?: boolean } = {},
+    ) => {
+      const requestId = ++slotRequestIdRef.current;
+      const { silent = false } = options;
+
+      if (!silent) {
+        setSlotsLoading(true);
+        setSlotLoadError("");
+      }
 
       try {
         const dateStr = [
@@ -478,18 +479,82 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
           },
         );
         const nextSlots = Array.isArray(response.data.data) ? response.data.data : [];
-        setSlots(nextSlots);
+        if (requestId === slotRequestIdRef.current) {
+          setSlots(nextSlots);
+          setSlotLoadError("");
+          setSelectedTimeSlot((currentSlot) => {
+            if (!currentSlot) {
+              return currentSlot;
+            }
+
+            const backendSlot = nextSlots.find(
+              (slot) =>
+                normalizeSlotTime(slot.time) === normalizeSlotTime(currentSlot),
+            );
+            const slotState = resolveSlotState({
+              time: currentSlot,
+              selectedDate: date,
+              backendSlot,
+            });
+
+            return slotState.is_available &&
+              !slotState.is_past &&
+              !slotState.is_full
+              ? currentSlot
+              : "";
+          });
+        }
         return nextSlots;
       } catch {
-        setSlots([]);
-        setSlotLoadError("Unable to load live slot availability. Please try again.");
+        if (requestId === slotRequestIdRef.current && !silent) {
+          setSlotLoadError("Unable to load live slot availability. Please try again.");
+        }
         return null;
       } finally {
-        setSlotsLoading(false);
+        if (requestId === slotRequestIdRef.current) {
+          setSlotsLoading(false);
+        }
       }
     },
     [],
   );
+
+  const handleAppointmentDateChange = useCallback(
+    (date: Date | null) => {
+      slotRequestIdRef.current += 1;
+      setSelectedDate(date);
+      setSelectedTimeSlot("");
+      setSlots([]);
+      setSlotsLoading(false);
+      setSlotLoadError("");
+      setSlotClock(Date.now());
+
+      if (date && selectedService) {
+        void fetchSlotAvailability(selectedService.id, date);
+      }
+    },
+    [fetchSlotAvailability, selectedService],
+  );
+
+  useEffect(() => {
+    if (!includeAppointment || !selectedDate || !selectedService) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setSlotClock(Date.now());
+      void fetchSlotAvailability(selectedService.id, selectedDate, {
+        silent: true,
+      });
+    }, 30_000);
+
+    return () => window.clearInterval(timer);
+  }, [
+    fetchSlotAvailability,
+    includeAppointment,
+    selectedDate,
+    selectedService,
+  ]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -889,9 +954,11 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
                                 type="button"
                                 onClick={() => {
                                   setIncludeAppointment(false);
+                                  slotRequestIdRef.current += 1;
                                   setSelectedDate(null);
                                   setSelectedTimeSlot("");
                                   setSlots([]);
+                                  setSlotsLoading(false);
                                   setSlotLoadError("");
                                 }}
                                 className={`px-6 py-1.5 rounded-md text-sm font-bold transition-all ${!includeAppointment ? 'bg-blue-900 text-white' : 'text-gray-500 hover:bg-gray-50'}`}
@@ -911,16 +978,7 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
                                     </span>
                                     <DatePicker
                                         selected={selectedDate}
-                                        onChange={(date: Date | null) => {
-                                          setSelectedDate(date);
-                                          setSelectedTimeSlot("");
-                                          setSlots([]);
-                                          setSlotLoadError("");
-                                          setSlotClock(Date.now());
-                                          if (date && selectedService) {
-                                            void fetchSlotAvailability(selectedService.id, date);
-                                          }
-                                        }}
+                                        onChange={handleAppointmentDateChange}
                                         minDate={new Date()}
                                         filterDate={isWorkingDay}
                                         dateFormat="dd/MM/yyyy"
@@ -933,12 +991,18 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
 
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-4">Available Slots <span className="text-red-500">*</span></label>
+                                {!selectedDate ? (
+                                  <p className="mb-3 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700">
+                                    Select an appointment date to check live slot availability.
+                                  </p>
+                                ) : null}
                                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
                                     {SLOT_TIMES.map((time) => {
                                         const status = localSlots.find(s => s.time === time);
                                         const isSelected = selectedTimeSlot === time;
                                         const isDisabled =
                                           slotsLoading ||
+                                          !!slotLoadError ||
                                           !status?.is_available ||
                                           !!status?.is_full ||
                                           !!status?.is_past;

@@ -62,7 +62,15 @@ const accountantSlice = createSlice({
       })
       .addCase(fetchAccountantDashboard.fulfilled, (state, action) => {
         state.loading = false;
-        state.serviceRequests = action.payload.requests;
+        state.serviceRequests = [...action.payload.requests].sort(
+          (left, right) =>
+            new Date(
+              right?.order_created_at ?? right?.created_at ?? 0,
+            ).getTime() -
+            new Date(
+              left?.order_created_at ?? left?.created_at ?? 0,
+            ).getTime(),
+        );
         state.assignedUsers = action.payload.users;
         
         // Calculate stats

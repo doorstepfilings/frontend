@@ -36,7 +36,21 @@ export function UserDashboardView() {
     [myServices],
   );
 
-  const recentServices = useMemo(() => (myServices || []).slice(0, 5), [myServices]);
+  const recentServices = useMemo(
+    () =>
+      [...(myServices || [])]
+        .sort(
+          (left, right) =>
+            new Date(
+              right.order_created_at || right.created_at || 0,
+            ).getTime() -
+            new Date(
+              left.order_created_at || left.created_at || 0,
+            ).getTime(),
+        )
+        .slice(0, 5),
+    [myServices],
+  );
 
 
 
@@ -150,7 +164,12 @@ export function UserDashboardView() {
                           {service.service?.name}
                         </p>
                         <p className="text-xs text-gray-400">
-                          {formatDateWithPattern(service.created_at, "d MMM yyyy", "N/A")}
+                          {formatDateWithPattern(
+                            service.order_created_at ||
+                              service.created_at,
+                            "d MMM yyyy",
+                            "N/A",
+                          )}
                         </p>
                       </div>
                     </div>

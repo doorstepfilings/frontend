@@ -9,6 +9,7 @@ import { buildCollectionKey } from "@/lib/utils/list-keys";
 type ServiceApplication = {
   amount: string | number;
   created_at: string;
+  order_created_at?: string | null;
   id: number;
   service?: { name: string };
   status: string;
@@ -31,7 +32,17 @@ export function ServiceApplications() {
             params: { status: filter },
           },
         );
-        setApplications(response.data.data);
+        setApplications(
+          [...response.data.data].sort(
+            (left, right) =>
+              new Date(
+                right.order_created_at || right.created_at || 0,
+              ).getTime() -
+              new Date(
+                left.order_created_at || left.created_at || 0,
+              ).getTime(),
+          ),
+        );
       } catch {
         console.error("Failed to load applications");
       } finally {
@@ -149,7 +160,10 @@ export function ServiceApplications() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-xs font-bold text-slate-500">
-                      {formatDate(application.created_at)}
+                      {formatDate(
+                        application.order_created_at ||
+                          application.created_at,
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       <button className="p-2 text-slate-400 transition-colors hover:text-blue-600">

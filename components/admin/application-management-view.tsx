@@ -48,11 +48,8 @@ export function ApplicationManagementView() {
     }, [dispatch]);
 
     useEffect(() => {
-        dispatch(fetchAdminApplications({
-            applicationDate: applicationDate || undefined,
-            timezoneOffset: new Date().getTimezoneOffset(),
-        }));
-    }, [applicationDate, dispatch]);
+        dispatch(fetchAdminApplications());
+    }, [dispatch]);
 
     const filteredApplications = useMemo(() => {
         const tab = TABS.find(t => t.id === activeTab);
@@ -64,12 +61,23 @@ export function ApplicationManagementView() {
                     app.service?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                     app.application_unique_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                     app.order_unique_id?.toLowerCase().includes(searchQuery.toLowerCase());
+                const orderDateValue = app.order_created_at || app.created_at;
+                const orderDate = orderDateValue ? new Date(orderDateValue) : null;
+                const matchesDate =
+                    !applicationDate ||
+                    (orderDate &&
+                        !Number.isNaN(orderDate.getTime()) &&
+                        format(orderDate, "yyyy-MM-dd") === applicationDate);
                 
-                return matchesTab && matchesSearch;
+                return matchesTab && matchesSearch && matchesDate;
             })
             .sort((a: any, b: any) => {
-                const rightDate = new Date(b.created_at || 0).getTime();
-                const leftDate = new Date(a.created_at || 0).getTime();
+                const rightDate = new Date(
+                    b.order_created_at || b.created_at || 0,
+                ).getTime();
+                const leftDate = new Date(
+                    a.order_created_at || a.created_at || 0,
+                ).getTime();
 
                 if (rightDate !== leftDate) {
                     return rightDate - leftDate;
@@ -77,12 +85,26 @@ export function ApplicationManagementView() {
 
                 return Number(b.id || 0) - Number(a.id || 0);
             });
-    }, [applications, activeTab, searchQuery]);
+    }, [applications, activeTab, applicationDate, searchQuery]);
 
     const stats = useMemo(() => {
         return {
             unassigned: applications.filter((a: any) => !a.accountant && TABS[0].statuses.includes(a.status)).length,
-            new: applications.filter((a: any) => a.status === 'applied').length,
+            new: applications.filter((application: any) => {
+                const value =
+                    application.order_created_at || application.created_at;
+                if (!value) return false;
+
+                const orderDate = new Date(value);
+                const today = new Date();
+
+                return (
+                    !Number.isNaN(orderDate.getTime()) &&
+                    orderDate.getFullYear() === today.getFullYear() &&
+                    orderDate.getMonth() === today.getMonth() &&
+                    orderDate.getDate() === today.getDate()
+                );
+            }).length,
             total: applications.length
         };
     }, [applications]);
@@ -92,10 +114,7 @@ export function ApplicationManagementView() {
         try {
             await dispatch(assignAccountantToApplication({ applicationId, accountantId })).unwrap();
             toast.success("Accountant Assignment updated successfully");
-            dispatch(fetchAdminApplications({
-                applicationDate: applicationDate || undefined,
-                timezoneOffset: new Date().getTimezoneOffset(),
-            }));
+            dispatch(fetchAdminApplications());
         } catch (error: any) {
             toast.error(error || "Failed to update assignment");
         } finally {
@@ -202,7 +221,7 @@ export function ApplicationManagementView() {
                                     <tr>
                                         <th className="px-6 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Client Identity</th>
                                         <th className="px-6 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Service Track</th>
-                                        <th className="px-6 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Applied On</th>
+                                        <th className="px-6 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Ordered On</th>
                                         <th className="px-6 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-center">Current Status</th>
                                         <th className="px-6 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-center">Assigned Expert</th>
                                         <th className="px-6 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Quick Action</th>
@@ -224,7 +243,9 @@ export function ApplicationManagementView() {
                                         </tr>
                                     ) : filteredApplications.map((app: any) => {
                                         const config = getStatusConfig(app.status);
-                                        const applicationCreatedAt = formatApplicationDate(app.created_at);
+                                        const applicationCreatedAt = formatApplicationDate(
+                                            app.order_created_at || app.created_at,
+                                        );
                                         return (
                                             <tr key={app.id} className="hover:bg-blue-50/20 transition-all group">
                                                 <td className="px-6 py-6">

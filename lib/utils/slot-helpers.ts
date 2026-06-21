@@ -154,7 +154,12 @@ export const getAvailableSlots = (
 ) => {
   return slotTimes.filter((slot) => {
     const availability = slotAvailability?.[slot];
-    return availability && !availability.is_full && !availability.is_past;
+    return (
+      availability &&
+      availability.is_available !== false &&
+      !availability.is_full &&
+      !availability.is_past
+    );
   });
 };
 

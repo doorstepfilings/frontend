@@ -150,7 +150,11 @@ export function TransactionHistoryView() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
-                      {formatDateWithPattern(order.created_at, "d MMM yyyy", "N/A")}
+                      {formatDateWithPattern(
+                        order.created_at,
+                        "d MMM yyyy",
+                        "N/A",
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col gap-0.5">

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
 import { toast } from "react-hot-toast";
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,11 @@ import {
   splitDocumentsByOwner,
   getDocumentIcon,
   resolveStorageUrl,
-  formatFileSize
+  formatFileSize,
+  isClientUploadedDocument,
+  requiresClientApprovalDocument,
+  getClientApprovalStatus,
+  isInternalDocument
 } from "@/lib/utils/document-helpers";
 import { parseApiError } from "@/lib/utils/error-parser";
 import { useStoredUser } from "@/lib/auth/hooks";
@@ -34,6 +38,34 @@ export const StatusManagement = ({ application }: StatusManagementProps) => {
   const { actionLoading } = useAppSelector((state) => state.admin);
   const { confirm, ConfirmDialog } = useConfirm();
   const currentUser = useStoredUser();
+
+  const hasUnapprovedDocs = useMemo(() => {
+    if (!application || !Array.isArray(application.request_documents)) return false;
+
+    const activeDocs = application.request_documents.filter(
+      (doc: any) =>
+        !["replaced", "superseded"].includes(
+          String(doc.status || "").toLowerCase(),
+        ),
+    );
+
+    return activeDocs.some((doc: any) => {
+      if (isInternalDocument(doc)) return false;
+
+      const isClientUploaded = isClientUploadedDocument(doc, application.user?.id);
+      const requiresApproval = requiresClientApprovalDocument(doc);
+
+      if (isClientUploaded) {
+        const status = String(doc.status || "").toLowerCase();
+        return status !== "approved" && status !== "verified";
+      } else if (requiresApproval) {
+        const approvalStatus = getClientApprovalStatus(doc);
+        return approvalStatus !== "approved";
+      }
+
+      return false;
+    });
+  }, [application?.request_documents, application?.user?.id]);
 
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showOverrideModal, setShowOverrideModal] = useState(false);
@@ -69,6 +101,48 @@ export const StatusManagement = ({ application }: StatusManagementProps) => {
   const handleStatusUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!statusForm.status) return toast.error("Please select a target status");
+
+    // Check for unapproved documents before completing service
+    if (statusForm.status === "completed") {
+      const activeDocs = Array.isArray(application?.request_documents)
+        ? application.request_documents.filter(
+            (doc: any) =>
+              !["replaced", "superseded"].includes(
+                String(doc.status || "").toLowerCase(),
+              ),
+          )
+        : [];
+
+      const pendingOrCorrectionDocs = activeDocs.filter((doc: any) => {
+        // Exclude internal documents
+        if (isInternalDocument(doc)) return false;
+
+        const isClientUploaded = isClientUploadedDocument(doc, application.user?.id);
+        const requiresApproval = requiresClientApprovalDocument(doc);
+
+        if (isClientUploaded) {
+          // Client uploaded documents must be approved/verified
+          const status = String(doc.status || "").toLowerCase();
+          return status !== "approved" && status !== "verified";
+        } else if (requiresApproval) {
+          // Accountant uploaded documents requiring client approval must be approved by client
+          const approvalStatus = getClientApprovalStatus(doc);
+          return approvalStatus !== "approved";
+        }
+
+        return false;
+      });
+
+      if (pendingOrCorrectionDocs.length > 0) {
+        const docNames = pendingOrCorrectionDocs
+          .map((doc: any) => doc.document_name || doc.file_name || "Unnamed Document")
+          .join(", ");
+        toast.error(
+          `Cannot complete service: some documents are pending or need correction (${docNames}).`
+        );
+        return;
+      }
+    }
 
     let finalUpdateNote = application.update_note || "";
     const noteText = statusForm.status === "update_required" ? statusForm.update_note : (statusForm.status === "rejected" ? statusForm.rejection_reason : "");
@@ -188,6 +262,17 @@ export const StatusManagement = ({ application }: StatusManagementProps) => {
         </div>
         
         <div className="flex flex-col gap-3">
+          {hasUnapprovedDocs && !["completed", "approved", "cancelled", "rejected"].includes(application.status) && (
+            <div className="bg-amber-950/40 border border-amber-900/50 rounded-xl p-4 flex items-start gap-3">
+              <i className="fas fa-exclamation-triangle text-amber-500 mt-0.5 text-xs"></i>
+              <div>
+                <h4 className="text-xs font-bold text-amber-200 uppercase tracking-wider">Unapproved Documents</h4>
+                <p className="text-[11px] text-amber-300 mt-0.5 font-medium leading-relaxed">
+                  Some client-facing documents are pending or need correction. You cannot complete the workflow until all documents are approved.
+                </p>
+              </div>
+            </div>
+          )}
           <button 
             onClick={() => setShowStatusModal(true)}
             className="w-full h-12 bg-blue-600 hover:bg-blue-500 rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-lg flex items-center justify-center gap-2"
