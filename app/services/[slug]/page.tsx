@@ -963,11 +963,12 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
                   <div className="relative flex-1">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 font-medium text-gray-400">+{applyFormData.dialCode}</span>
                     <input
-                      type="text"
+                      type="tel"
                       value={applyFormData.phone}
-                      onChange={(e) => setApplyFormData({ ...applyFormData, phone: e.target.value.replace(/\D/g, "") })}
+                      onChange={(e) => setApplyFormData({ ...applyFormData, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })}
                       className="w-full border-none py-3 pl-12 pr-4 outline-none"
                       placeholder="Enter mobile number"
+                      maxLength={10}
                     />
                   </div>
                 </div>

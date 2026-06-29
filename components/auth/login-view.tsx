@@ -59,7 +59,6 @@ export function LoginView() {
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
-  const [devOtp, setDevOtp] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
@@ -86,7 +85,7 @@ export function LoginView() {
   };
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const localNumber = e.target.value.replace(/\D/g, "");
+    const localNumber = e.target.value.replace(/\D/g, "").slice(0, 10);
     setPhone(localNumber);
   };
 
@@ -127,7 +126,6 @@ export function LoginView() {
       });
 
       setOtpSent(true);
-      setDevOtp(response.data?.data?.otp ?? "");
     } catch (requestError) {
       logAuthError("Login OTP request failed", requestError);
       setError(getFriendlyAuthErrorMessage(requestError, AUTH_ERROR_MESSAGES.LOGIN_FAILED));
@@ -333,11 +331,12 @@ export function LoginView() {
 
                         {/* Mobile Number Input */}
                         <input
-                          type="text"
+                          type="tel"
                           value={phone}
                           onChange={handlePhoneChange}
                           className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3.5 pl-20 pr-4 text-slate-900 outline-none transition-all focus:border-transparent focus:bg-white focus:ring-2 focus:ring-blue-900"
                           placeholder="Enter mobile number"
+                          maxLength={10}
                           required
                         />
                       </div>
@@ -376,11 +375,6 @@ export function LoginView() {
                           required
                         />
                       </div>
-                      {devOtp && (
-                        <p className="mt-2 text-center text-xs font-bold text-amber-600">
-                          Dev OTP: {devOtp}
-                        </p>
-                      )}
                     </div>
                     <p className="text-center text-xs text-slate-500">
                       OTP will be sent to your mobile via SMS

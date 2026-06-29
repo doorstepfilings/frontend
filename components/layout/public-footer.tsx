@@ -51,6 +51,7 @@ export function PublicFooter() {
                 width={132}
                 height={56}
                 className="h-14 w-auto object-contain"
+                style={{ width: "auto" }}
               />
             </Link>
             <p className="mb-6 text-sm text-gray-400">
@@ -83,7 +84,7 @@ export function PublicFooter() {
             </h4>
             <ul className="space-y-3">
               {servicesData && servicesData.length > 0 ? (
-                servicesData.slice(0, 5).map((category, idx) => (
+                servicesData.slice(0, 8).map((category, idx) => (
                   <li key={idx}>
                     <Link
                       href="/services"

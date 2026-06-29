@@ -22,13 +22,6 @@ const pageItems = [
   { path: "/dashboard/documents", label: "Documents" },
   { path: "/dashboard/certificates", label: "Certificates" },
   { path: "/dashboard/reports", label: "Reports" },
-  // { path: "/dashboard/bookkeeping/business-profile", label: "Business Profile" },
-  // { path: "/dashboard/bookkeeping/customers", label: "Customers" },
-  // { path: "/dashboard/bookkeeping/quotations", label: "Quotations" },
-  // { path: "/dashboard/bookkeeping/proforma-invoices", label: "Proforma Invoices" },
-  // { path: "/dashboard/bookkeeping/invoices", label: "Invoices" },
-  // { path: "/dashboard/bookkeeping/delivery-challans", label: "Delivery Challans" },
-  // { path: "/dashboard/bookkeeping/billing", label: "Billing" },
   { path: "/account", label: "My Profile" },
 ];
 

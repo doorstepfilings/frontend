@@ -76,15 +76,27 @@ function canFallbackDocumentApproval(error: unknown) {
 export const fetchServices = createAsyncThunk<
   ServiceCategory[],
   void,
-  { rejectValue: string }
->("services/fetchServices", async (_, { rejectWithValue }) => {
-  try {
-    const response = await apiClient.get("/services");
-    return response.data?.data ?? [];
-  } catch (error: any) {
-    return rejectWithValue(error.response?.data?.message || "Failed to fetch services");
-  }
-});
+  { rejectValue: string; state: { services: ServicesState } }
+>(
+  "services/fetchServices",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await apiClient.get("/services", {
+        skipAuth: true,
+        timeout: 8000,
+      });
+      return response.data?.data ?? [];
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || "Failed to fetch services");
+    }
+  },
+  {
+    condition: (_, { getState }) => {
+      const { items, status } = getState().services;
+      return status !== "loading" && (status !== "succeeded" || items.length === 0);
+    },
+  },
+);
 
 export const fetchServiceDetails = createAsyncThunk<
   ServiceItem,

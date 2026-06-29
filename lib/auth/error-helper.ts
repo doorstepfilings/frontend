@@ -302,7 +302,13 @@ export function getAuthErrorCode(
   }
 
   if (status === 401) {
-    return AUTH_ERROR_CODES.INVALID_CREDENTIALS;
+    if (
+      fallback === AUTH_ERROR_CODES.INVALID_CREDENTIALS ||
+      fallback === AUTH_ERROR_CODES.LOGIN_FAILED
+    ) {
+      return AUTH_ERROR_CODES.INVALID_CREDENTIALS;
+    }
+    return AUTH_ERROR_CODES.GENERIC;
   }
 
   if (status === 404) {
@@ -359,6 +365,16 @@ export function getFriendlyAuthErrorMessage(
   error: unknown,
   fallback: AuthErrorMessage = AUTH_ERROR_MESSAGES.GENERIC,
 ): string {
+  if (isRecord(error) && isRecord(error.response) && isRecord(error.response.data)) {
+    const status = Number(error.response.status || error.status);
+    const msg = error.response.data.message || error.response.data.error;
+    if (typeof msg === "string" && msg.trim()) {
+      if (status === 409 || status === 400) {
+        return msg.trim();
+      }
+    }
+  }
+
   if (typeof error === "string" && APPROVED_AUTH_MESSAGES.has(error)) {
     return error;
   }

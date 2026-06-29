@@ -16,7 +16,9 @@ import { MobileMenu } from "@/components/layout/header/mobile-menu";
 
 export function PublicHeader() {
   const dispatch = useAppDispatch();
-  const { items: servicesData } = useAppSelector((state) => state.services);
+  const { items: servicesData, status: servicesStatus } = useAppSelector(
+    (state) => state.services,
+  );
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -46,8 +48,10 @@ export function PublicHeader() {
   });
 
   useEffect(() => {
-    dispatch(fetchServices());
-  }, [dispatch]);
+    if (servicesStatus === "idle" && servicesData.length === 0) {
+      dispatch(fetchServices());
+    }
+  }, [dispatch, servicesData.length, servicesStatus]);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 50);
@@ -100,6 +104,7 @@ export function PublicHeader() {
               width={160}
               height={80}
               className="h-16 w-auto object-contain sm:h-20"
+              style={{ width: "auto" }}
             />
           </Link>
 

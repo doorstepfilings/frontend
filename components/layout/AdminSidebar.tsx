@@ -8,6 +8,7 @@ import { logout } from "@/lib/features/auth/auth-slice";
 import { normalizeRole } from "@/lib/auth/redirects";
 import { useStoredUser } from "@/lib/auth/hooks";
 import {
+  type DashboardNavItem,
   getDashboardNavItems,
   getRolePortalMeta,
   isDashboardPathActive,
@@ -16,6 +17,11 @@ import {
 type AdminSidebarProps = {
   isOpen: boolean;
   setIsOpen: (val: boolean) => void;
+};
+
+type NavSection = {
+  section: string;
+  items: DashboardNavItem[];
 };
 
 export function AdminSidebar({ isOpen, setIsOpen }: AdminSidebarProps) {
@@ -35,6 +41,18 @@ export function AdminSidebar({ isOpen, setIsOpen }: AdminSidebarProps) {
   );
   const navItems = getDashboardNavItems(normalizedRole);
   const portalMeta = getRolePortalMeta(normalizedRole);
+  const navSections = navItems.reduce<NavSection[]>((sections, item) => {
+    const sectionName = item.section ?? "Workspace";
+    const existingSection = sections.find((section) => section.section === sectionName);
+
+    if (existingSection) {
+      existingSection.items.push(item);
+    } else {
+      sections.push({ section: sectionName, items: [item] });
+    }
+
+    return sections;
+  }, []);
 
   const handleLogout = async () => {
     await dispatch(logout()).unwrap();
@@ -55,8 +73,7 @@ export function AdminSidebar({ isOpen, setIsOpen }: AdminSidebarProps) {
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        {/* Scrollable Container */}
-        <div className="flex flex-1 flex-col overflow-y-auto min-h-0">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
           <div className="flex items-center justify-between border-b border-slate-200 px-5 py-5">
             <Link
               href={navItems[0]?.path ?? "/admin/dashboard"}
@@ -69,6 +86,7 @@ export function AdminSidebar({ isOpen, setIsOpen }: AdminSidebarProps) {
                 width={160}
                 height={80}
                 className="h-16 w-auto object-contain"
+                style={{ width: "auto" }}
               />
             </Link>
             <button
@@ -84,7 +102,7 @@ export function AdminSidebar({ isOpen, setIsOpen }: AdminSidebarProps) {
             <Link
               href="/"
               onClick={() => setIsOpen(false)}
-              className="admin-btn-muted flex w-full justify-start rounded-2xl text-xs normal-case tracking-normal font-semibold"
+              className="admin-btn-muted flex w-full justify-start rounded-2xl text-xs font-semibold normal-case tracking-normal"
             >
               <i className="fas fa-external-link-alt text-xs" />
               Back to Website
@@ -103,37 +121,43 @@ export function AdminSidebar({ isOpen, setIsOpen }: AdminSidebarProps) {
             </div>
           </div>
 
-          <nav className="mt-3 flex-1 space-y-1.5 p-4">
-            {navItems.map((item) => {
-              const isActive = isDashboardPathActive(pathname, item.path);
+          <nav className="mt-3 flex-1 space-y-5 p-4">
+            {navSections.map((section) => (
+              <div key={section.section} className="space-y-1.5">
+                <p className="px-3 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
+                  {section.section}
+                </p>
+                {section.items.map((item) => {
+                  const isActive = isDashboardPathActive(pathname, item.path);
 
-              return (
-                <Link
-                  key={item.path}
-                  href={item.path}
-                  onClick={() => setIsOpen(false)}
-                  className={`flex items-center gap-3 rounded-2xl px-4 py-3 transition-all ${
-                    isActive
-                      ? "border border-blue-100 bg-blue-50 text-blue-900 font-semibold shadow-sm"
-                      : "border border-transparent text-slate-600 hover:border-slate-100 hover:bg-slate-50 hover:text-blue-900"
-                  }`}
-                >
-                  <span
-                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
-                      isActive ? "bg-white text-blue-900 shadow-sm" : "bg-slate-100 text-slate-500"
-                    }`}
-                  >
-                    <i className={`fas ${item.icon} text-sm`} />
-                  </span>
-                  <span className="text-sm">{item.label}</span>
-                </Link>
-              );
-            })}
+                  return (
+                    <Link
+                      key={item.path}
+                      href={item.path}
+                      onClick={() => setIsOpen(false)}
+                      className={`flex items-center gap-3 rounded-2xl px-4 py-3 transition-all ${
+                        isActive
+                          ? "border border-blue-100 bg-blue-50 font-semibold text-blue-900 shadow-sm"
+                          : "border border-transparent text-slate-600 hover:border-slate-100 hover:bg-slate-50 hover:text-blue-900"
+                      }`}
+                    >
+                      <span
+                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+                          isActive ? "bg-white text-blue-900 shadow-sm" : "bg-slate-100 text-slate-500"
+                        }`}
+                      >
+                        <i className={`fas ${item.icon} text-sm`} />
+                      </span>
+                      <span className="text-sm">{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            ))}
           </nav>
         </div>
 
-        {/* Sticky Logout Area */}
-        <div className="shrink-0 space-y-1 border-t border-slate-200 p-4 bg-white">
+        <div className="shrink-0 space-y-1 border-t border-slate-200 bg-white p-4">
           <button
             onClick={() => void handleLogout()}
             className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-rose-600 transition-colors hover:bg-rose-50"

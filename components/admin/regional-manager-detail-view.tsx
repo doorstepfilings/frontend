@@ -155,10 +155,10 @@ export function RegionalManagerDetailView() {
                   href="/admin/regional-managers"
                   className="text-sm font-semibold text-gray-500 transition-colors hover:text-gray-700"
                 >
-                  {"<- Back to Regional Managers"}
+                  {"<- Back to Relationship Managers"}
                 </Link>
                 <h1 className="mt-3 text-3xl font-black tracking-tight text-gray-900">
-                  {String(manager.name ?? "Regional Manager")}
+                  {String(manager.name ?? "Relationship Manager")}
                 </h1>
                 <p className="mt-1 text-sm font-medium text-gray-500">
                   RM ID: {String(getRmUniqueId(manager) ?? "N/A")}
@@ -168,11 +168,10 @@ export function RegionalManagerDetailView() {
               <button
                 onClick={() => void handleDelete()}
                 disabled={deleting || assignedUsers.length > 0}
-                className={`rounded-xl px-4 py-2 text-xs font-black uppercase tracking-widest transition-colors ${
-                  deleting || assignedUsers.length > 0
-                    ? "cursor-not-allowed bg-gray-100 text-gray-400"
-                    : "bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white"
-                }`}
+                className={`rounded-xl px-4 py-2 text-xs font-black uppercase tracking-widest transition-colors ${deleting || assignedUsers.length > 0
+                  ? "cursor-not-allowed bg-gray-100 text-gray-400"
+                  : "bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white"
+                  }`}
               >
                 {deleting ? "Deleting..." : "Delete Manager"}
               </button>

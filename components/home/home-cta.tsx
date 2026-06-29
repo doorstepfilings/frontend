@@ -1,8 +1,90 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
 const BENEFITS = [
   "Data-Driven Financial Advice",
   "Risk Mitigation & Compliance",
   "Strategic Growth Planning",
 ] as const;
+
+function ConsultationFields() {
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
+  if (!isHydrated) {
+    return (
+      <>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2" aria-hidden="true">
+          <div>
+            <span className="mb-1 block text-xs font-bold uppercase text-gray-500">
+              First Name
+            </span>
+            <div className="h-[50px] w-full rounded border border-gray-200 bg-gray-50" />
+          </div>
+          <div>
+            <span className="mb-1 block text-xs font-bold uppercase text-gray-500">
+              Last Name
+            </span>
+            <div className="h-[50px] w-full rounded border border-gray-200 bg-gray-50" />
+          </div>
+        </div>
+        <div aria-hidden="true">
+          <span className="mb-1 block text-xs font-bold uppercase text-gray-500">
+            Email
+          </span>
+          <div className="h-[50px] w-full rounded border border-gray-200 bg-gray-50" />
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div suppressHydrationWarning>
+          <label className="mb-1 block text-xs font-bold uppercase text-gray-500">
+            First Name
+          </label>
+          <input
+            type="text"
+            autoComplete="off"
+            data-form-type="other"
+            data-lpignore="true"
+            className="w-full rounded border border-gray-200 bg-gray-50 px-4 py-3 focus:border-blue-900 focus:outline-none"
+          />
+        </div>
+        <div suppressHydrationWarning>
+          <label className="mb-1 block text-xs font-bold uppercase text-gray-500">
+            Last Name
+          </label>
+          <input
+            type="text"
+            autoComplete="off"
+            data-form-type="other"
+            data-lpignore="true"
+            className="w-full rounded border border-gray-200 bg-gray-50 px-4 py-3 focus:border-blue-900 focus:outline-none"
+          />
+        </div>
+      </div>
+      <div suppressHydrationWarning>
+        <label className="mb-1 block text-xs font-bold uppercase text-gray-500">
+          Email
+        </label>
+        <input
+          type="email"
+          autoComplete="off"
+          data-form-type="other"
+          data-lpignore="true"
+          className="w-full rounded border border-gray-200 bg-gray-50 px-4 py-3 focus:border-blue-900 focus:outline-none"
+        />
+      </div>
+    </>
+  );
+}
 
 export function HomeCta() {
   return (
@@ -35,36 +117,14 @@ export function HomeCta() {
           {/* Right consultation form */}
           <div className="w-full rounded-2xl bg-white p-5 text-gray-800 shadow-2xl sm:p-8 lg:w-1/2">
             <h3 className="mb-6 text-2xl font-bold">Request a Consultation</h3>
-            <form className="space-y-4">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div>
-                  <label className="mb-1 block text-xs font-bold uppercase text-gray-500">
-                    First Name
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full rounded border border-gray-200 bg-gray-50 px-4 py-3 focus:border-blue-900 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-bold uppercase text-gray-500">
-                    Last Name
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full rounded border border-gray-200 bg-gray-50 px-4 py-3 focus:border-blue-900 focus:outline-none"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-bold uppercase text-gray-500">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  className="w-full rounded border border-gray-200 bg-gray-50 px-4 py-3 focus:border-blue-900 focus:outline-none"
-                />
-              </div>
+            <form
+              className="space-y-4"
+              autoComplete="off"
+              data-form-type="other"
+              data-lpignore="true"
+              suppressHydrationWarning
+            >
+              <ConsultationFields />
               <button
                 type="button"
                 className="w-full rounded bg-amber-500 py-4 text-lg font-bold text-white transition-colors hover:bg-amber-600"

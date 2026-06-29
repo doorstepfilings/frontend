@@ -17,4 +17,7 @@ export const SITE = {
   name: "DoorstepFilings",
   tagline: "Financial & Advisory Solutions",
   established: "2014",
+  faviconPath: "/favicon-round.png",
+  appIconPath: "/icon.png",
+  appleIconPath: "/apple-icon.png",
 };

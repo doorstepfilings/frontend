@@ -3,12 +3,23 @@ import { Inter } from "next/font/google";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
 import { Providers } from "./providers";
+import { SITE } from "@/lib/constants/site";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "DoorstepFilings",
+  title: SITE.name,
   description: "Professional filing services at your doorstep",
+  icons: {
+    icon: [
+      { url: SITE.faviconPath, type: "image/png", sizes: "1024x1024" },
+      { url: SITE.appIconPath, type: "image/png", sizes: "1024x1024" },
+    ],
+    shortcut: [SITE.faviconPath],
+    apple: [
+      { url: SITE.appleIconPath, type: "image/png", sizes: "1024x1024" },
+    ],
+  },
 };
 
 export default function RootLayout({
@@ -23,7 +34,7 @@ export default function RootLayout({
           rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
         />
-        {/* Inline splash styles — zero JS needed, paints on first byte */}
+        {/* Inline splash styles â€” zero JS needed, paints on first byte */}
         <style
           dangerouslySetInnerHTML={{
             __html: `
@@ -32,6 +43,7 @@ export default function RootLayout({
                 display:flex;align-items:center;justify-content:center;
                 background:#f8fafc;
                 transition:opacity 0.35s ease;
+                animation:sp-auto-hide 4.5s ease forwards;
               }
               #__initial_splash__ .sp-card{
                 display:flex;flex-direction:column;align-items:center;gap:20px;
@@ -80,12 +92,13 @@ export default function RootLayout({
               @keyframes sp-pulse{0%,100%{opacity:0.45;transform:scale(1);}50%{opacity:0.75;transform:scale(1.12);}}
               @keyframes sp-bob{0%,100%{transform:scale(1);}50%{transform:scale(1.035);}}
               @keyframes sp-bounce{0%,80%,100%{transform:translateY(0);opacity:0.6;}40%{transform:translateY(-6px);opacity:1;}}
+              @keyframes sp-auto-hide{0%,88%{opacity:1;visibility:visible;}100%{opacity:0;visibility:hidden;pointer-events:none;}}
             `,
           }}
         />
       </head>
       <body suppressHydrationWarning className={inter.className}>
-        {/* Pure-HTML initial splash — shows instantly before JS, removed by Providers after hydration */}
+        {/* Pure-HTML initial splash â€” shows instantly before JS, removed by Providers after hydration */}
         <div id="__initial_splash__">
           <div className="sp-card">
             <div className="sp-ring-wrap">
@@ -93,7 +106,7 @@ export default function RootLayout({
               <div className="sp-ring" />
               <div className="sp-inner">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/favicon-round.png" alt="DoorstepFilings" />
+                <img src={SITE.faviconPath} alt={SITE.name} />
               </div>
             </div>
             <div className="sp-dots">

@@ -253,11 +253,10 @@ export function AccountView() {
 
           {message ? (
             <div
-              className={`rounded-2xl border px-6 py-4 text-[11px] font-bold uppercase tracking-wider animate-fadeIn ${
-                message.type === "success"
-                  ? "border-emerald-100 bg-emerald-50 text-emerald-700"
-                  : "border-rose-100 bg-rose-50 text-rose-700"
-              }`}
+              className={`rounded-2xl border px-6 py-4 text-[11px] font-bold uppercase tracking-wider animate-fadeIn ${message.type === "success"
+                ? "border-emerald-100 bg-emerald-50 text-emerald-700"
+                : "border-rose-100 bg-rose-50 text-rose-700"
+                }`}
             >
               <i className={`fas ${message.type === "success" ? "fa-check-circle" : "fa-exclamation-circle"} mr-2`} />
               {message.text}
@@ -274,11 +273,10 @@ export function AccountView() {
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`inline-flex items-center gap-2 rounded-xl px-6 py-3 text-[10px] font-black uppercase tracking-widest transition-all ${
-                  activeTab === tab.id
-                    ? "bg-blue-900 text-white shadow-lg shadow-blue-900/20"
-                    : "text-slate-400 hover:bg-slate-50 hover:text-slate-900"
-                }`}
+                className={`inline-flex items-center gap-2 rounded-xl px-6 py-3 text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab.id
+                  ? "bg-blue-900 text-white shadow-lg shadow-blue-900/20"
+                  : "text-slate-400 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
               >
                 <i className={`fas ${tab.icon}`} />
                 {tab.label}
@@ -319,9 +317,11 @@ export function AccountView() {
                   </FormField>
                   <FormField label="Mobile Number">
                     <FieldInput
+                      type="tel"
                       value={profileData.mobile_number}
-                      onChange={(value) => setProfileData((prev) => ({ ...prev, mobile_number: value }))}
+                      onChange={(value) => setProfileData((prev) => ({ ...prev, mobile_number: value.replace(/[^\d+]/g, "").slice(0, 10) }))}
                       placeholder="+91 00000 00000"
+                      maxLength={10}
                     />
                   </FormField>
                   <FormField label="Accountant Type">
@@ -582,11 +582,10 @@ function AccountantTypeToggle({
             key={option.value}
             type="button"
             onClick={() => onChange(option.value)}
-            className={`flex items-center justify-center gap-2 rounded-xl px-3 text-[10px] font-black uppercase tracking-widest transition-all ${
-              isSelected
-                ? "bg-blue-900 text-white shadow-lg shadow-blue-900/20"
-                : "text-slate-400 hover:bg-white hover:text-slate-900"
-            }`}
+            className={`flex items-center justify-center gap-2 rounded-xl px-3 text-[10px] font-black uppercase tracking-widest transition-all ${isSelected
+              ? "bg-blue-900 text-white shadow-lg shadow-blue-900/20"
+              : "text-slate-400 hover:bg-white hover:text-slate-900"
+              }`}
           >
             <i className={`fas ${option.icon}`} />
             {option.label}
@@ -602,11 +601,13 @@ function FieldInput({
   onChange,
   type = "text",
   placeholder = "",
+  ...props
 }: {
   value: string;
   onChange: (value: string) => void;
   type?: string;
   placeholder?: string;
+  [key: string]: any;
 }) {
   return (
     <input
@@ -615,6 +616,7 @@ function FieldInput({
       onChange={(event) => onChange(event.target.value)}
       placeholder={placeholder}
       className="w-full h-14 rounded-2xl border border-slate-100 bg-slate-50/50 px-6 text-sm font-medium text-slate-700 outline-none transition-all focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 placeholder:text-slate-300"
+      {...props}
     />
   );
 }

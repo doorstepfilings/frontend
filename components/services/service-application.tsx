@@ -831,9 +831,10 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
                         <input 
                             type="tel" 
                             value={formData.phone} 
-                            onChange={e => handleInputChange('phone', e.target.value.replace(/\D/g, ''))}
+                            onChange={e => handleInputChange('phone', e.target.value.replace(/\D/g, '').slice(0, 10))}
                             className="flex-1 px-4 py-3 outline-none"
-                            placeholder="9106035652"
+                            placeholder="Enter mobile number"
+                            maxLength={10}
                             required
                         />
                     </div>

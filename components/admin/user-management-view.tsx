@@ -1593,15 +1593,17 @@ export function UserManagementView({
                       Mobile Number
                     </label>
                     <input
+                      type="tel"
                       value={formState.mobile_number}
                       onChange={(event) =>
                         setFormState((state) => ({
                           ...state,
-                          mobile_number: event.target.value,
+                          mobile_number: event.target.value.replace(/[^\d+]/g, "").slice(0, 10), 
                         }))
                       }
                       className="w-full rounded-xl border border-gray-100 bg-white px-4 py-3 text-sm font-semibold text-gray-700 focus:outline-none focus:ring-4 focus:ring-blue-500/10"
                       placeholder="Optional phone number"
+                      maxLength={10}
                     />
                   </div>
                   <div>

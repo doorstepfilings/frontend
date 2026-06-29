@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -23,44 +22,6 @@ const navItems = [
   { path: "/dashboard/reports", label: "Reports", icon: "fa-file-alt" },
 ];
 
-const bookkeepingItems = [
-  {
-    path: "/dashboard/bookkeeping/business-profile",
-    label: "Business Profile",
-    icon: "fa-building",
-  },
-  {
-    path: "/dashboard/bookkeeping/customers",
-    label: "Customers",
-    icon: "fa-users",
-  },
-  {
-    path: "/dashboard/bookkeeping/quotations",
-    label: "Quotations",
-    icon: "fa-briefcase",
-  },
-  {
-    path: "/dashboard/bookkeeping/proforma-invoices",
-    label: "Proforma Invoices",
-    icon: "fa-life-ring",
-  },
-  {
-    path: "/dashboard/bookkeeping/invoices",
-    label: "Invoices",
-    icon: "fa-file-invoice",
-  },
-  {
-    path: "/dashboard/bookkeeping/delivery-challans",
-    label: "Delivery Challans",
-    icon: "fa-truck-loading",
-  },
-  {
-    path: "/dashboard/bookkeeping/billing",
-    label: "Billing",
-    icon: "fa-receipt",
-  },
-];
-
 export default function DashboardSidebar({
   isOpen,
   setIsOpen,
@@ -69,8 +30,6 @@ export default function DashboardSidebar({
   const router = useRouter();
   const dispatch = useAppDispatch();
   const user = useStoredUser();
-  const isBookkeepingActive = pathname.startsWith("/dashboard/bookkeeping");
-  const [isBookkeepingOpen, setIsBookkeepingOpen] = useState(isBookkeepingActive);
 
   const handleLogout = async () => {
     await dispatch(logout()).unwrap();
@@ -109,6 +68,7 @@ export default function DashboardSidebar({
                 width={160}
                 height={80}
                 className="h-20 w-auto object-contain"
+                style={{ width: "auto" }}
               />
             </Link>
             <button
@@ -149,48 +109,6 @@ export default function DashboardSidebar({
                   <span className="text-sm">{item.label}</span>
                 </Link>
               ))}
-
-              {/* bookkeeping section is currently hidden as it's not fully implemented yet. Uncomment when ready. */}
-
-              {/* <div className="pt-5">
-                <button
-                  type="button"
-                  onClick={() => setIsBookkeepingOpen((current) => !current)}
-                  aria-expanded={isBookkeepingOpen}
-                  className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 transition-all ${
-                    isBookkeepingActive
-                      ? "bg-blue-50 font-semibold text-blue-900"
-                      : "text-gray-600 hover:bg-gray-50 hover:text-blue-900"
-                  }`}
-                >
-                  <i className="fas fa-book w-5 text-center" />
-                  <span className="flex-1 text-left text-sm">Bookkeeping</span>
-                  <i
-                    className={`fas fa-chevron-down text-[10px] transition-transform ${
-                      isBookkeepingOpen ? "rotate-180" : ""
-                    }`}
-                  />
-                </button>
-                {isBookkeepingOpen ? (
-                  <div className="mt-1 space-y-1 pl-4">
-                    {bookkeepingItems.map((item) => (
-                      <Link
-                        key={item.path}
-                        href={item.path}
-                        onClick={() => setIsOpen(false)}
-                        className={`flex items-center gap-3 rounded-xl px-4 py-2.5 transition-all ${
-                          isActive(item.path)
-                            ? "bg-blue-50 font-semibold text-blue-900"
-                            : "text-gray-600 hover:bg-gray-50 hover:text-blue-900"
-                        }`}
-                      >
-                        <i className={`fas ${item.icon} w-5 text-center text-xs`} />
-                        <span className="text-sm">{item.label}</span>
-                      </Link>
-                    ))}
-                  </div>
-                ) : null}
-              </div> */}
             </nav>
 
             <div className="mt-8 border-t border-gray-100 pt-6">

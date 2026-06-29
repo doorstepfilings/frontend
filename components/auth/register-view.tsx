@@ -75,7 +75,6 @@ export function RegisterView() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
-  const [devOtp, setDevOtp] = useState("");
 
   const [rmDetails, setRmDetails] = useState<RegionalManagerResult | null>(null);
   const [rmLoading, setRmLoading] = useState(false);
@@ -160,9 +159,9 @@ export function RegisterView() {
         value: formData.email,
       });
       setVerification((prev) => ({ ...prev, emailSent: true, emailOtp: "" }));
-      setDevOtp(response.data?.data?.otp ?? "");
     } catch (err) {
       logAuthError("Registration OTP request failed", err);
+      setVerification((prev) => ({ ...prev, emailSent: false, emailOtp: "" }));
       setErrors((prev) => ({
         ...prev,
         email: getFriendlyAuthErrorMessage(err, AUTH_ERROR_MESSAGES.GENERIC),
@@ -249,9 +248,16 @@ export function RegisterView() {
       const result = await registerAndSignIn(submissionData);
       router.replace(getDefaultRedirectPath(result.user));
     } catch (err) {
-      setErrors({
-        message: getFriendlyAuthErrorMessage(err, AUTH_ERROR_MESSAGES.GENERIC),
-      });
+      const errMsg = getFriendlyAuthErrorMessage(err, AUTH_ERROR_MESSAGES.GENERIC);
+      const newErrors: Record<string, string> = {};
+      if (errMsg.toLowerCase().includes("mobile")) {
+        newErrors.mobile_number = errMsg;
+      } else if (errMsg.toLowerCase().includes("email")) {
+        newErrors.email = errMsg;
+      } else {
+        newErrors.message = errMsg;
+      }
+      setErrors(newErrors);
     } finally {
       setLoading(false);
     }
@@ -320,7 +326,7 @@ export function RegisterView() {
                       type="button"
                       onClick={sendOtp}
                       disabled={verification.loading.email}
-                      className="min-w-20 rounded-xl bg-blue-900 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-50"
+                      className="min-w-20 rounded-xl bg-blue-900 px-4 py-3.5 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-50"
                     >
                       {verification.loading.email ? "..." : verification.emailSent ? "Resend" : "Verify"}
                     </button>
@@ -334,20 +340,17 @@ export function RegisterView() {
                       placeholder="Enter 6-digit OTP"
                       value={verification.emailOtp}
                       onChange={(e) => setVerification({ ...verification, emailOtp: e.target.value.replace(/\D/g, "") })}
-                      className="flex-1 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-blue-900"
+                      className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-blue-900"
                     />
                     <button
                       type="button"
                       onClick={verifyOtp}
                       disabled={verification.loading.verify}
-                      className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                      className="rounded-xl bg-emerald-600 px-4 py-3.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
                     >
                       Verify OTP
                     </button>
                   </div>
-                )}
-                {devOtp && !verification.emailVerified && (
-                  <p className="mt-1 text-xs font-bold text-amber-600">Dev OTP: {devOtp}</p>
                 )}
                 {errors.email && <p className="mt-1 text-xs text-red-500">{errors.email}</p>}
               </div>
@@ -395,13 +398,14 @@ export function RegisterView() {
 
                       {/* Mobile Number Input */}
                       <input
-                        type="text"
+                        type="tel"
                         name="mobile_number"
                         value={formData.mobile_number}
-                        onChange={(e) => setFormData({ ...formData, mobile_number: e.target.value.replace(/[^\d]/g, "") })}
+                        onChange={(e) => setFormData({ ...formData, mobile_number: e.target.value.replace(/[^\d]/g, "").slice(0, 10) })}
                         className={`w-full rounded-xl border py-3.5 pl-20 pr-4 text-slate-900 outline-none transition-all focus:border-transparent focus:bg-white focus:ring-2 focus:ring-blue-900 ${errors.mobile_number ? "border-red-300 bg-red-50" : "border-slate-200 bg-slate-50"
                           }`}
                         placeholder="Enter mobile number"
+                        maxLength={10}
                         required
                       />
                     </div>
@@ -474,7 +478,7 @@ export function RegisterView() {
                       name="referral_code"
                       value={formData.referral_code}
                       onChange={handleChange}
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-12 pr-4 text-slate-900 outline-none transition-all focus:border-transparent focus:bg-white focus:ring-2 focus:ring-blue-900"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3.5 pl-12 pr-4 text-slate-900 outline-none transition-all focus:border-transparent focus:bg-white focus:ring-2 focus:ring-blue-900"
                       placeholder="REF123"
                     />
                   </div>
@@ -491,7 +495,7 @@ export function RegisterView() {
                         name="rm_id"
                         value={formData.rm_id}
                         onChange={handleChange}
-                        className={`w-full rounded-xl border py-3 pl-12 pr-4 text-slate-900 outline-none transition-all focus:border-transparent focus:bg-white focus:ring-2 focus:ring-blue-900 ${errors.rm_id ? "border-red-300 bg-red-50" : "border-slate-200 bg-slate-50"
+                        className={`w-full rounded-xl border py-3.5 pl-12 pr-4 text-slate-900 outline-none transition-all focus:border-transparent focus:bg-white focus:ring-2 focus:ring-blue-900 ${errors.rm_id ? "border-red-300 bg-red-50" : "border-slate-200 bg-slate-50"
                           }`}
                         placeholder="RMMHMUM260001"
                       />
@@ -500,7 +504,7 @@ export function RegisterView() {
                       type="button"
                       onClick={handleRMSearch}
                       disabled={rmLoading || !formData.rm_id}
-                      className="rounded-xl bg-blue-900 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-50"
+                      className="rounded-xl bg-blue-900 px-4 py-3.5 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-50"
                     >
                       {rmLoading ? <i className="fas fa-spinner fa-spin" /> : "Verify"}
                     </button>

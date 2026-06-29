@@ -39,6 +39,7 @@ export function RoleShell({
                 width={124}
                 height={48}
                 className="h-11 w-auto object-contain"
+                style={{ width: "auto" }}
               />
             </div>
             <div className="min-w-0">
