@@ -58,7 +58,7 @@ export function RMDashboardView() {
         setUsers(usersRes.data?.data || []);
         setRequests(requestsRes.data?.data || []);
       } catch {
-        toast.error("Failed to load regional dashboard");
+        toast.error("Failed to load relationship manager dashboard");
       } finally {
         setLoading(false);
       }
@@ -85,13 +85,13 @@ export function RMDashboardView() {
   const recentRequests = useMemo(() => requests.slice(0, 4), [requests]);
 
   return (
-    <AuthGuard allowedRoles={["regional_manager"]}>
+    <AuthGuard allowedRoles={["relationship_manager"]}>
       <AdminLayout>
         <div className="space-y-6 sm:space-y-10">
           <div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
             <div className="min-w-0">
               <h1 className="break-words text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
-                Regional Overview
+                Relationship Manager Overview
               </h1>
               <p className="mt-2 break-words text-xs font-bold uppercase tracking-widest text-slate-500 opacity-60 sm:text-sm">
                 Operations Hub - {user?.name}

@@ -2,6 +2,7 @@
 
 import { getSession, signIn } from "next-auth/react";
 import { apiClient } from "@/lib/api/client";
+import { RELATIONSHIP_MANAGER_ROLE, normalizeRole } from "@/lib/auth/redirects";
 import type { AuthUser } from "@/lib/auth/types";
 import type { User } from "@/lib/features/auth/types";
 import { clearStoredUserOverride } from "@/lib/auth/storage";
@@ -60,12 +61,17 @@ type CredentialSignInResult = {
 };
 
 function normalizeSignedInUser(user: AuthUser): User {
+  const normalizedRole = normalizeRole(user.role);
+
   return {
     ...user,
     id: Number(user.id ?? user.user_id ?? 0),
     name: user.name ?? "",
     email: user.email ?? "",
-    role: user.role ?? "user",
+    role:
+      normalizedRole === RELATIONSHIP_MANAGER_ROLE
+        ? RELATIONSHIP_MANAGER_ROLE
+        : user.role ?? "user",
     mobile_number: user.mobile_number ?? undefined,
     address: user.address ?? undefined,
     city: user.city ?? undefined,

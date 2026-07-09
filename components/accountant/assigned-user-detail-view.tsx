@@ -49,6 +49,8 @@ export function AccountantAssignedUserDetailView() {
         );
     }
 
+    const relationshipManager = user.relationship_manager ?? user.regional_manager;
+
     return (
         <AuthGuard allowedRoles={["accountant"]}>
             <AdminLayout>
@@ -188,21 +190,21 @@ export function AccountantAssignedUserDetailView() {
                                 <h3 className="text-lg font-bold text-slate-900 tracking-tight mb-8">Account Support</h3>
                                 <div className="space-y-10">
                                     {/* Relationship Manager */}
-                                    {user.regional_manager ? (
+                                    {relationshipManager ? (
                                         <div className="space-y-6">
                                             <div className="flex items-center gap-5">
                                                 <div className="h-12 w-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg shadow-sm">
-                                                    {user.regional_manager.name?.charAt(0).toUpperCase()}
+                                                    {relationshipManager.name?.charAt(0).toUpperCase()}
                                                 </div>
                                                 <div>
-                                                    <h4 className="text-base font-bold text-slate-900 leading-none mb-1.5">{user.regional_manager.name}</h4>
+                                                    <h4 className="text-base font-bold text-slate-900 leading-none mb-1.5">{relationshipManager.name}</h4>
                                                     <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest">Relationship Manager</p>
                                                 </div>
                                             </div>
                                             <div className="space-y-4 pt-4 border-t border-slate-50">
                                                 <div>
                                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Direct Line</p>
-                                                    <p className="text-sm font-bold text-slate-700">{user.regional_manager.mobile_number || "---"}</p>
+                                                    <p className="text-sm font-bold text-slate-700">{relationshipManager.mobile_number || "---"}</p>
                                                 </div>
                                             </div>
                                         </div>

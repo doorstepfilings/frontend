@@ -7,7 +7,7 @@ import { toast } from "react-hot-toast";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { AuthGuard } from "@/components/auth/auth-guard";
 import { adminApi } from "@/lib/api/admin-api";
-import { normalizeRole } from "@/lib/auth/redirects";
+import { RELATIONSHIP_MANAGER_ROLE, normalizeRole } from "@/lib/auth/redirects";
 import {
   type AdminRecord,
   getAccountant,
@@ -408,7 +408,7 @@ export function UserDetailView() {
             </DetailSection>
           )}
 
-          {normalizedRole === "regional_manager" && (
+          {normalizedRole === RELATIONSHIP_MANAGER_ROLE && (
             <DetailSection
               title="Managed Users"
               subtitle="Users currently assigned to this relationship manager profile."

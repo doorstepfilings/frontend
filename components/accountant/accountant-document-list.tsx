@@ -13,6 +13,7 @@ import {
   isInternalDocument,
   getClientApprovalStatus,
   isClientApprovalCorrectionRequestedDocument,
+  isStaffUploaderRole,
   requiresClientApprovalDocument,
 } from "@/lib/utils/document-helpers";
 import { format } from "date-fns";
@@ -206,17 +207,9 @@ export const AccountantDocumentList = ({
             const isClientApprovedReadOnly =
               requiresClientApprovalDocument(doc) &&
               approvalStatus === "approved";
-            const uploaderRole = String(
-              doc.uploaded_by?.role || "",
-            ).toLowerCase();
-            const isStaffUploadedDocument = [
-              "accountant",
-              "admin",
-              "super_admin",
-              "regional_manager",
-              "rm",
-              "employee",
-            ].includes(uploaderRole);
+            const isStaffUploadedDocument = isStaffUploaderRole(
+              doc.uploaded_by?.role,
+            );
             const canDeleteDocument =
               canUpload &&
               !isHistoricalVersion &&

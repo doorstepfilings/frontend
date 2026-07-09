@@ -3,6 +3,14 @@ export enum AccountantType {
   Enterprise = "enterprise",
 }
 
+type RelationshipManagerSummary = {
+  id?: number;
+  name?: string;
+  email?: string | null;
+  mobile_number?: string | null;
+  rm_unique_id?: string | null;
+};
+
 export type AuthUser = {
   id?: number | string;
   user_id?: number;
@@ -21,13 +29,8 @@ export type AuthUser = {
   city?: string;
   state?: string;
   pincode?: number | string;
-  regional_manager?: {
-    id?: number;
-    name?: string;
-    email?: string | null;
-    mobile_number?: string | null;
-    rm_unique_id?: string | null;
-  } | null;
+  relationship_manager?: RelationshipManagerSummary | null;
+  regional_manager?: RelationshipManagerSummary | null;
   accountant?: {
     id?: number;
     name?: string;

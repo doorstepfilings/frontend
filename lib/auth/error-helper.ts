@@ -1,3 +1,5 @@
+import { parseApiError } from "@/lib/utils/error-parser";
+
 export const AUTH_ERROR_MESSAGES = {
   INVALID_CREDENTIALS: "Please check your email and password.",
   EMAIL_NOT_FOUND: "Email not found. Please try again.",
@@ -366,21 +368,37 @@ export function getFriendlyAuthErrorMessage(
   fallback: AuthErrorMessage = AUTH_ERROR_MESSAGES.GENERIC,
 ): string {
   if (isRecord(error) && isRecord(error.response) && isRecord(error.response.data)) {
-    const status = Number(error.response.status || error.status);
-    const msg = error.response.data.message || error.response.data.error;
-    if (typeof msg === "string" && msg.trim()) {
-      if (status === 409 || status === 400) {
-        return msg.trim();
-      }
+    const parsedMessage = parseApiError(error, "");
+    if (parsedMessage) {
+      return parsedMessage;
     }
   }
 
-  if (typeof error === "string" && APPROVED_AUTH_MESSAGES.has(error)) {
-    return error;
+  let messageStr = "";
+  if (error instanceof Error) {
+    messageStr = error.message;
+  } else if (typeof error === "string") {
+    messageStr = error;
   }
 
-  if (error instanceof Error && APPROVED_AUTH_MESSAGES.has(error.message)) {
-    return error.message;
+  if (messageStr) {
+    if (APPROVED_AUTH_MESSAGES.has(messageStr)) {
+      return messageStr;
+    }
+
+    const upperMsg = messageStr.toUpperCase();
+    const isCode =
+      upperMsg in AUTH_ERROR_CODES ||
+      Object.values(AUTH_ERROR_CODES).includes(messageStr as any) ||
+      messageStr === "credentials" ||
+      messageStr === "CredentialsSignin" ||
+      messageStr === "Configuration" ||
+      messageStr === "AccessDenied" ||
+      messageStr === "Verification";
+
+    if (!isCode && messageStr.trim().length > 0) {
+      return messageStr;
+    }
   }
 
   return getAuthErrorMessageForCode(

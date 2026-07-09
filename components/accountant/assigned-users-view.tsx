@@ -56,7 +56,11 @@ export function AccountantAssignedUsersView() {
                                                 <p className="text-sm font-medium text-slate-400">No client records currently assigned</p>
                                             </td>
                                         </tr>
-                                    ) : users.map((user: any) => (
+                                    ) : users.map((user: any) => {
+                                        const relationshipManager =
+                                            user.relationship_manager ?? user.regional_manager;
+
+                                        return (
                                         <tr key={user.id} className="group hover:bg-slate-50/40 transition-all">
                                             <td className="px-8 py-6">
                                                 <div className="flex items-center gap-4">
@@ -78,10 +82,10 @@ export function AccountantAssignedUsersView() {
                                                 <div className="text-[11px] text-slate-400 mt-1">{user.mobile_number}</div>
                                             </td>
                                             <td className="px-8 py-6">
-                                                {user.regional_manager ? (
+                                                {relationshipManager ? (
                                                     <div>
-                                                        <div className="text-sm font-medium text-slate-700">{user.regional_manager.name}</div>
-                                                        <div className="text-[11px] text-slate-400 mt-1">{user.regional_manager.mobile_number}</div>
+                                                        <div className="text-sm font-medium text-slate-700">{relationshipManager.name}</div>
+                                                        <div className="text-[11px] text-slate-400 mt-1">{relationshipManager.mobile_number}</div>
                                                     </div>
                                                 ) : (
                                                     <span className="text-[10px] font-bold text-slate-200 uppercase tracking-wider">Unassigned</span>
@@ -96,7 +100,8 @@ export function AccountantAssignedUsersView() {
                                                 </Link>
                                             </td>
                                         </tr>
-                                    ))}
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>

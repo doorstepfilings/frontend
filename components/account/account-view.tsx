@@ -238,6 +238,8 @@ export function AccountView() {
     }
   };
 
+  const relationshipManager = user?.relationship_manager ?? user?.regional_manager;
+
   return (
     <>
       {loading ? (
@@ -464,28 +466,28 @@ export function AccountView() {
                   </div>
                 </div>
 
-                {user?.regional_manager ? (
+                {relationshipManager ? (
                   <div className="rounded-3xl border border-slate-100 bg-slate-50/50 p-8">
                     <div className="flex flex-col md:flex-row items-center gap-10">
                       <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-3xl bg-blue-900 text-3xl font-black text-white shadow-xl shadow-blue-900/20">
-                        {user.regional_manager.name?.charAt(0).toUpperCase() ?? "R"}
+                        {relationshipManager.name?.charAt(0).toUpperCase() ?? "R"}
                       </div>
                       <div className="grid flex-1 gap-10 md:grid-cols-2 w-full">
                         <InfoTile
                           label="Officer Name"
-                          value={String(user.regional_manager.name ?? "Not available")}
+                          value={String(relationshipManager.name ?? "Not available")}
                         />
                         <InfoTile
                           label="Unique Identity"
-                          value={String(user.regional_manager.rm_unique_id ?? "Not available")}
+                          value={String(relationshipManager.rm_unique_id ?? "Not available")}
                         />
                         <InfoTile
                           label="Official Email"
-                          value={String(user.regional_manager.email ?? "Not available")}
+                          value={String(relationshipManager.email ?? "Not available")}
                         />
                         <InfoTile
                           label="Direct Contact"
-                          value={String(user.regional_manager.mobile_number ?? "Not available")}
+                          value={String(relationshipManager.mobile_number ?? "Not available")}
                         />
                       </div>
                     </div>

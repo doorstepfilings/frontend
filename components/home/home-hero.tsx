@@ -52,7 +52,12 @@ export function HomeHero() {
             </div>
 
             <h1 className="animate-fade-in-up delay-100 mb-6 text-4xl leading-[1.1] font-bold text-white sm:text-5xl lg:text-6xl xl:text-7xl">
-              Start. Run. Grow.
+              Start
+              <span className="text-[0.6em] text-amber-500/70 mx-2 align-middle">&rarr;</span>
+              Run
+              <span className="text-[0.6em] text-amber-500/70 mx-2 align-middle">&rarr;</span>
+              Grow
+              <span className="text-[0.6em] text-amber-500/70 mx-2 align-middle">&rarr;</span>
               <span className="text-gradient-animated mt-2 block bg-gradient-to-r from-amber-200 via-amber-400 to-amber-600 bg-clip-text text-transparent">
                 We Handle the Rest.
               </span>

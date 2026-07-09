@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { usePathname } from "next/navigation";
 import { AdminSidebar } from "./AdminSidebar";
-import { normalizeRole } from "@/lib/auth/redirects";
+import { RELATIONSHIP_MANAGER_ROLE, normalizeRole } from "@/lib/auth/redirects";
 import { useStoredUser } from "@/lib/auth/hooks";
 import {
   getActiveDashboardItem,
@@ -16,7 +16,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const user = useStoredUser();
   const inferredRole = pathname.startsWith("/rm")
-    ? "regional_manager"
+    ? RELATIONSHIP_MANAGER_ROLE
     : pathname.startsWith("/accountant")
       ? "accountant"
       : pathname.startsWith("/admin")

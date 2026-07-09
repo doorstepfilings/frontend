@@ -57,7 +57,7 @@ export function RMAssignedUsersView() {
     };
 
     return (
-        <AuthGuard allowedRoles={["regional_manager"]}>
+        <AuthGuard allowedRoles={["relationship_manager"]}>
             <AdminLayout>
                 <div className="space-y-10">
                     <div className="flex items-center justify-between">

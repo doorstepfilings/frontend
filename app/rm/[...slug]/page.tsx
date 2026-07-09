@@ -44,7 +44,7 @@ export default async function RegionalManagerCatchAllPage({
         "Reconnect accountant assignment behavior and validations.",
         "Preserve RM-only access rules and workflow states.",
       ]}
-      allowedRoles={["regional_manager"]}
+      allowedRoles={["relationship_manager"]}
     />
   );
 }

@@ -44,7 +44,7 @@ export function RegionalManagerDetailView() {
     const loadDetails = async () => {
       if (!id) {
         setLoading(false);
-        setError("Regional manager ID is missing.");
+        setError("Relationship manager ID is missing.");
         return;
       }
 
@@ -55,7 +55,7 @@ export function RegionalManagerDetailView() {
         const response = await adminApi.getRMDetails(Number(id));
         setManager(response.data?.data ?? response.data);
       } catch (nextError) {
-        setError(getErrorMessage(nextError, "Unable to load regional manager details."));
+        setError(getErrorMessage(nextError, "Unable to load relationship manager details."));
       } finally {
         setLoading(false);
       }
@@ -92,11 +92,11 @@ export function RegionalManagerDetailView() {
     }
 
     if (assignedUsers.length > 0) {
-      toast.error("This regional manager still has assigned users.");
+      toast.error("This relationship manager still has assigned users.");
       return;
     }
 
-    const confirmed = window.confirm("Delete this regional manager permanently?");
+    const confirmed = window.confirm("Delete this relationship manager permanently?");
     if (!confirmed) {
       return;
     }
@@ -105,10 +105,10 @@ export function RegionalManagerDetailView() {
 
     try {
       await adminApi.deleteUser(manager.id);
-      toast.success("Regional manager deleted successfully");
-      router.push("/admin/regional-managers");
+      toast.success("Relationship manager deleted successfully");
+      router.push("/admin/relationship-managers");
     } catch (nextError) {
-      const message = getErrorMessage(nextError, "Failed to delete regional manager.");
+      const message = getErrorMessage(nextError, "Failed to delete relationship manager.");
       setError(message);
       toast.error(message);
     } finally {
@@ -120,7 +120,7 @@ export function RegionalManagerDetailView() {
     return (
       <AuthGuard allowedRoles={["super_admin"]}>
         <AdminLayout>
-          <LoadingState label="Loading regional manager details..." />
+          <LoadingState label="Loading relationship manager details..." />
         </AdminLayout>
       </AuthGuard>
     );
@@ -131,12 +131,12 @@ export function RegionalManagerDetailView() {
       <AuthGuard allowedRoles={["super_admin"]}>
         <AdminLayout>
           <div className="rounded-[2rem] border border-gray-100 bg-white p-8 text-center shadow-[var(--admin-card-shadow)]">
-            <p className="text-lg font-black text-gray-900">Regional manager not found.</p>
+            <p className="text-lg font-black text-gray-900">Relationship manager not found.</p>
             <Link
-              href="/admin/regional-managers"
+              href="/admin/relationship-managers"
               className="mt-4 inline-flex rounded-xl bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700"
             >
-              Back to Regional Managers
+              Back to Relationship Managers
             </Link>
           </div>
         </AdminLayout>
@@ -152,7 +152,7 @@ export function RegionalManagerDetailView() {
             <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
               <div>
                 <Link
-                  href="/admin/regional-managers"
+                  href="/admin/relationship-managers"
                   className="text-sm font-semibold text-gray-500 transition-colors hover:text-gray-700"
                 >
                   {"<- Back to Relationship Managers"}
@@ -285,7 +285,7 @@ export function RegionalManagerDetailView() {
 
           <DetailSection
             title="Assigned Users"
-            subtitle="Users currently handled by this regional manager."
+            subtitle="Users currently handled by this relationship manager."
           >
             {assignedUsers.length === 0 ? (
               <EmptySection label="No users are assigned to this manager." icon="fa-users" />

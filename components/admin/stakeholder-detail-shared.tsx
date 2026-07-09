@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { format, isValid } from "date-fns";
+import { RELATIONSHIP_MANAGER_ROLE, normalizeRole } from "@/lib/auth/redirects";
 import type { AdminRecord } from "@/lib/admin/record-helpers";
 
 export function formatAdminDate(
@@ -27,19 +28,26 @@ export function formatAdminCurrency(value: string | number | null | undefined) {
 }
 
 export function getRoleDisplayLabel(role: string | null | undefined) {
-  if (role === "super_admin") {
+  const rawRole = String(role || "").trim().toLowerCase();
+  const normalizedRole = normalizeRole(role);
+
+  if (rawRole === "admin") {
+    return "Admin";
+  }
+
+  if (normalizedRole === "super_admin") {
     return "Super Admin";
   }
 
-  if (role === "regional_manager") {
+  if (normalizedRole === RELATIONSHIP_MANAGER_ROLE) {
     return "Relationship Manager";
   }
 
-  if (role === "accountant") {
+  if (normalizedRole === "accountant") {
     return "Accountant";
   }
 
-  if (role === "admin") {
+  if (normalizedRole === "admin") {
     return "Admin";
   }
 

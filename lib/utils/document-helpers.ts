@@ -1,3 +1,5 @@
+import { RELATIONSHIP_MANAGER_ROLE, normalizeRole } from "@/lib/auth/redirects";
+
 const normalizeDocumentField = (value: unknown) =>
   String(value || "").toLowerCase();
 
@@ -149,15 +151,14 @@ const getUploadedById = (doc: any) =>
 const getUploaderRole = (doc: any) =>
   normalizeDocumentField(doc?.uploaded_by?.role);
 
-const isStaffUploaderRole = (role: string) =>
-  [
-    "accountant",
-    "admin",
-    "super_admin",
-    "regional_manager",
-    "rm",
-    "employee",
-  ].includes(role);
+export const isStaffUploaderRole = (role: string | null | undefined) => {
+  const normalizedRole = normalizeDocumentField(role);
+
+  return (
+    ["accountant", "admin", "super_admin", "employee"].includes(normalizedRole) ||
+    normalizeRole(normalizedRole) === RELATIONSHIP_MANAGER_ROLE
+  );
+};
 
 export const getDocumentNoteText = (doc: any) => {
   const note =

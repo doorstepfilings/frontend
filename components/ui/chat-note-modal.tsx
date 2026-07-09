@@ -1,6 +1,7 @@
 "use client";
 
 import { Modal } from "@/components/ui/modal";
+import { isRelationshipManagerRole } from "@/lib/auth/redirects";
 import { useState, useMemo, useEffect, useRef } from "react";
 import toast from "react-hot-toast";
 
@@ -39,7 +40,7 @@ export function ChatNoteModal({
   const parsedNotes = useMemo(() => {
     if (!noteText) return [];
     return noteText.split('\n\n').filter(n => n.trim() !== '').map(chunk => {
-      const match = chunk.match(/^(Accountant|Admin|Super_Admin|SuperAdmin|Super\s+Admin|You|User|Client|System)(?:\s*\((.*?)\))?:\s*([\s\S]*)/i);
+      const match = chunk.match(/^(Accountant|Admin|Super_Admin|SuperAdmin|Super\s+Admin|Relationship_Manager|Relationship\s+Manager|Regional_Manager|Regional\s+Manager|RM|You|User|Client|System)(?:\s*\((.*?)\))?:\s*([\s\S]*)/i);
       if (match) {
         const role = match[1];
         const name = match[2];
@@ -52,6 +53,8 @@ export function ChatNoteModal({
           normalizedRole = "Admin";
         } else if (lowerRole === "accountant") {
           normalizedRole = "Accountant";
+        } else if (isRelationshipManagerRole(lowerRole.replace(/\s+/g, "_"))) {
+          normalizedRole = "Relationship Manager";
         } else if (lowerRole === "system") {
           normalizedRole = "System";
         } else if (lowerRole === "user" || lowerRole === "client") {
@@ -59,7 +62,15 @@ export function ChatNoteModal({
         }
         
         let resolvedSender = name || role.replace(/_/g, " ");
-        if (!name || ["you", "accountant", "admin", "super_admin", "superadmin", "super admin", "user", "client", "system"].includes(resolvedSender.toLowerCase())) {
+        if (normalizedRole === "Relationship Manager" && !name) {
+          resolvedSender = "Relationship Manager";
+        }
+        const lowerSender = resolvedSender.toLowerCase();
+        if (
+          !name ||
+          ["you", "accountant", "admin", "super_admin", "superadmin", "super admin", "user", "client", "system"].includes(lowerSender) ||
+          isRelationshipManagerRole(lowerSender.replace(/\s+/g, "_"))
+        ) {
           if (normalizedRole === "Accountant" && accountantName) {
             resolvedSender = accountantName;
           } else if (normalizedRole === "User" && clientName) {
@@ -87,6 +98,8 @@ export function ChatNoteModal({
         normalizedRole = "Admin";
       } else if (lowerRole === "accountant") {
         normalizedRole = "Accountant";
+      } else if (isRelationshipManagerRole(lowerRole.replace(/\s+/g, "_"))) {
+        normalizedRole = "Relationship Manager";
       } else if (lowerRole === "system") {
         normalizedRole = "System";
       } else if (lowerRole === "user" || lowerRole === "client" || lowerRole === "customer") {
@@ -96,7 +109,12 @@ export function ChatNoteModal({
       let resolvedSender = sender;
       if (!fallbackSender && uploadedBy && uploadedBy.name) {
         resolvedSender = uploadedBy.name;
-      } else if (["you", "accountant", "admin", "super_admin", "superadmin", "super admin", "user", "client", "customer"].includes(resolvedSender.toLowerCase())) {
+      } else if (normalizedRole === "Relationship Manager") {
+        resolvedSender = "Relationship Manager";
+      } else if (
+        ["you", "accountant", "admin", "super_admin", "superadmin", "super admin", "user", "client", "customer"].includes(resolvedSender.toLowerCase()) ||
+        isRelationshipManagerRole(resolvedSender.toLowerCase().replace(/\s+/g, "_"))
+      ) {
         if (normalizedRole === "Accountant" && accountantName) {
           resolvedSender = accountantName;
         } else if (normalizedRole === "User" && clientName) {

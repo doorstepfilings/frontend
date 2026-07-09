@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { RELATIONSHIP_MANAGER_ROLE, normalizeRole } from "@/lib/auth/redirects";
 import { clearStoredAuth } from "@/lib/auth/storage";
 import { useStoredUser } from "@/lib/auth/hooks";
 
@@ -21,6 +22,10 @@ export function RoleShell({
 }: RoleShellProps) {
   const router = useRouter();
   const user = useStoredUser();
+  const displayRole =
+    normalizeRole(user?.role) === RELATIONSHIP_MANAGER_ROLE
+      ? "Relationship Manager"
+      : String(user?.role ?? "user").replace(/_/g, " ");
 
   const handleLogout = async () => {
     await clearStoredAuth();
@@ -67,7 +72,7 @@ export function RoleShell({
               Home
             </Link>
             <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-center text-xs font-black uppercase tracking-[0.12em] text-slate-700 sm:px-4 sm:tracking-[0.18em]">
-              {String(user?.role ?? "user").replace(/_/g, " ")}
+              {displayRole}
             </div>
             <button
               type="button"

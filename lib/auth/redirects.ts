@@ -2,6 +2,13 @@ type RedirectUser = {
   role?: string | null;
 } | null | undefined;
 
+export const RELATIONSHIP_MANAGER_ROLE = "relationship_manager";
+const RELATIONSHIP_MANAGER_ROLE_ALIASES = new Set([
+  "rm",
+  "regional_manager",
+  RELATIONSHIP_MANAGER_ROLE,
+]);
+
 function matchesPrefix(pathname: string, prefix: string) {
   return pathname === prefix || pathname.startsWith(`${prefix}/`);
 }
@@ -11,15 +18,41 @@ function isUserPanelPath(pathname: string) {
 }
 
 export function normalizeRole(role: string | null | undefined) {
-  if (role === "admin") {
+  const normalizedRole = String(role ?? "").trim().toLowerCase();
+
+  if (!normalizedRole) {
+    return "user";
+  }
+
+  if (normalizedRole === "admin") {
     return "super_admin";
   }
 
-  if (role === "rm") {
-    return "regional_manager";
+  if (isRelationshipManagerRole(normalizedRole)) {
+    return RELATIONSHIP_MANAGER_ROLE;
   }
 
-  return role ?? "user";
+  return normalizedRole;
+}
+
+export function isRelationshipManagerRole(role: string | null | undefined) {
+  return RELATIONSHIP_MANAGER_ROLE_ALIASES.has(
+    String(role ?? "").trim().toLowerCase(),
+  );
+}
+
+export function getBackendRole(role: string | null | undefined) {
+  const rawRole = String(role ?? "").trim().toLowerCase();
+
+  if (!rawRole) {
+    return "user";
+  }
+
+  if (isRelationshipManagerRole(rawRole)) {
+    return RELATIONSHIP_MANAGER_ROLE;
+  }
+
+  return rawRole;
 }
 
 export function getDefaultRedirectPath(user: RedirectUser) {
@@ -33,7 +66,7 @@ export function getDefaultRedirectPath(user: RedirectUser) {
     return "/accountant/dashboard";
   }
 
-  if (role === "regional_manager") {
+  if (role === RELATIONSHIP_MANAGER_ROLE) {
     return "/rm/dashboard";
   }
 
@@ -63,7 +96,7 @@ export function getAuthorizedRedirectPath(
     return requestedPath;
   }
 
-  if (role === "regional_manager") {
+  if (role === RELATIONSHIP_MANAGER_ROLE) {
     if (
       isUserPanelPath(requestedPath) ||
       matchesPrefix(requestedPath, "/admin") ||

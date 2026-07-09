@@ -16,7 +16,11 @@ import { AuthGuard } from "@/components/auth/auth-guard";
 import { LogoLoader } from "@/components/ui/logo-loader";
 import { SearchSelect } from "@/components/ui/core/search-select";
 import { useConfirm } from "@/hooks/use-confirm";
-import { normalizeRole } from "@/lib/auth/redirects";
+import {
+  RELATIONSHIP_MANAGER_ROLE,
+  getBackendRole,
+  normalizeRole,
+} from "@/lib/auth/redirects";
 import { usePincodeLookup } from "@/lib/hooks/use-pincode-lookup";
 import {
   type AdminRecord,
@@ -52,7 +56,7 @@ type CreateFormState = LocationFormState & {
 
 type RoleChangeModalState = {
   user: AdminRecord;
-  nextRole: "regional_manager";
+  nextRole: typeof RELATIONSHIP_MANAGER_ROLE;
   location: LocationFormState;
 };
 
@@ -164,23 +168,36 @@ function formatJoinedDate(record: AdminRecord) {
 }
 
 function getRoleLabel(role: string) {
-  if (role === "super_admin") {
+  const rawRole = String(role || "").trim().toLowerCase();
+  const normalizedRole = normalizeRole(role);
+
+  if (rawRole === "admin") {
+    return "Admin";
+  }
+
+  if (normalizedRole === "super_admin") {
     return "Super Admin";
   }
 
-  if (role === "regional_manager") {
+  if (normalizedRole === RELATIONSHIP_MANAGER_ROLE) {
     return "Relationship Manager";
   }
 
-  if (role === "accountant") {
+  if (normalizedRole === "accountant") {
     return "Accountant";
   }
 
-  if (role === "admin") {
+  if (normalizedRole === "admin") {
     return "Admin";
   }
 
   return "User";
+}
+
+function getRoleControlValue(role: string) {
+  return normalizeRole(role) === RELATIONSHIP_MANAGER_ROLE
+    ? RELATIONSHIP_MANAGER_ROLE
+    : role;
 }
 
 function getIdentityLabel(type: ManagementType, item: AdminRecord) {
@@ -378,8 +395,8 @@ export function UserManagementView({
   const visibleUsers = useMemo(
     () =>
       users.filter((item: AdminRecord) => {
-        const role = getRole(item);
-        return role !== "regional_manager" && role !== "accountant";
+        const role = normalizeRole(getRole(item));
+        return role !== RELATIONSHIP_MANAGER_ROLE && role !== "accountant";
       }),
     [users],
   );
@@ -647,10 +664,10 @@ export function UserManagementView({
       currentType === "users"
         ? "user"
         : currentType === "rms"
-          ? "regional_manager"
+          ? RELATIONSHIP_MANAGER_ROLE
           : "accountant";
 
-    if (role === "regional_manager" && !formState.state.trim()) {
+    if (role === RELATIONSHIP_MANAGER_ROLE && !formState.state.trim()) {
       toast.error("State is required to generate the RM ID");
       return;
     }
@@ -661,7 +678,7 @@ export function UserManagementView({
       const payload: Record<string, unknown> = {
         name: formState.name.trim(),
         email: formState.email.trim(),
-        role,
+        role: getBackendRole(role),
       };
 
       if (formState.password.trim()) {
@@ -772,7 +789,10 @@ export function UserManagementView({
     setActiveActionKey(`role-${userId}`);
 
     try {
-      await adminApi.updateRole(userId, { role: nextRole, ...extraData });
+      await adminApi.updateRole(userId, {
+        role: getBackendRole(nextRole),
+        ...extraData,
+      });
       toast.success(`Role changed to ${getRoleLabel(nextRole)}`);
       await refreshData();
       return true;
@@ -785,14 +805,17 @@ export function UserManagementView({
   };
 
   const handleRoleSelection = (item: AdminRecord, nextRole: string) => {
-    if (typeof item.id !== "number" || nextRole === getRole(item)) {
+    if (
+      typeof item.id !== "number" ||
+      normalizeRole(nextRole) === normalizeRole(getRole(item))
+    ) {
       return;
     }
 
-    if (nextRole === "regional_manager") {
+    if (normalizeRole(nextRole) === RELATIONSHIP_MANAGER_ROLE) {
       setRoleChangeModal({
         user: item,
-        nextRole,
+        nextRole: RELATIONSHIP_MANAGER_ROLE,
         location: getLocationFormState(item),
       });
       return;
@@ -1139,6 +1162,7 @@ export function UserManagementView({
                     ) : (
                       currentData.map((item) => {
                         const role = getRole(item);
+                        const roleControlValue = getRoleControlValue(role);
                         const isProtectedRole = normalizeRole(role) === "super_admin";
                         const canManageAssignments = role === "user";
                         const regionalManager = getRegionalManager(item);
@@ -1171,7 +1195,7 @@ export function UserManagementView({
                                   {getIdentityLabel(currentType, item)}
                                 </span>
                                 <select
-                                  value={role}
+                                  value={roleControlValue}
                                   onChange={(event) => {
                                     handleRoleSelection(item, event.target.value);
                                   }}
@@ -1183,7 +1207,7 @@ export function UserManagementView({
                                 >
                                   <option value="user">User</option>
                                   <option value="admin">Admin</option>
-                                  <option value="regional_manager">RM</option>
+                                  <option value={RELATIONSHIP_MANAGER_ROLE}>RM</option>
                                   <option value="accountant">Accountant</option>
                                   {role === "super_admin" && (
                                     <option value="super_admin">Super Admin</option>

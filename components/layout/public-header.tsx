@@ -6,7 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
 import { fetchServices } from "@/lib/features/services/services-slice";
-import { normalizeRole } from "@/lib/auth/redirects";
+import { RELATIONSHIP_MANAGER_ROLE, normalizeRole } from "@/lib/auth/redirects";
 import { clearStoredAuth, getDefaultRedirectPath } from "@/lib/auth/storage";
 import { useStoredUser } from "@/lib/auth/hooks";
 import { getRoleNavLinks } from "@/lib/auth/nav-links";
@@ -38,11 +38,11 @@ export function PublicHeader() {
 
   const navLinks = getRoleNavLinks({
     isSuperAdmin: normalizedRole === "super_admin",
-    isRegionalManager: normalizedRole === "regional_manager",
+    isRegionalManager: normalizedRole === RELATIONSHIP_MANAGER_ROLE,
     isAccountant: normalizedRole === "accountant",
     showUserPanelLinks:
       normalizedRole !== "super_admin" &&
-      normalizedRole !== "regional_manager" &&
+      normalizedRole !== RELATIONSHIP_MANAGER_ROLE &&
       normalizedRole !== "accountant",
     dashboardHref,
   });
@@ -201,7 +201,7 @@ export function PublicHeader() {
                         {user.name}
                       </p>
                       <p className="text-xs text-gray-500">
-                        {normalizedRole === "regional_manager"
+                        {normalizedRole === RELATIONSHIP_MANAGER_ROLE
                           ? "Relationship Manager"
                           : normalizedRole.replace(/_/g, " ")}
                       </p>

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAppDispatch } from "@/lib/store/hooks";
 import { logout } from "@/lib/features/auth/auth-slice";
-import { normalizeRole } from "@/lib/auth/redirects";
+import { RELATIONSHIP_MANAGER_ROLE, normalizeRole } from "@/lib/auth/redirects";
 import { useStoredUser } from "@/lib/auth/hooks";
 import {
   type DashboardNavItem,
@@ -30,7 +30,7 @@ export function AdminSidebar({ isOpen, setIsOpen }: AdminSidebarProps) {
   const dispatch = useAppDispatch();
   const user = useStoredUser();
   const inferredRole = pathname.startsWith("/rm")
-    ? "regional_manager"
+    ? RELATIONSHIP_MANAGER_ROLE
     : pathname.startsWith("/accountant")
       ? "accountant"
       : pathname.startsWith("/admin")

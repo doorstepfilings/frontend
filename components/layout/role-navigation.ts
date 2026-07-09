@@ -1,4 +1,4 @@
-import { normalizeRole } from "@/lib/auth/redirects";
+import { RELATIONSHIP_MANAGER_ROLE, normalizeRole } from "@/lib/auth/redirects";
 
 export type DashboardNavItem = {
   path: string;
@@ -10,7 +10,7 @@ export type DashboardNavItem = {
 export function getDashboardNavItems(roleInput?: string | null) {
   const role = normalizeRole(roleInput);
 
-  if (role === "regional_manager") {
+  if (role === RELATIONSHIP_MANAGER_ROLE) {
     return [
       { path: "/rm/dashboard", label: "Dashboard", icon: "fa-th-large", section: "Workspace" },
       { path: "/rm/assigned-users", label: "Assigned Users", icon: "fa-users", section: "Operations" },
@@ -60,7 +60,7 @@ export function getActiveDashboardItem(
 export function getRolePortalMeta(roleInput?: string | null) {
   const role = normalizeRole(roleInput);
 
-  if (role === "regional_manager") {
+  if (role === RELATIONSHIP_MANAGER_ROLE) {
     return {
       sectionLabel: "Relationship Manager Dashboard",
       headerLabel: "Operations Hub",

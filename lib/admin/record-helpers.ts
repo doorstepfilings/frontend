@@ -9,6 +9,8 @@ export type AdminRecord = Record<string, unknown> & {
   rm_unique_id?: string | null;
   accountantUniqueId?: string | null;
   accountant_unique_id?: string | null;
+  relationshipManager?: AdminRecord | null;
+  relationship_manager?: AdminRecord | null;
   regionalManager?: AdminRecord | null;
   regional_manager?: AdminRecord | null;
   accountant?: AdminRecord | null;
@@ -41,7 +43,13 @@ export function getAccountantUniqueId(record: AdminRecord | null | undefined) {
 }
 
 export function getRegionalManager(record: AdminRecord | null | undefined) {
-  return record?.regionalManager ?? record?.regional_manager ?? null;
+  return (
+    record?.relationshipManager ??
+    record?.relationship_manager ??
+    record?.regionalManager ??
+    record?.regional_manager ??
+    null
+  );
 }
 
 export function getAccountant(record: AdminRecord | null | undefined) {

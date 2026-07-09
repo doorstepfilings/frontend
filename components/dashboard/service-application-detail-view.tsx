@@ -120,7 +120,7 @@ export function ServiceApplicationDetailView() {
     }, [service]);
 
     const assignedRM = useMemo(() => {
-        return service?.user?.regional_manager || null;
+        return service?.user?.relationship_manager || service?.user?.regional_manager || null;
     }, [service]);
 
     const { currentStep, isWarning } = useMemo(() => getMilestoneState(service?.status), [service?.status]);
@@ -589,7 +589,7 @@ export function ServiceApplicationDetailView() {
 
                             <div>
                                 <p className="text-[9px] font-black text-indigo-600 uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                                    <i className="fas fa-user-shield"></i> Regional Manager
+                                    <i className="fas fa-user-shield"></i> Relationship Manager
                                 </p>
                                 {assignedRM ? (
                                     <div className="space-y-0.5">

@@ -1,6 +1,10 @@
 "use client";
 
-import { getDefaultRedirectPath as resolveDefaultRedirectPath } from "@/lib/auth/redirects";
+import {
+  RELATIONSHIP_MANAGER_ROLE,
+  getDefaultRedirectPath as resolveDefaultRedirectPath,
+  normalizeRole,
+} from "@/lib/auth/redirects";
 import type { Session } from "next-auth";
 import type { AuthUser } from "@/lib/auth/types";
 
@@ -77,7 +81,7 @@ function readUserOverride() {
   }
 
   try {
-    cachedUserOverride = JSON.parse(rawValue) as AuthUser;
+    cachedUserOverride = normalizeAuthUserRole(JSON.parse(rawValue) as AuthUser);
     lastRawValue = rawValue;
     return cachedUserOverride;
   } catch {
@@ -85,6 +89,23 @@ function readUserOverride() {
     cachedUserOverride = null;
     return null;
   }
+}
+
+function normalizeAuthUserRole(user: AuthUser | null) {
+  if (!user || typeof user.role !== "string") {
+    return user;
+  }
+
+  const normalizedRole = normalizeRole(user.role);
+
+  if (normalizedRole !== RELATIONSHIP_MANAGER_ROLE || normalizedRole === user.role) {
+    return user;
+  }
+
+  return {
+    ...user,
+    role: normalizedRole,
+  };
 }
 
 async function fetchAuthJson<T>(path: string, init: RequestInit = {}) {
@@ -176,20 +197,20 @@ export function mergeAuthUsers(baseUser: AuthUser | null, overrideUser: AuthUser
   }
 
   if (!overrideUser) {
-    return baseUser;
+    return normalizeAuthUserRole(baseUser);
   }
 
   const baseIdentifier = baseUser.id ?? baseUser.user_id ?? baseUser.email;
   const overrideIdentifier = overrideUser.id ?? overrideUser.user_id ?? overrideUser.email;
 
   if (baseIdentifier && overrideIdentifier && String(baseIdentifier) !== String(overrideIdentifier)) {
-    return baseUser;
+    return normalizeAuthUserRole(baseUser);
   }
 
-  return {
+  return normalizeAuthUserRole({
     ...baseUser,
     ...overrideUser,
-  };
+  });
 }
 
 export function getStoredUserOverride() {
@@ -251,7 +272,10 @@ export function setStoredUser(user: AuthUser) {
     return;
   }
 
-  window.localStorage.setItem(USER_OVERRIDE_KEY, JSON.stringify(user));
+  window.localStorage.setItem(
+    USER_OVERRIDE_KEY,
+    JSON.stringify(normalizeAuthUserRole(user) ?? user),
+  );
   clearSessionCache();
   emitAuthChange();
 }

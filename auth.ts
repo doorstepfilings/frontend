@@ -71,11 +71,28 @@ type BackendAuthResult =
     };
 
 async function readBackendResponse(response: Response): Promise<BackendAuthResult> {
-  const payload = (await response.json().catch(() => null)) as BackendAuthResponse | null;
+  const payload = (await response.json().catch(() => null)) as any;
 
   if (!response.ok) {
+    let errorMessage: string | null = null;
+    if (payload) {
+      if (payload.errors && typeof payload.errors === "object") {
+        const errorList = Object.values(payload.errors).flat();
+        if (errorList.length > 0) {
+          errorMessage = errorList.join("\n");
+        }
+      }
+      if (!errorMessage && payload.message) {
+        if (Array.isArray(payload.message)) {
+          errorMessage = payload.message.join("\n");
+        } else if (typeof payload.message === "string") {
+          errorMessage = payload.message;
+        }
+      }
+    }
+
     return {
-      error: getAuthErrorCode(
+      error: errorMessage || getAuthErrorCode(
         { response: { status: response.status, data: payload } },
         response.status >= 500 ? AUTH_ERROR_CODES.GENERIC : AUTH_ERROR_CODES.LOGIN_FAILED,
       ),
