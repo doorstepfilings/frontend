@@ -49,7 +49,7 @@ export function getBackendRole(role: string | null | undefined) {
   }
 
   if (isRelationshipManagerRole(rawRole)) {
-    return RELATIONSHIP_MANAGER_ROLE;
+    return "regional_manager";
   }
 
   return rawRole;
