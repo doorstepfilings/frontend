@@ -280,8 +280,15 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
     }
   };
 
+  const lastLoadedModalRef = useRef(false);
+
   useEffect(() => {
     if (!showApplyModal || !user) {
+      lastLoadedModalRef.current = false;
+      return;
+    }
+
+    if (lastLoadedModalRef.current) {
       return;
     }
 
@@ -310,6 +317,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
           state: String(profile.state ?? ""),
           pincode: String(profile.pincode ?? ""),
         }));
+        lastLoadedModalRef.current = true;
       } catch {
         // Keep the modal usable with stored user details if the profile request fails.
       }
@@ -348,13 +356,11 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
         setSlotLoading(true);
         setSlotLoadError("");
       }
-      const token = await getStoredToken();
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/service/slot-availability`, {
+      const response = await apiClient.get<{ data: any[] }>("/service/slot-availability", {
         params: {
           service_id: serviceId,
           date: formatDateForApi(date),
         },
-        headers: { Authorization: `Bearer ${token}` },
       });
 
       const data = response?.data?.data || [];
