@@ -294,9 +294,12 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
 
   const { loading: pincodeLoading } = usePincodeLookup(formData.pincode, handlePincodeSuccess);
 
+  const hydratedRef = useRef(false);
+
   useEffect(() => {
-    if (user) {
+    if (user && !hydratedRef.current) {
       setFormData((current) => mergeUserIntoForm(current, user, touchedFieldsRef.current));
+      hydratedRef.current = true;
     }
   }, [user]);
 
@@ -671,442 +674,440 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
       <div className={`flex flex-col lg:flex-row gap-8`}>
         <div className={modalMode ? 'w-full' : 'lg:w-2/3'}>
           <form onSubmit={handleSubmit} className={`bg-white ${modalMode ? '' : 'rounded-2xl shadow-sm border border-gray-100 p-8'}`}>
-            
+
             {/* Service Selection */}
             <div className="mb-6">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Service</label>
-                {isServiceSelectionLocked ? (
-                    <div className="relative">
-                        <input 
-                            type="text" 
-                            value={selectedService?.name || ''} 
-                            readOnly 
-                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-600 outline-none"
-                        />
-                    </div>
-                ) : (
-                    <div className="relative">
-                        <SearchableSelect
-                            value={selectedService ? String(selectedService.id) : ""}
-                            onChange={(e) => handleServiceSelectionChange(e.target.value)}
-                            options={services
-                              .filter((service) => isServicePurchasable(service))
-                              .map((service) => ({
-                                value: String(service.id),
-                                label: service.name,
-                              }))}
-                            placeholder="Select a service"
-                            required
-                        />
-                    </div>
-                )}
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Service</label>
+              {isServiceSelectionLocked ? (
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={selectedService?.name || ''}
+                    readOnly
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-600 outline-none"
+                  />
+                </div>
+              ) : (
+                <div className="relative">
+                  <SearchableSelect
+                    value={selectedService ? String(selectedService.id) : ""}
+                    onChange={(e) => handleServiceSelectionChange(e.target.value)}
+                    options={services
+                      .filter((service) => isServicePurchasable(service))
+                      .map((service) => ({
+                        value: String(service.id),
+                        label: service.name,
+                      }))}
+                    placeholder="Select a service"
+                    required
+                  />
+                </div>
+              )}
             </div>
 
             {selectedService && purchasablePlans.length > 0 && (
-                <div className="mb-8">
-                    <div className="flex items-center gap-2 mb-4">
-                        <i className="fas fa-box-open text-blue-900"></i>
-                        <h3 className="text-lg font-bold text-gray-800">
-                            {hasMultiplePackages ? "Choose Package" : "Selected Package"}
-                        </h3>
-                    </div>
-                    <div className="h-px bg-gray-200 w-full mb-6"></div>
-
-                    <div className="grid gap-4 md:grid-cols-2">
-                        {purchasablePlans.map((plan) => {
-                            const isActive = selectedPricingPlan === plan.name;
-
-                            return (
-                                <button
-                                    key={plan.name}
-                                    type="button"
-                                    onClick={() => setSelectedPricingPlan(plan.name)}
-                                    className={`rounded-2xl border p-5 text-left transition-all ${
-                                        isActive
-                                            ? "border-blue-900 bg-blue-50 shadow-sm"
-                                            : "border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/40"
-                                    }`}
-                                >
-                                    <div className="flex items-start justify-between gap-4">
-                                        <div>
-                                            <p className="text-base font-bold text-gray-900">{plan.name}</p>
-                                            {typeof plan.price === "number" && (
-                                                <p className="mt-1 text-sm font-semibold text-blue-900">
-                                                    Rs. {formatPrice(plan.price)}
-                                                </p>
-                                            )}
-                                        </div>
-                                        <span
-                                            className={`flex h-6 w-6 items-center justify-center rounded-full border text-xs ${
-                                                isActive
-                                                    ? "border-blue-900 bg-blue-900 text-white"
-                                                    : "border-gray-300 text-transparent"
-                                            }`}
-                                        >
-                                            <i className="fas fa-check"></i>
-                                        </span>
-                                    </div>
-
-                                    {plan.features && plan.features.length > 0 && (
-                                        <div className="mt-4 space-y-2">
-                                            {plan.features.slice(0, 4).map((feature) => (
-                                                <div key={feature} className="flex items-start gap-2 text-sm text-gray-600">
-                                                    <i className="fas fa-check-circle mt-0.5 text-[11px] text-emerald-500"></i>
-                                                    <span>{feature}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </button>
-                            );
-                        })}
-                    </div>
-
-                    {selectedPlanDetails && (
-                        <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900">
-                            <span className="font-bold">{selectedPlanDetails.name}</span>
-                            {selectedPlanDetails.price !== undefined && (
-                                <span className="ml-2">
-                                    Rs. {formatPrice(selectedPlanDetails.price)}
-                                </span>
-                            )}
-                        </div>
-                    )}
+              <div className="mb-8">
+                <div className="flex items-center gap-2 mb-4">
+                  <i className="fas fa-box-open text-blue-900"></i>
+                  <h3 className="text-lg font-bold text-gray-800">
+                    {hasMultiplePackages ? "Choose Package" : "Selected Package"}
+                  </h3>
                 </div>
+                <div className="h-px bg-gray-200 w-full mb-6"></div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  {purchasablePlans.map((plan) => {
+                    const isActive = selectedPricingPlan === plan.name;
+
+                    return (
+                      <button
+                        key={plan.name}
+                        type="button"
+                        onClick={() => setSelectedPricingPlan(plan.name)}
+                        className={`rounded-2xl border p-5 text-left transition-all ${isActive
+                            ? "border-blue-900 bg-blue-50 shadow-sm"
+                            : "border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/40"
+                          }`}
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <p className="text-base font-bold text-gray-900">{plan.name}</p>
+                            {typeof plan.price === "number" && (
+                              <p className="mt-1 text-sm font-semibold text-blue-900">
+                                Rs. {formatPrice(plan.price)}
+                              </p>
+                            )}
+                          </div>
+                          <span
+                            className={`flex h-6 w-6 items-center justify-center rounded-full border text-xs ${isActive
+                                ? "border-blue-900 bg-blue-900 text-white"
+                                : "border-gray-300 text-transparent"
+                              }`}
+                          >
+                            <i className="fas fa-check"></i>
+                          </span>
+                        </div>
+
+                        {plan.features && plan.features.length > 0 && (
+                          <div className="mt-4 space-y-2">
+                            {plan.features.slice(0, 4).map((feature) => (
+                              <div key={feature} className="flex items-start gap-2 text-sm text-gray-600">
+                                <i className="fas fa-check-circle mt-0.5 text-[11px] text-emerald-500"></i>
+                                <span>{feature}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {selectedPlanDetails && (
+                  <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+                    <span className="font-bold">{selectedPlanDetails.name}</span>
+                    {selectedPlanDetails.price !== undefined && (
+                      <span className="ml-2">
+                        Rs. {formatPrice(selectedPlanDetails.price)}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
             )}
 
             {/* Personal Information Section */}
             <div className="mb-8">
-                <div className="flex items-center gap-2 mb-4">
-                    <i className="fas fa-user text-blue-900"></i>
-                    <h3 className="text-lg font-bold text-gray-800">Personal Information</h3>
-                </div>
-                <div className="h-px bg-gray-200 w-full mb-6"></div>
-                
-                <div className="grid md:grid-cols-2 gap-6 mb-6">
-                    <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">Full Name <span className="text-red-500">*</span></label>
-                        <div className="relative">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-                                <i className="fas fa-user"></i>
-                            </span>
-                            <input 
-                                type="text" 
-                                value={formData.fullName} 
-                                onChange={e => handleInputChange('fullName', e.target.value)}
-                                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                                placeholder="Krishna Rathore"
-                                required
-                            />
-                        </div>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">Email <span className="text-red-500">*</span></label>
-                        <div className="relative">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-                                <i className="fas fa-envelope"></i>
-                            </span>
-                            <input 
-                                type="email" 
-                                value={formData.email} 
-                                onChange={e => handleInputChange('email', e.target.value)}
-                                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                                placeholder="krishna.radio2pir@gmail.com"
-                                required
-                            />
-                        </div>
-                    </div>
-                </div>
+              <div className="flex items-center gap-2 mb-4">
+                <i className="fas fa-user text-blue-900"></i>
+                <h3 className="text-lg font-bold text-gray-800">Personal Information</h3>
+              </div>
+              <div className="h-px bg-gray-200 w-full mb-6"></div>
 
-                <div className="mb-6">
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Mobile Number <span className="text-red-500">*</span></label>
-                    <div className="flex border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 transition-all">
-                        <div className="flex items-center gap-2 px-4 bg-white border-r border-gray-200 cursor-pointer hover:bg-gray-50" onClick={() => setShowCountryDropdown(!showCountryDropdown)}>
-                            <img src={`https://flagcdn.com/24x18/${formData.countryIso}.png`} alt="Country" className="w-5" />
-                            <i className="fas fa-chevron-down text-[10px] text-gray-400 ml-1"></i>
-                        </div>
-                        <div className="flex items-center px-3 bg-gray-50 border-r border-gray-200 text-gray-600 font-bold text-sm">
-                            +{formData.dialCode}
-                        </div>
-                        <input 
-                            type="tel" 
-                            value={formData.phone} 
-                            onChange={e => handleInputChange('phone', e.target.value.replace(/\D/g, '').slice(0, 10))}
-                            className="flex-1 px-4 py-3 outline-none"
-                            placeholder="Enter mobile number"
-                            maxLength={10}
-                            required
-                        />
-                    </div>
-                    {showCountryDropdown && (
-                        <div className="absolute mt-2 w-72 bg-white border border-gray-200 rounded-xl shadow-xl z-50 py-2 max-h-60 overflow-y-auto">
-                            {COUNTRIES.map(c => (
-                                <button
-                                    key={c.iso}
-                                    type="button"
-                                    onClick={() => {
-                                        touchedFieldsRef.current.add("dialCode");
-                                        touchedFieldsRef.current.add("countryIso");
-                                        setFormData(p => ({ ...p, dialCode: c.dialCode, countryIso: c.iso }));
-                                        setShowCountryDropdown(false);
-                                    }}
-                                    className="w-full px-4 py-2 flex items-center gap-3 hover:bg-gray-50 text-left"
-                                >
-                                    <img src={c.flag} className="w-5" />
-                                    <span className="text-sm text-gray-700">{c.name} (+{c.dialCode})</span>
-                                </button>
-                            ))}
-                        </div>
-                    )}
+              <div className="grid md:grid-cols-2 gap-6 mb-6">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Full Name <span className="text-red-500">*</span></label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                      <i className="fas fa-user"></i>
+                    </span>
+                    <input
+                      type="text"
+                      value={formData.fullName}
+                      onChange={e => handleInputChange('fullName', e.target.value)}
+                      className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                      placeholder="Krishna Rathore"
+                      required
+                    />
+                  </div>
                 </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Email <span className="text-red-500">*</span></label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                      <i className="fas fa-envelope"></i>
+                    </span>
+                    <input
+                      type="email"
+                      value={formData.email}
+                      onChange={e => handleInputChange('email', e.target.value)}
+                      className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                      placeholder="krishna.radio2pir@gmail.com"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="mb-6">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Mobile Number <span className="text-red-500">*</span></label>
+                <div className="flex border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 transition-all">
+                  <div className="flex items-center gap-2 px-4 bg-white border-r border-gray-200 cursor-pointer hover:bg-gray-50" onClick={() => setShowCountryDropdown(!showCountryDropdown)}>
+                    <img src={`https://flagcdn.com/24x18/${formData.countryIso}.png`} alt="Country" className="w-5" />
+                    <i className="fas fa-chevron-down text-[10px] text-gray-400 ml-1"></i>
+                  </div>
+                  <div className="flex items-center px-3 bg-gray-50 border-r border-gray-200 text-gray-600 font-bold text-sm">
+                    +{formData.dialCode}
+                  </div>
+                  <input
+                    type="tel"
+                    value={formData.phone}
+                    onChange={e => handleInputChange('phone', e.target.value.replace(/\D/g, '').slice(0, 10))}
+                    className="flex-1 px-4 py-3 outline-none"
+                    placeholder="Enter mobile number"
+                    maxLength={10}
+                    required
+                  />
+                </div>
+                {showCountryDropdown && (
+                  <div className="absolute mt-2 w-72 bg-white border border-gray-200 rounded-xl shadow-xl z-50 py-2 max-h-60 overflow-y-auto">
+                    {COUNTRIES.map(c => (
+                      <button
+                        key={c.iso}
+                        type="button"
+                        onClick={() => {
+                          touchedFieldsRef.current.add("dialCode");
+                          touchedFieldsRef.current.add("countryIso");
+                          setFormData(p => ({ ...p, dialCode: c.dialCode, countryIso: c.iso }));
+                          setShowCountryDropdown(false);
+                        }}
+                        className="w-full px-4 py-2 flex items-center gap-3 hover:bg-gray-50 text-left"
+                      >
+                        <img src={c.flag} className="w-5" />
+                        <span className="text-sm text-gray-700">{c.name} (+{c.dialCode})</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Address Details Section */}
             <div className="mb-8">
-                <div className="flex items-center gap-2 mb-4">
-                    <i className="fas fa-map-marker-alt text-blue-900"></i>
-                    <h3 className="text-lg font-bold text-gray-800">Address Details</h3>
-                </div>
-                <div className="h-px bg-gray-200 w-full mb-6"></div>
-                
-                <div className="mb-6">
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Detailed Address <span className="text-red-500">*</span></label>
-                    <div className="relative">
-                        <span className="absolute left-4 top-4 text-gray-400">
-                            <i className="fas fa-map-marker-alt"></i>
-                        </span>
-                        <input 
-                            type="text" 
-                            value={formData.address} 
-                            onChange={e => handleInputChange('address', e.target.value)}
-                            className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                            placeholder="Flat no, Street, Locality"
-                            required
-                        />
-                    </div>
-                </div>
+              <div className="flex items-center gap-2 mb-4">
+                <i className="fas fa-map-marker-alt text-blue-900"></i>
+                <h3 className="text-lg font-bold text-gray-800">Address Details</h3>
+              </div>
+              <div className="h-px bg-gray-200 w-full mb-6"></div>
 
-                <div className="grid grid-cols-3 gap-4 mb-6">
-                    <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">Pincode <span className="text-red-500">*</span></label>
-                        <div className="relative">
-                            <input 
-                                type="text" 
-                                maxLength={6}
-                                value={formData.pincode} 
-                                onChange={e => handleInputChange('pincode', e.target.value.replace(/\D/g, ''))}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                                placeholder="123456"
-                                required
-                            />
-                            {pincodeLoading && <i className="fas fa-circle-notch fa-spin absolute right-3 top-1/2 -translate-y-1/2 text-blue-900"></i>}
-                        </div>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">City <span className="text-red-500">*</span></label>
-                        <input 
-                            type="text" 
-                            value={formData.city} 
-                            onChange={e => handleInputChange('city', e.target.value)}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                            placeholder="City"
-                            required
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">State <span className="text-red-500">*</span></label>
-                        <input 
-                            type="text" 
-                            value={formData.state} 
-                            onChange={e => handleInputChange('state', e.target.value)}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                            placeholder="State"
-                            required
-                        />
-                    </div>
+              <div className="mb-6">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Detailed Address <span className="text-red-500">*</span></label>
+                <div className="relative">
+                  <span className="absolute left-4 top-4 text-gray-400">
+                    <i className="fas fa-map-marker-alt"></i>
+                  </span>
+                  <input
+                    type="text"
+                    value={formData.address}
+                    onChange={e => handleInputChange('address', e.target.value)}
+                    className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                    placeholder="Flat no, Street, Locality"
+                    required
+                  />
                 </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4 mb-6">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Pincode <span className="text-red-500">*</span></label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      maxLength={6}
+                      value={formData.pincode}
+                      onChange={e => handleInputChange('pincode', e.target.value.replace(/\D/g, ''))}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                      placeholder="123456"
+                      required
+                    />
+                    {pincodeLoading && <i className="fas fa-circle-notch fa-spin absolute right-3 top-1/2 -translate-y-1/2 text-blue-900"></i>}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">City <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    value={formData.city}
+                    onChange={e => handleInputChange('city', e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                    placeholder="City"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">State <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    value={formData.state}
+                    onChange={e => handleInputChange('state', e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                    placeholder="State"
+                    required
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Appointment Request */}
             <div className="mb-8">
-                <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-6">
-                    <div className="flex items-center justify-between gap-4">
-                        <div className="flex items-start gap-4">
-                            <div className="w-12 h-12 bg-blue-900 rounded-xl flex items-center justify-center text-white flex-shrink-0">
-                                <i className="fas fa-calendar-check text-xl"></i>
-                            </div>
-                            <div>
-                                <h4 className="font-bold text-gray-900">Appointment Request?</h4>
-                                <p className="text-xs text-blue-600">Schedule a call with our experts</p>
-                            </div>
-                        </div>
-                        <div className="flex bg-white rounded-lg border border-gray-200 p-1">
-                            <button 
-                                type="button"
-                                onClick={() => {
-                                  setIncludeAppointment(true);
-                                  setSlotClock(Date.now());
-                                }}
-                                className={`px-6 py-1.5 rounded-md text-sm font-bold transition-all ${includeAppointment ? 'bg-blue-900 text-white' : 'text-gray-500 hover:bg-gray-50'}`}
-                            >
-                                Yes
-                            </button>
-                            <button 
-                                type="button"
-                                onClick={() => {
-                                  setIncludeAppointment(false);
-                                  slotRequestIdRef.current += 1;
-                                  setSelectedDate(null);
-                                  setSelectedTimeSlot("");
-                                  setSlots([]);
-                                  setSlotsLoading(false);
-                                  setSlotLoadError("");
-                                }}
-                                className={`px-6 py-1.5 rounded-md text-sm font-bold transition-all ${!includeAppointment ? 'bg-blue-900 text-white' : 'text-gray-500 hover:bg-gray-50'}`}
-                            >
-                                No
-                            </button>
-                        </div>
+              <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-6">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 bg-blue-900 rounded-xl flex items-center justify-center text-white flex-shrink-0">
+                      <i className="fas fa-calendar-check text-xl"></i>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-gray-900">Appointment Request?</h4>
+                      <p className="text-xs text-blue-600">Schedule a call with our experts</p>
+                    </div>
+                  </div>
+                  <div className="flex bg-white rounded-lg border border-gray-200 p-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIncludeAppointment(true);
+                        setSlotClock(Date.now());
+                      }}
+                      className={`px-6 py-1.5 rounded-md text-sm font-bold transition-all ${includeAppointment ? 'bg-blue-900 text-white' : 'text-gray-500 hover:bg-gray-50'}`}
+                    >
+                      Yes
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIncludeAppointment(false);
+                        slotRequestIdRef.current += 1;
+                        setSelectedDate(null);
+                        setSelectedTimeSlot("");
+                        setSlots([]);
+                        setSlotsLoading(false);
+                        setSlotLoadError("");
+                      }}
+                      className={`px-6 py-1.5 rounded-md text-sm font-bold transition-all ${!includeAppointment ? 'bg-blue-900 text-white' : 'text-gray-500 hover:bg-gray-50'}`}
+                    >
+                      No
+                    </button>
+                  </div>
+                </div>
+
+                {includeAppointment && (
+                  <div className="mt-8 animate-fadeIn">
+                    <div className="mb-6">
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Select Date <span className="text-red-500">*</span></label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 z-10">
+                          <i className="fas fa-calendar-alt"></i>
+                        </span>
+                        <DatePicker
+                          selected={selectedDate}
+                          onChange={handleAppointmentDateChange}
+                          minDate={new Date()}
+                          filterDate={isWorkingDay}
+                          dateFormat="dd/MM/yyyy"
+                          className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                          placeholderText="14/05/2026"
+                          required
+                        />
+                      </div>
                     </div>
 
-                    {includeAppointment && (
-                        <div className="mt-8 animate-fadeIn">
-                            <div className="mb-6">
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Select Date <span className="text-red-500">*</span></label>
-                                <div className="relative">
-                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 z-10">
-                                        <i className="fas fa-calendar-alt"></i>
-                                    </span>
-                                    <DatePicker
-                                        selected={selectedDate}
-                                        onChange={handleAppointmentDateChange}
-                                        minDate={new Date()}
-                                        filterDate={isWorkingDay}
-                                        dateFormat="dd/MM/yyyy"
-                                        className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                                        placeholderText="14/05/2026"
-                                        required
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-4">Available Slots <span className="text-red-500">*</span></label>
-                                {!selectedDate ? (
-                                  <p className="mb-3 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700">
-                                    Select an appointment date to check live slot availability.
-                                  </p>
-                                ) : null}
-                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-                                    {SLOT_TIMES.map((time) => {
-                                        const status = localSlots.find(s => s.time === time);
-                                        const isSelected = selectedTimeSlot === time;
-                                        const isDisabled =
-                                          slotsLoading ||
-                                          !!slotLoadError ||
-                                          !status?.is_available ||
-                                          !!status?.is_full ||
-                                          !!status?.is_past;
-                                        return (
-                                            <button
-                                                key={time}
-                                                type="button"
-                                                disabled={isDisabled}
-                                                onClick={() => setSelectedTimeSlot(time)}
-                                                className={`
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-4">Available Slots <span className="text-red-500">*</span></label>
+                      {!selectedDate ? (
+                        <p className="mb-3 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700">
+                          Select an appointment date to check live slot availability.
+                        </p>
+                      ) : null}
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                        {SLOT_TIMES.map((time) => {
+                          const status = localSlots.find(s => s.time === time);
+                          const isSelected = selectedTimeSlot === time;
+                          const isDisabled =
+                            slotsLoading ||
+                            !!slotLoadError ||
+                            !status?.is_available ||
+                            !!status?.is_full ||
+                            !!status?.is_past;
+                          return (
+                            <button
+                              key={time}
+                              type="button"
+                              disabled={isDisabled}
+                              onClick={() => setSelectedTimeSlot(time)}
+                              className={`
                                                     py-3 text-xs font-bold rounded-lg border transition-all
                                                     ${isSelected ? 'bg-blue-900 border-blue-900 text-white shadow-md' : 'bg-white border-gray-200 text-gray-600 hover:border-blue-900 hover:text-blue-900'}
                                                     ${isDisabled ? 'opacity-30 cursor-not-allowed bg-gray-50' : ''}
                                                 `}
-                                            >
-                                                {formatTimeSlot(time)}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                                {slotsLoading ? (
-                                  <p className="mt-3 text-xs font-semibold text-slate-500">
-                                    Checking live availability...
-                                  </p>
-                                ) : null}
-                                {slotLoadError ? (
-                                  <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-rose-100 bg-rose-50 p-3">
-                                    <p className="text-xs font-semibold text-rose-700">
-                                      {slotLoadError}
-                                    </p>
-                                    {selectedService && selectedDate ? (
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          void fetchSlotAvailability(selectedService.id, selectedDate)
-                                        }
-                                        className="shrink-0 text-xs font-black text-rose-800 underline"
-                                      >
-                                        Retry
-                                      </button>
-                                    ) : null}
-                                  </div>
-                                ) : null}
-                                {slotRecovery && (
-                                    <div className="mt-4 p-4 rounded-xl bg-amber-50 border border-amber-100">
-                                        <p className="text-xs font-bold text-amber-900">{slotRecovery.title}</p>
-                                        <p className="text-[11px] text-amber-700 mt-1">{slotRecovery.description}</p>
-                                        {slotRecovery.nextSlot && (
-                                            <button type="button" onClick={() => setSelectedTimeSlot(slotRecovery.nextSlot!)} className="mt-2 px-3 py-1 bg-amber-500 text-white text-[10px] font-bold rounded-md hover:bg-amber-600 transition-colors">Move to {formatTimeSlot(slotRecovery.nextSlot!)}</button>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
+                            >
+                              {formatTimeSlot(time)}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {slotsLoading ? (
+                        <p className="mt-3 text-xs font-semibold text-slate-500">
+                          Checking live availability...
+                        </p>
+                      ) : null}
+                      {slotLoadError ? (
+                        <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-rose-100 bg-rose-50 p-3">
+                          <p className="text-xs font-semibold text-rose-700">
+                            {slotLoadError}
+                          </p>
+                          {selectedService && selectedDate ? (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                void fetchSlotAvailability(selectedService.id, selectedDate)
+                              }
+                              className="shrink-0 text-xs font-black text-rose-800 underline"
+                            >
+                              Retry
+                            </button>
+                          ) : null}
                         </div>
-                    )}
-                </div>
+                      ) : null}
+                      {slotRecovery && (
+                        <div className="mt-4 p-4 rounded-xl bg-amber-50 border border-amber-100">
+                          <p className="text-xs font-bold text-amber-900">{slotRecovery.title}</p>
+                          <p className="text-[11px] text-amber-700 mt-1">{slotRecovery.description}</p>
+                          {slotRecovery.nextSlot && (
+                            <button type="button" onClick={() => setSelectedTimeSlot(slotRecovery.nextSlot!)} className="mt-2 px-3 py-1 bg-amber-500 text-white text-[10px] font-bold rounded-md hover:bg-amber-600 transition-colors">Move to {formatTimeSlot(slotRecovery.nextSlot!)}</button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Additional Information Section */}
             <div className="mb-8">
-                <div className="flex items-center gap-2 mb-4">
-                    <i className="fas fa-sticky-note text-blue-900"></i>
-                    <h3 className="text-lg font-bold text-gray-800">Additional Information</h3>
-                </div>
-                <div className="h-px bg-gray-200 w-full mb-6"></div>
-                
-                <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Additional Notes</label>
-                    <textarea 
-                        value={formData.notes} 
-                        onChange={e => handleInputChange('notes', e.target.value)} 
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" 
-                        rows={4} 
-                        placeholder="Tell us more about your needs or specifically what you're looking for..." 
-                    />
-                </div>
+              <div className="flex items-center gap-2 mb-4">
+                <i className="fas fa-sticky-note text-blue-900"></i>
+                <h3 className="text-lg font-bold text-gray-800">Additional Information</h3>
+              </div>
+              <div className="h-px bg-gray-200 w-full mb-6"></div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Additional Notes</label>
+                <textarea
+                  value={formData.notes}
+                  onChange={e => handleInputChange('notes', e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                  rows={4}
+                  placeholder="Tell us more about your needs or specifically what you're looking for..."
+                />
+              </div>
             </div>
 
             {error && (
-                <div className="mb-6 p-4 bg-red-50 text-red-700 border border-red-100 rounded-lg flex items-center gap-2">
-                    <i className="fas fa-exclamation-circle"></i>
-                    <span className="text-sm font-medium">{error}</span>
-                </div>
+              <div className="mb-6 p-4 bg-red-50 text-red-700 border border-red-100 rounded-lg flex items-center gap-2">
+                <i className="fas fa-exclamation-circle"></i>
+                <span className="text-sm font-medium">{error}</span>
+              </div>
             )}
 
             <div className="flex items-center justify-end gap-4 pt-4">
-                <button 
-                    type="submit" 
-                    disabled={submitLoading} 
-                    className="flex-1 max-w-[240px] px-8 py-3 bg-[#1e3a8a] text-white rounded-xl hover:bg-blue-800 transition-all font-bold text-sm flex items-center justify-center gap-3 shadow-lg shadow-blue-900/20 disabled:opacity-50"
-                >
-                    {submitLoading ? (
-                        <>
-                            <i className="fas fa-spinner fa-spin"></i>
-                            Submitting...
-                        </>
-                    ) : (
-                        <>
-                            <i className="fas fa-paper-plane"></i>
-                            Submit Application
-                        </>
-                    )}
-                </button>
+              <button
+                type="submit"
+                disabled={submitLoading}
+                className="flex-1 max-w-[240px] px-8 py-3 bg-[#1e3a8a] text-white rounded-xl hover:bg-blue-800 transition-all font-bold text-sm flex items-center justify-center gap-3 shadow-lg shadow-blue-900/20 disabled:opacity-50"
+              >
+                {submitLoading ? (
+                  <>
+                    <i className="fas fa-spinner fa-spin"></i>
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    <i className="fas fa-paper-plane"></i>
+                    Submit Application
+                  </>
+                )}
+              </button>
             </div>
           </form>
         </div>
@@ -1116,13 +1117,13 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
           <div className="lg:w-1/3">
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sticky top-24">
               <h3 className="text-lg font-bold text-gray-800 mb-4">Application Summary</h3>
-              
+
               {selectedService && (
                 <div className="p-4 rounded-lg border border-amber-200 bg-amber-50 mb-6">
-                    <div className="flex items-center gap-2">
-                        <i className="fas fa-circle text-amber-500 text-xs"></i>
-                        <span className="text-sm font-medium text-amber-700 uppercase">{selectedService.name}</span>
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <i className="fas fa-circle text-amber-500 text-xs"></i>
+                    <span className="text-sm font-medium text-amber-700 uppercase">{selectedService.name}</span>
+                  </div>
                 </div>
               )}
 
@@ -1144,23 +1145,23 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
 
               {includeAppointment && selectedDate && (
                 <div className="p-4 rounded-lg border border-blue-200 bg-blue-50 mb-6">
-                    <div className="flex items-center gap-2 mb-2">
-                        <i className="fas fa-calendar text-blue-500"></i>
-                        <span className="text-sm font-medium text-blue-700">{selectedDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                  <div className="flex items-center gap-2 mb-2">
+                    <i className="fas fa-calendar text-blue-500"></i>
+                    <span className="text-sm font-medium text-blue-700">{selectedDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                  </div>
+                  {selectedTimeSlot && (
+                    <div className="flex items-center gap-2">
+                      <i className="fas fa-clock text-blue-500"></i>
+                      <span className="text-sm font-medium text-blue-700">{formatTimeSlot(selectedTimeSlot)}</span>
                     </div>
-                    {selectedTimeSlot && (
-                        <div className="flex items-center gap-2">
-                            <i className="fas fa-clock text-blue-500"></i>
-                            <span className="text-sm font-medium text-blue-700">{formatTimeSlot(selectedTimeSlot)}</span>
-                        </div>
-                    )}
+                  )}
                 </div>
               )}
 
               <div className="border-t border-gray-100 pt-4">
                 <p className="text-sm text-gray-600 mb-2 leading-relaxed">
-                    <i className="fas fa-info-circle text-blue-500 mr-1"></i>
-                    Your information is secure and will only be used for processing your application through our secure compliance engine.
+                  <i className="fas fa-info-circle text-blue-500 mr-1"></i>
+                  Your information is secure and will only be used for processing your application through our secure compliance engine.
                 </p>
               </div>
             </div>
