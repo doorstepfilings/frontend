@@ -5,23 +5,16 @@ import { AdminLayout } from "@/components/layout/AdminLayout";
 import { AuthGuard } from "@/components/auth/auth-guard";
 import { toast } from "react-hot-toast";
 import { rmApi } from "@/lib/api/rm-api";
-import { SearchableSelect } from "@/components/ui/searchable-select";
 import { LogoLoader } from "@/components/ui/logo-loader";
 
 export function RMAssignedUsersView() {
     const [users, setUsers] = useState<any[]>([]);
-    const [accountants, setAccountants] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [assigningUserId, setAssigningUserId] = useState<number | null>(null);
 
     const fetchData = async () => {
         try {
-            const [usersRes, accountantsRes] = await Promise.all([
-                rmApi.getAssignedUsers(),
-                rmApi.getAccountants(),
-            ]);
+            const usersRes = await rmApi.getAssignedUsers();
             setUsers(usersRes.data?.data || []);
-            setAccountants(accountantsRes.data?.data || []);
         } catch (error) {
             toast.error("Failed to fetch assigned users");
         } finally {
@@ -33,28 +26,6 @@ export function RMAssignedUsersView() {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         void fetchData();
     }, []);
-
-    const handleAssignAccountant = async (
-        userId: number,
-        accountantId: string,
-    ) => {
-        setAssigningUserId(userId);
-        try {
-            await rmApi.assignAccountant({
-                user_id: userId,
-                accountant_id: accountantId ? Number(accountantId) : null,
-            });
-            toast.success("Accountant mapping updated");
-            await fetchData();
-        } catch (error: any) {
-            toast.error(
-                error.response?.data?.message ||
-                    "Failed to assign accountant",
-            );
-        } finally {
-            setAssigningUserId(null);
-        }
-    };
 
     return (
         <AuthGuard allowedRoles={["relationship_manager"]}>
@@ -75,19 +46,18 @@ export function RMAssignedUsersView() {
                                         <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Client Name</th>
                                         <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Contact Info</th>
                                         <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Registration</th>
-                                        <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Consultant Mapping</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50">
                                     {loading ? (
                                         <tr>
-                                            <td colSpan={4} className="px-8 py-32 text-center">
+                                            <td colSpan={3} className="px-8 py-32 text-center">
                                                 <LogoLoader size={48} label="Loading Users..." />
                                             </td>
                                         </tr>
                                     ) : users.length === 0 ? (
                                         <tr>
-                                            <td colSpan={4} className="px-8 py-32 text-center">
+                                            <td colSpan={3} className="px-8 py-32 text-center">
                                                 <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">No assigned users found</p>
                                             </td>
                                         </tr>
@@ -107,25 +77,6 @@ export function RMAssignedUsersView() {
                                             </td>
                                             <td className="px-8 py-6">
                                                 <span className="text-[10px] font-bold text-slate-400">{user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}</span>
-                                            </td>
-                                            <td className="px-8 py-6 text-right">
-                                                <SearchableSelect
-                                                    value={user.accountant_id || ""}
-                                                    onChange={(e) =>
-                                                        void handleAssignAccountant(
-                                                            user.id,
-                                                            e.target.value,
-                                                        )
-                                                    }
-                                                    disabled={assigningUserId === user.id}
-                                                    options={accountants.map((acc: any) => ({
-                                                        value: String(acc.id),
-                                                        label: acc.name,
-                                                    }))}
-                                                    placeholder="Awaiting Mapping"
-                                                    size="sm"
-                                                    className="inline-block min-w-[220px]"
-                                                />
                                             </td>
                                         </tr>
                                     ))}
