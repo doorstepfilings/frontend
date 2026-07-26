@@ -176,9 +176,23 @@ export function ServiceFormView() {
 
           if (!data) throw new Error("Service not found");
 
-          setShowPlans(data.pricing_plans?.length > 0);
-          setShowExtraDocs(data.extra_documents?.length > 0);
-          setForm({ ...INITIAL_STATE, ...data });
+          const pricing_plans = data.pricing_plans ?? data.pricingPlans ?? [];
+          const extra_documents = data.extra_documents ?? data.extraDocuments ?? [];
+          setShowPlans(pricing_plans.length > 0);
+          setShowExtraDocs(extra_documents.length > 0);
+          setForm({
+            ...INITIAL_STATE,
+            service_category_id: String(data.service_category_id ?? data.serviceCategoryId ?? ""),
+            name: data.name ?? "",
+            short_description: data.short_description ?? data.shortDescription ?? "",
+            long_description: data.long_description ?? data.longDescription ?? "",
+            price: data.price != null ? String(data.price) : "",
+            pricing_plans,
+            required_documents_list: data.required_documents_list ?? data.requiredDocumentsList ?? INITIAL_STATE.required_documents_list,
+            extra_documents,
+            faqs: data.faqs ?? [],
+            admin_notes: data.admin_notes ?? data.adminNotes ?? "",
+          });
         }
       } catch (error: any) {
         toast.error("Failed to synchronize catalog data");
