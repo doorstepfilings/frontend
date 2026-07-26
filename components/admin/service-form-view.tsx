@@ -176,8 +176,35 @@ export function ServiceFormView() {
 
           if (!data) throw new Error("Service not found");
 
-          const pricing_plans = data.pricing_plans ?? data.pricingPlans ?? [];
-          const extra_documents = data.extra_documents ?? data.extraDocuments ?? [];
+          const rawPricingPlans = data.pricing_plans ?? data.pricingPlans ?? [];
+          const rawExtraDocs = data.extra_documents ?? data.extraDocuments ?? [];
+          const rawFaqs = data.faqs ?? [];
+          const rawRequiredDocs = data.required_documents_list ?? data.requiredDocumentsList ?? [];
+
+          const pricing_plans = rawPricingPlans.map((plan: any) => ({
+            name: plan.name ?? "",
+            price: plan.price != null ? String(plan.price) : "",
+            features: Array.isArray(plan.features) ? plan.features.map(String) : [""],
+          }));
+
+          const extra_documents = rawExtraDocs.map((doc: any) => ({
+            name: doc.name ?? "",
+            description: doc.description ?? "",
+          }));
+
+          const faqs = rawFaqs.map((faq: any) => ({
+            question: faq.question ?? "",
+            answer: faq.answer ?? "",
+          }));
+
+          const required_documents_list = rawRequiredDocs.length > 0
+            ? rawRequiredDocs.map((doc: any) => ({
+                name: doc.name ?? "",
+                description: doc.description ?? "",
+                is_required: doc.is_required ?? doc.isRequired ?? true,
+              }))
+            : INITIAL_STATE.required_documents_list;
+
           setShowPlans(pricing_plans.length > 0);
           setShowExtraDocs(extra_documents.length > 0);
           setForm({
@@ -188,9 +215,9 @@ export function ServiceFormView() {
             long_description: data.long_description ?? data.longDescription ?? "",
             price: data.price != null ? String(data.price) : "",
             pricing_plans,
-            required_documents_list: data.required_documents_list ?? data.requiredDocumentsList ?? INITIAL_STATE.required_documents_list,
+            required_documents_list,
             extra_documents,
-            faqs: data.faqs ?? [],
+            faqs,
             admin_notes: data.admin_notes ?? data.adminNotes ?? "",
           });
         }
@@ -394,102 +421,11 @@ export function ServiceFormView() {
                         className="rounded-none border-0 bg-transparent p-0 shadow-none sm:p-0"
                         showCount={false}
                         renderItem={(plan, index) => (
-                          <div className="space-y-5 rounded-xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
-                            <div className="grid gap-4 md:grid-cols-2">
-                              <FormField label="Plan Name">
-                                <input
-                                  value={plan.name}
-                                  onChange={(event) =>
-                                    handleListUpdate(
-                                      "pricing_plans",
-                                      index,
-                                      "name",
-                                      event.target.value,
-                                    )
-                                  }
-                                  placeholder="e.g. Standard"
-                                  className={INPUT_CLASS}
-                                />
-                              </FormField>
-                              <FormField label="Plan Price">
-                                <CurrencyInput
-                                  value={plan.price}
-                                  onChange={(value) =>
-                                    handleListUpdate(
-                                      "pricing_plans",
-                                      index,
-                                      "price",
-                                      value,
-                                    )
-                                  }
-                                />
-                              </FormField>
-                            </div>
-
-                            <div className="space-y-3">
-                              <p className={SECTION_LABEL_CLASS}>Included Features</p>
-                              <div className="grid gap-3">
-                                {plan.features.map((feature, featureIndex) => (
-                                  <div
-                                    key={featureIndex}
-                                    className="flex flex-col gap-2 sm:flex-row sm:items-start"
-                                  >
-                                    <input
-                                      value={feature}
-                                      onChange={(event) => {
-                                        const nextFeatures = [...plan.features];
-                                        nextFeatures[featureIndex] = event.target.value;
-                                        handleListUpdate(
-                                          "pricing_plans",
-                                          index,
-                                          "features",
-                                          nextFeatures,
-                                        );
-                                      }}
-                                      placeholder="Feature description"
-                                      className={INPUT_CLASS}
-                                    />
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        const nextFeatures = plan.features.filter(
-                                          (_item, itemIndex) =>
-                                            itemIndex !== featureIndex,
-                                        );
-                                        handleListUpdate(
-                                          "pricing_plans",
-                                          index,
-                                          "features",
-                                          nextFeatures.length > 0
-                                            ? nextFeatures
-                                            : [""],
-                                        );
-                                      }}
-                                      className="flex h-11 w-full shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500 transition hover:border-rose-200 hover:text-rose-500 sm:w-auto"
-                                    >
-                                      <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-                                      Remove
-                                    </button>
-                                  </div>
-                                ))}
-
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    handleListUpdate(
-                                      "pricing_plans",
-                                      index,
-                                      "features",
-                                      [...plan.features, ""],
-                                    )
-                                  }
-                                  className="inline-flex h-10 items-center justify-center rounded-xl border border-dashed border-blue-200 bg-white px-4 text-[11px] font-bold uppercase tracking-[0.18em] text-blue-700 transition hover:bg-blue-50"
-                                >
-                                  Add Feature
-                                </button>
-                              </div>
-                            </div>
-                          </div>
+                          <PricingPlanItem
+                            plan={plan}
+                            index={index}
+                            handleListUpdate={handleListUpdate}
+                          />
                         )}
                       />
                     ) : null}
@@ -537,55 +473,11 @@ export function ServiceFormView() {
                       className="rounded-none border-0 bg-transparent p-0 shadow-none sm:p-0"
                       showCount={false}
                       renderItem={(document, index) => (
-                        <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
-                          <FormField label="Document Name">
-                            <input
-                              value={document.name}
-                              onChange={(event) =>
-                                handleListUpdate(
-                                  "required_documents_list",
-                                  index,
-                                  "name",
-                                  event.target.value,
-                                )
-                              }
-                              placeholder="e.g. PAN Card"
-                              className={INPUT_CLASS}
-                            />
-                          </FormField>
-                          <FormField label="Helper Text">
-                            <textarea
-                              value={document.description}
-                              onChange={(event) =>
-                                handleListUpdate(
-                                  "required_documents_list",
-                                  index,
-                                  "description",
-                                  event.target.value,
-                                )
-                              }
-                              placeholder="Short guidance for the user..."
-                              rows={3}
-                              className={TEXTAREA_CLASS}
-                            />
-                          </FormField>
-                          <label className="flex items-center gap-3 px-1 text-sm font-medium text-slate-600">
-                            <input
-                              type="checkbox"
-                              checked={document.is_required}
-                              onChange={(event) =>
-                                handleListUpdate(
-                                  "required_documents_list",
-                                  index,
-                                  "is_required",
-                                  event.target.checked,
-                                )
-                              }
-                              className="h-4 w-4 rounded border-slate-300 text-blue-600"
-                            />
-                            Mark as mandatory
-                          </label>
-                        </div>
+                        <RequiredDocumentItem
+                          document={document}
+                          index={index}
+                          handleListUpdate={handleListUpdate}
+                        />
                       )}
                     />
 
@@ -614,39 +506,11 @@ export function ServiceFormView() {
                         className="rounded-none border-0 bg-transparent p-0 shadow-none sm:p-0"
                         showCount={false}
                         renderItem={(document, index) => (
-                          <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
-                            <FormField label="Document Name">
-                              <input
-                                value={document.name}
-                                onChange={(event) =>
-                                  handleListUpdate(
-                                    "extra_documents",
-                                    index,
-                                    "name",
-                                    event.target.value,
-                                  )
-                                }
-                                placeholder="e.g. Partnership Deed"
-                                className={INPUT_CLASS}
-                              />
-                            </FormField>
-                            <FormField label="Helper Text">
-                              <textarea
-                                value={document.description}
-                                onChange={(event) =>
-                                  handleListUpdate(
-                                    "extra_documents",
-                                    index,
-                                    "description",
-                                    event.target.value,
-                                  )
-                                }
-                                placeholder="When should the client upload this?"
-                                rows={3}
-                                className={TEXTAREA_CLASS}
-                              />
-                            </FormField>
-                          </div>
+                          <OptionalDocumentItem
+                            document={document}
+                            index={index}
+                            handleListUpdate={handleListUpdate}
+                          />
                         )}
                       />
                     ) : null}
@@ -671,39 +535,11 @@ export function ServiceFormView() {
                       className="rounded-none border-0 bg-transparent p-0 shadow-none sm:p-0"
                       showCount={false}
                       renderItem={(faq, index) => (
-                        <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
-                          <FormField label="Question">
-                            <input
-                              value={faq.question}
-                              onChange={(event) =>
-                                handleListUpdate(
-                                  "faqs",
-                                  index,
-                                  "question",
-                                  event.target.value,
-                                )
-                              }
-                              placeholder="What does this service cover?"
-                              className={INPUT_CLASS}
-                            />
-                          </FormField>
-                          <FormField label="Answer">
-                            <textarea
-                              value={faq.answer}
-                              onChange={(event) =>
-                                handleListUpdate(
-                                  "faqs",
-                                  index,
-                                  "answer",
-                                  event.target.value,
-                                )
-                              }
-                              rows={4}
-                              placeholder="Write a concise answer..."
-                              className={TEXTAREA_CLASS}
-                            />
-                          </FormField>
-                        </div>
+                        <FaqItem
+                          faq={faq}
+                          index={index}
+                          handleListUpdate={handleListUpdate}
+                        />
                       )}
                     />
                   </section>
@@ -855,5 +691,290 @@ function CompactToggle({
         />
       </span>
     </button>
+  );
+}
+
+interface PricingPlanItemProps {
+  plan: {
+    name: string;
+    price: string;
+    features: string[];
+  };
+  index: number;
+  handleListUpdate: (field: any, index: number, subField: string, value: any) => void;
+}
+
+function PricingPlanItem({
+  plan,
+  index,
+  handleListUpdate,
+}: PricingPlanItemProps) {
+  return (
+    <div className="space-y-5 rounded-xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
+      <div className="grid gap-4 md:grid-cols-2">
+        <FormField label="Plan Name">
+          <input
+            value={plan.name}
+            onChange={(event) =>
+              handleListUpdate(
+                "pricing_plans",
+                index,
+                "name",
+                event.target.value,
+              )
+            }
+            placeholder="e.g. Standard"
+            className={INPUT_CLASS}
+          />
+        </FormField>
+        <FormField label="Plan Price">
+          <CurrencyInput
+            value={plan.price}
+            onChange={(value) =>
+              handleListUpdate(
+                "pricing_plans",
+                index,
+                "price",
+                value,
+              )
+            }
+          />
+        </FormField>
+      </div>
+
+      <div className="space-y-3">
+        <p className={SECTION_LABEL_CLASS}>Included Features</p>
+        <div className="grid gap-3">
+          {plan.features.map((feature, featureIndex) => (
+            <div
+              key={featureIndex}
+              className="flex flex-col gap-2 sm:flex-row sm:items-start"
+            >
+              <input
+                value={feature}
+                onChange={(event) => {
+                  const nextFeatures = [...plan.features];
+                  nextFeatures[featureIndex] = event.target.value;
+                  handleListUpdate(
+                    "pricing_plans",
+                    index,
+                    "features",
+                    nextFeatures,
+                  );
+                }}
+                placeholder="Feature description"
+                className={INPUT_CLASS}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const nextFeatures = plan.features.filter(
+                    (_item, itemIndex) =>
+                      itemIndex !== featureIndex,
+                  );
+                  handleListUpdate(
+                    "pricing_plans",
+                    index,
+                    "features",
+                    nextFeatures.length > 0
+                      ? nextFeatures
+                      : [""],
+                  );
+                }}
+                className="flex h-11 w-full shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500 transition hover:border-rose-200 hover:text-rose-500 sm:w-auto"
+              >
+                <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                Remove
+              </button>
+            </div>
+          ))}
+
+          <button
+            type="button"
+            onClick={() =>
+              handleListUpdate(
+                "pricing_plans",
+                index,
+                "features",
+                [...plan.features, ""],
+              )
+            }
+            className="inline-flex h-10 items-center justify-center rounded-xl border border-dashed border-blue-200 bg-white px-4 text-[11px] font-bold uppercase tracking-[0.18em] text-blue-700 transition hover:bg-blue-50"
+          >
+            Add Feature
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface RequiredDocumentItemProps {
+  document: {
+    name: string;
+    description: string;
+    is_required: boolean;
+  };
+  index: number;
+  handleListUpdate: (field: any, index: number, subField: string, value: any) => void;
+}
+
+function RequiredDocumentItem({
+  document,
+  index,
+  handleListUpdate,
+}: RequiredDocumentItemProps) {
+  return (
+    <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
+      <FormField label="Document Name">
+        <input
+          value={document.name}
+          onChange={(event) =>
+            handleListUpdate(
+              "required_documents_list",
+              index,
+              "name",
+              event.target.value,
+            )
+          }
+          placeholder="e.g. PAN Card"
+          className={INPUT_CLASS}
+        />
+      </FormField>
+      <FormField label="Helper Text">
+        <textarea
+          value={document.description}
+          onChange={(event) =>
+            handleListUpdate(
+              "required_documents_list",
+              index,
+              "description",
+              event.target.value,
+            )
+          }
+          placeholder="Short guidance for the user..."
+          rows={3}
+          className={TEXTAREA_CLASS}
+        />
+      </FormField>
+      <label className="flex items-center gap-3 px-1 text-sm font-medium text-slate-600">
+        <input
+          type="checkbox"
+          checked={document.is_required}
+          onChange={(event) =>
+            handleListUpdate(
+              "required_documents_list",
+              index,
+              "is_required",
+              event.target.checked,
+            )
+          }
+          className="h-4 w-4 rounded border-slate-300 text-blue-600"
+        />
+        Mark as mandatory
+      </label>
+    </div>
+  );
+}
+
+interface OptionalDocumentItemProps {
+  document: {
+    name: string;
+    description: string;
+  };
+  index: number;
+  handleListUpdate: (field: any, index: number, subField: string, value: any) => void;
+}
+
+function OptionalDocumentItem({
+  document,
+  index,
+  handleListUpdate,
+}: OptionalDocumentItemProps) {
+  return (
+    <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
+      <FormField label="Document Name">
+        <input
+          value={document.name}
+          onChange={(event) =>
+            handleListUpdate(
+              "extra_documents",
+              index,
+              "name",
+              event.target.value,
+            )
+          }
+          placeholder="e.g. Partnership Deed"
+          className={INPUT_CLASS}
+        />
+      </FormField>
+      <FormField label="Helper Text">
+        <textarea
+          value={document.description}
+          onChange={(event) =>
+            handleListUpdate(
+              "extra_documents",
+              index,
+              "description",
+              event.target.value,
+            )
+          }
+          placeholder="When should the client upload this?"
+          rows={3}
+          className={TEXTAREA_CLASS}
+        />
+      </FormField>
+    </div>
+  );
+}
+
+interface FaqItemProps {
+  faq: {
+    question: string;
+    answer: string;
+  };
+  index: number;
+  handleListUpdate: (field: any, index: number, subField: string, value: any) => void;
+}
+
+function FaqItem({
+  faq,
+  index,
+  handleListUpdate,
+}: FaqItemProps) {
+  return (
+    <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
+      <FormField label="Question">
+        <input
+          value={faq.question}
+          onChange={(event) =>
+            handleListUpdate(
+              "faqs",
+              index,
+              "question",
+              event.target.value,
+            )
+          }
+          placeholder="What does this service cover?"
+          className={INPUT_CLASS}
+        />
+      </FormField>
+      <FormField label="Answer">
+        <textarea
+          value={faq.answer}
+          onChange={(event) =>
+            handleListUpdate(
+              "faqs",
+              index,
+              "answer",
+              event.target.value,
+            )
+          }
+          rows={4}
+          placeholder="Write a concise answer..."
+          className={TEXTAREA_CLASS}
+        />
+      </FormField>
+    </div>
   );
 }
