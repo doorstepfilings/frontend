@@ -95,14 +95,14 @@ export const DocumentUpload = ({
 
   return (
     <div className="animate-fadeIn overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <div className="flex items-center justify-between gap-4 border-b border-slate-100 px-6 py-5">
+      <div className="flex items-center justify-between gap-4 border-b border-slate-100 px-5 py-3.5 bg-slate-50/40">
         <div>
-          <h3 className="flex items-center gap-2.5 text-xs font-extrabold uppercase tracking-widest text-slate-800">
-            <i className="fa-solid fa-cloud-arrow-up text-blue-500 text-sm" />
+          <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-800">
+            <i className="fa-solid fa-cloud-arrow-up text-blue-600 text-xs" />
             {title}
           </h3>
           {description && (
-            <p className="mt-1 text-xs text-slate-400 font-medium">{description}</p>
+            <p className="mt-0.5 text-xs text-slate-400 font-medium">{description}</p>
           )}
         </div>
 
@@ -111,13 +111,13 @@ export const DocumentUpload = ({
           variant="outline"
           size="sm"
           onClick={onAddRow}
-          className="rounded-xl border-blue-100 bg-blue-50/50 hover:bg-blue-50 font-semibold text-blue-600 hover:text-blue-700 shadow-sm transition-all duration-200 active:scale-95"
+          className="h-8 rounded-lg border-blue-200 bg-blue-50/60 hover:bg-blue-100 font-semibold text-xs text-blue-700 shadow-xs transition-all active:scale-95 px-3"
         >
-          <i className="fas fa-plus mr-2" /> Add Row
+          <i className="fas fa-plus mr-1.5 text-[10px]" /> Add Row
         </Button>
       </div>
 
-      <div className="space-y-4 p-6">
+      <div className="space-y-3 p-4 sm:p-5">
         {rows.map((row, index) => {
           const rowKey = row.id != null ? String(row.id) : `row-${index}`;
           const rowError = fileErrors[rowKey] || fileErrors[index];
@@ -136,103 +136,87 @@ export const DocumentUpload = ({
           return (
             <div
               key={rowKey}
-              className="relative space-y-4 rounded-2xl border border-slate-100 bg-slate-50/30 hover:bg-slate-50/60 p-5 transition-all duration-300 hover:border-slate-200"
+              className="relative space-y-2.5 rounded-xl border border-slate-200/80 bg-slate-50/30 hover:bg-slate-50/60 p-3.5 transition-all duration-200"
             >
-              <div className="flex flex-col gap-4 xl:flex-row xl:items-end">
+              {allowExistingDocuments && (
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    Source
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => onSourceChange?.(index, "upload")}
+                      className={`rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all ${
+                        rowSource === "upload"
+                          ? "bg-blue-900 text-white shadow-xs"
+                          : "border border-slate-200 bg-white text-slate-600 hover:border-blue-200"
+                      }`}
+                    >
+                      Upload New
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onSourceChange?.(index, "existing")}
+                      className={`rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all ${
+                        rowSource === "existing"
+                          ? "bg-emerald-600 text-white shadow-xs"
+                          : "border border-slate-200 bg-white text-slate-600 hover:border-emerald-200"
+                      }`}
+                    >
+                      Use Existing
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+                {/* 1. Document Type */}
                 {showTypeInput && (
-                  <div className="w-full space-y-2 xl:max-w-xs">
-                    <label className="ml-1 text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                  <div className="w-full space-y-1 col-span-12 md:col-span-4">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
                       Document Type {row.is_required && <span className="text-rose-500">*</span>}
                     </label>
                     {availableTypes.length > 0 ? (
-                      <div className="relative">
-                        <SearchableSelect
-                          value={row.type}
-                          onChange={(event) => onTypeChange(index, event.target.value)}
-                          options={availableTypes.map((type) => {
-                            if (typeof type === "object" && type !== null) {
-                              return {
-                                value: String(type.value || type.id || ""),
-                                label: String(type.label || type.value || type.id || ""),
-                              };
-                            }
+                      <SearchableSelect
+                        value={row.type}
+                        onChange={(event) => onTypeChange(index, event.target.value)}
+                        options={availableTypes.map((type) => {
+                          if (typeof type === "object" && type !== null) {
                             return {
-                              value: String(type),
-                              label: String(type),
+                              value: String(type.value || type.id || ""),
+                              label: String(type.label || type.value || type.id || ""),
                             };
-                          })}
-                          placeholder="Select Type"
-                        />
-                      </div>
+                          }
+                          return {
+                            value: String(type),
+                            label: String(type),
+                          };
+                        })}
+                        placeholder="Select Type"
+                        size="sm"
+                        className="w-full"
+                      />
                     ) : (
                       <input
                         type="text"
                         value={row.type}
                         onChange={(event) => onTypeChange(index, event.target.value)}
                         placeholder="e.g. Aadhaar Card"
-                        className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-800 outline-none transition-all focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 placeholder:text-slate-400 shadow-sm"
+                        className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-800 outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 placeholder:text-slate-400 shadow-xs"
                       />
                     )}
                   </div>
                 )}
 
-                {allowExistingDocuments && (
-                  <div className="space-y-2">
-                    <label className="ml-1 text-[10px] font-bold uppercase tracking-widest text-gray-400">
-                      Source
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => onSourceChange?.(index, "upload")}
-                        className={`rounded-xl px-4 py-2.5 text-xs font-bold transition-all duration-200 ${
-                          rowSource === "upload"
-                            ? "bg-blue-900 text-white shadow-md shadow-blue-900/10"
-                            : "border border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:text-blue-900"
-                        }`}
-                      >
-                        Upload New
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onSourceChange?.(index, "existing")}
-                        className={`rounded-xl px-4 py-2.5 text-xs font-bold transition-all duration-200 ${
-                          rowSource === "existing"
-                            ? "bg-emerald-600 text-white shadow-md shadow-emerald-900/10"
-                            : "border border-slate-200 bg-white text-slate-600 hover:border-emerald-200 hover:text-emerald-700"
-                        }`}
-                      >
-                        Use Existing
-                      </button>
-                    </div>
-                  </div>
-                )}
+                {/* 2. Document File */}
+                <div className={`w-full space-y-1 col-span-12 ${showTypeInput ? "md:col-span-4" : "md:col-span-6"}`}>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+                    {rowSource === "existing" ? "Existing Document" : "Document File"}
+                  </label>
 
-                <div className="flex-1" />
-
-                {rows.length > 1 && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => onRemoveRow(index)}
-                    className="h-12 w-12 rounded-xl border border-rose-50 text-rose-500 hover:bg-rose-50 hover:text-rose-600 transition-all duration-200"
-                    title="Remove Row"
-                  >
-                    <i className="fas fa-trash-alt" />
-                  </Button>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <label className="ml-1 text-[10px] font-bold uppercase tracking-widest text-gray-400">
-                  {rowSource === "existing"
-                    ? "Existing Document"
-                    : "Document File"}
-                </label>
-
-                {rowSource === "existing" ? (
-                  <div className="space-y-3">
-                    <div className="relative">
+                  {rowSource === "existing" ? (
+                    <div>
                       <SearchableSelect
                         value={row.existing_document_id || ""}
                         onChange={(event) =>
@@ -243,132 +227,117 @@ export const DocumentUpload = ({
                           label: String(doc.label || doc.file_name || ""),
                         }))}
                         placeholder="Select a previous document"
+                        size="sm"
+                        className="w-full"
                       />
                     </div>
-
-                    {selectedExistingDocument ? (
-                      <div className="flex items-start gap-3 rounded-xl border border-emerald-100 bg-emerald-50 p-4">
-                        <div
-                          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${iconData.bg} ${iconData.color}`}
-                        >
-                          <i className={`fas ${iconData.icon}`} />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-gray-900">
-                            {selectedExistingDocument.file_name}
-                          </p>
-                          <p className="mt-1 text-[11px] font-medium text-gray-500">
-                            {selectedExistingDocument.serviceName ||
-                              "Past Service"}{" "}
-                            • {selectedExistingDocument.status || "pending"}
-                          </p>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="rounded-xl border border-dashed border-gray-200 bg-white px-4 py-4 text-xs text-gray-400">
-                        Choose a previously uploaded document to attach it here.
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div
-                    className={`relative rounded-xl border border-dashed p-4 transition-all duration-200 ${
-                      rowError
-                        ? "border-rose-200 bg-rose-50/20"
-                        : row.file
-                          ? "border-slate-200 bg-white shadow-sm"
-                          : "border-slate-200 bg-white hover:border-blue-300 hover:bg-blue-50/10"
-                    }`}
-                  >
-                    <input
-                      key={`file-input-${rowKey}-${row.file ? `${row.file.name}-${row.file.size}` : "empty"}`}
-                      type="file"
-                      onChange={(event) => {
-                        const fileList = event.target.files ? Array.from(event.target.files) : [];
-                        if (fileList.length > 1 && onFilesChange) {
-                          onFilesChange(index, fileList);
-                        } else {
-                          onFileChange(index, fileList[0] || null);
-                        }
-                        event.target.value = "";
-                      }}
-                      className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
-                      accept=".pdf,.jpg,.jpeg,.png,.docx,.doc,.xlsx,.xls,.csv"
-                      multiple={Boolean(onFilesChange)}
-                    />
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all duration-200 ${
-                          rowError
-                            ? "bg-rose-100 text-rose-600"
-                            : row.file
-                              ? `${iconData.bg} ${iconData.color} scale-105 shadow-sm`
-                              : "bg-slate-50 text-slate-400 group-hover:text-blue-500 group-hover:bg-blue-50/60"
-                        }`}
-                      >
+                  ) : (
+                    <div
+                      className={`relative flex items-center h-9 px-3 rounded-lg border border-dashed transition-all ${
+                        rowError
+                          ? "border-rose-300 bg-rose-50/30"
+                          : row.file
+                            ? "border-emerald-300 bg-emerald-50/20"
+                            : "border-slate-200 bg-white hover:border-blue-300 hover:bg-blue-50/10"
+                      }`}
+                    >
+                      <input
+                        key={`file-input-${rowKey}-${row.file ? `${row.file.name}-${row.file.size}` : "empty"}`}
+                        type="file"
+                        onChange={(event) => {
+                          const fileList = event.target.files ? Array.from(event.target.files) : [];
+                          if (fileList.length > 1 && onFilesChange) {
+                            onFilesChange(index, fileList);
+                          } else {
+                            onFileChange(index, fileList[0] || null);
+                          }
+                          event.target.value = "";
+                        }}
+                        className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
+                        accept=".pdf,.jpg,.jpeg,.png,.docx,.doc,.xlsx,.xls,.csv"
+                        multiple={Boolean(onFilesChange)}
+                      />
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
                         <i
                           className={`fas ${
                             row.file ? iconData.icon : "fa-upload"
+                          } text-xs shrink-0 ${
+                            rowError
+                              ? "text-rose-600"
+                              : row.file
+                                ? iconData.color || "text-emerald-600"
+                                : "text-slate-400"
                           }`}
                         />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p
-                          className={`truncate text-sm font-semibold transition-colors duration-200 ${
-                            row.file ? "text-slate-800" : "text-slate-400"
+                        <span
+                          className={`truncate text-xs ${
+                            row.file ? "font-semibold text-slate-800" : "text-slate-400"
                           }`}
                         >
                           {row.file ? row.file.name : "Choose file (or drag & drop)"}
-                        </p>
-                        <p className="mt-1 text-[11px] font-medium text-slate-400">
-                          {row.file
-                            ? formatFileSize(row.file.size)
-                            : `PDF, JPG, PNG up to ${maxFileSizeMB}MB`}
-                        </p>
+                        </span>
+                        {row.file && (
+                          <span className="shrink-0 text-[10px] text-slate-400 font-medium">
+                            ({formatFileSize(row.file.size)})
+                          </span>
+                        )}
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
 
-                {rowError && rowSource !== "existing" && (
-                  <div className="rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs text-rose-700">
-                    <p className="font-semibold">{rowError}</p>
-                    <p className="mt-1 text-[11px] text-rose-600">
-                      Reduce the file size below {maxFileSizeMB}MB and try again.
-                    </p>
+                {/* 3. Notes (Optional) */}
+                <div className={`w-full space-y-1 col-span-12 ${rows.length > 1 ? "md:col-span-3" : (showTypeInput ? "md:col-span-4" : "md:col-span-6")}`}>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+                    Notes (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={row.notes || ""}
+                    onChange={(event) => onNotesChange(index, event.target.value)}
+                    placeholder="Details about document..."
+                    className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs text-slate-700 outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 placeholder:text-slate-400 shadow-xs"
+                  />
+                </div>
+
+                {/* 4. Delete Action Button */}
+                {rows.length > 1 && (
+                  <div className="col-span-12 md:col-span-1 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => onRemoveRow(index)}
+                      className="h-9 w-9 rounded-lg border border-rose-100 bg-rose-50/60 text-rose-500 hover:bg-rose-100 hover:text-rose-700 transition-all flex items-center justify-center shadow-xs"
+                      title="Remove Row"
+                    >
+                      <i className="fas fa-trash-alt text-xs" />
+                    </button>
                   </div>
                 )}
               </div>
 
-              {renderExtraFields && (
-                <div>{renderExtraFields(row, index)}</div>
+              {rowError && rowSource !== "existing" && (
+                <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs text-rose-700 flex items-center gap-2">
+                  <i className="fas fa-exclamation-circle text-rose-500 text-xs shrink-0" />
+                  <span className="font-medium">{rowError}</span>
+                </div>
               )}
 
-              <div className="space-y-2">
-                <label className="ml-1 text-[10px] font-bold uppercase tracking-widest text-gray-400">
-                  Notes (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={row.notes || ""}
-                  onChange={(event) => onNotesChange(index, event.target.value)}
-                  placeholder="Add any specific details about this document..."
-                  className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-600 outline-none transition-all focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 placeholder:text-slate-400 shadow-sm"
-                />
-              </div>
+              {renderExtraFields && (
+                <div className="pt-1">{renderExtraFields(row, index)}</div>
+              )}
             </div>
           );
         })}
 
         {showSubmitButton && (
-          <div className="pt-4">
+          <div className="pt-2">
             <Button
               onClick={onSubmit}
               disabled={isSubmitDisabled}
-              className={`h-14 w-full rounded-xl text-xs font-black uppercase tracking-widest shadow-lg transition-all duration-200 ${
+              className={`h-11 w-full rounded-xl text-xs font-bold uppercase tracking-wider shadow-sm transition-all duration-200 ${
                 isSubmitDisabled
-                  ? "bg-slate-100 text-slate-400 cursor-not-allowed"
-                  : "bg-gradient-to-r from-blue-900 to-indigo-950 text-white shadow-blue-900/25 hover:from-blue-800 hover:to-indigo-900 hover:shadow-xl hover:shadow-blue-900/35 active:scale-[0.98]"
+                  ? "bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200/60"
+                  : "bg-blue-900 text-white shadow-blue-900/15 hover:bg-blue-800 active:scale-[0.99]"
               }`}
             >
               {isUploading ? (
@@ -385,7 +354,7 @@ export const DocumentUpload = ({
             </Button>
 
             {isSubmitDisabled && !isUploading && (
-              <p className="mt-4 text-center text-[11px] font-medium text-slate-400">
+              <p className="mt-2 text-center text-[11px] font-medium text-slate-400">
                 {hasErrors
                   ? "Please resolve file size errors to continue"
                   : !hasAtLeastOneCompleteRow

@@ -322,9 +322,9 @@ export const getClientArchiveDocuments = (
   return docs.filter((doc) => {
     if (isClientApprovalPendingDocument(doc)) return false;
     if (isImplicitClientApprovalDocument(doc, userId)) return false;
-    if (isClientApprovalCorrectionRequestedDocument(doc)) return false;
     if (isClientUploadedDocument(doc, userId)) return true;
     if (isClientApprovalApprovedDocument(doc)) return true;
+    if (isClientApprovalCorrectionRequestedDocument(doc)) return true;
     return isClientDocument(doc);
   });
 };

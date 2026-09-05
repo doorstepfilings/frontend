@@ -8,6 +8,7 @@ import {
   AlertCircle,
   ArrowUpDown,
   CheckCircle2,
+  ClipboardCheck,
   Eye,
   FileStack,
   FilterX,
@@ -106,14 +107,19 @@ type DashboardDocumentsViewProps = {
   };
 };
 
-const createEmptyRow = (): DashboardUploadRow => ({
-  id: typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `row-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-  source: "upload",
-  file: null,
-  existing_document_id: "",
-  type: "",
-  notes: "",
-});
+let documentUploadRowCounter = 0;
+
+const createEmptyRow = (): DashboardUploadRow => {
+  documentUploadRowCounter += 1;
+  return {
+    id: `row-${documentUploadRowCounter}`,
+    source: "upload",
+    file: null,
+    existing_document_id: "",
+    type: "",
+    notes: "",
+  };
+};
 
 const getArchiveDocumentLabel = (doc: DashboardDocumentArchiveItem) =>
   doc.document_name || doc.document_type || doc.file_name || "Document";
@@ -148,9 +154,9 @@ const getDocumentTypeBadgeClass = (type: string) => {
 
 const getDocStatusLabel = (status?: string | null) => {
   const s = String(status || "").toLowerCase();
-  if (s === "rejected" || s === "correction") return "Issue";
+  if (s === "rejected" || s === "correction" || s === "correction_requested") return "Correction Needed";
   if (s === "verified" || s === "approved") return "Approved";
-  if (s === "pending") return "Pending";
+  if (s === "pending") return "In Review";
   return s || "Uploaded";
 };
 
@@ -160,7 +166,7 @@ const getDocumentStatusBadgeClass = (status?: string | null) => {
   if (["verified", "approved"].includes(normalized)) {
     return "border-emerald-100 bg-emerald-50 text-emerald-700";
   }
-  if (["rejected", "correction"].includes(normalized)) {
+  if (["rejected", "correction", "correction_requested"].includes(normalized)) {
     return "border-rose-100 bg-rose-50 text-rose-700";
   }
   if (normalized === "pending") {
@@ -209,6 +215,9 @@ export function DashboardDocumentsView({
   const [rows, setRows] = useState<DashboardUploadRow[]>([createEmptyRow()]);
   const [fileErrors, setFileErrors] = useState<Record<string | number, string>>({});
   const [isUploading, setIsUploading] = useState(false);
+  const [activeTab, setActiveTab] = useState<"archive" | "upload">(
+    initialPaymentServiceId ? "upload" : "archive"
+  );
   const [lightboxIndex, setLightboxIndex] = useState(-1);
   const [documentToDelete, setDocumentToDelete] =
     useState<DashboardDocumentArchiveItem | null>(null);
@@ -277,6 +286,40 @@ export function DashboardDocumentsView({
     [myServices, user?.id],
   );
 
+  const actionNeededDocuments = useMemo(
+    () =>
+      flatDocuments.filter((doc) => {
+        const status = String(doc.status || "").toLowerCase();
+        const approvalStatus = getClientApprovalStatus(doc);
+        return (
+          ["rejected", "correction", "correction_requested"].includes(status) ||
+          approvalStatus === "correction_requested"
+        );
+      }),
+    [flatDocuments],
+  );
+
+  const selectedUploadService = useMemo(
+    () =>
+      myServices.find(
+        (service) => String(service.id) === String(uploadServiceId),
+      ),
+    [myServices, uploadServiceId],
+  );
+
+  const availableTypes = useMemo(() => {
+    if (!selectedUploadService) return [];
+    const reqs = (selectedUploadService.service as { required_documents?: Array<string | { name?: string; title?: string; type?: string }> })?.required_documents || [];
+    if (Array.isArray(reqs)) {
+      return reqs
+        .map((r) =>
+          typeof r === "string" ? r : r.name || r.title || r.type || "",
+        )
+        .filter(Boolean);
+    }
+    return [];
+  }, [selectedUploadService]);
+
   const serviceFilterOptions = useMemo(
     () => [
       { value: "all", label: "Service" },
@@ -310,7 +353,7 @@ export function DashboardDocumentsView({
       (doc) => String(doc.status || "").toLowerCase() === "pending",
     ).length;
     const issue = flatDocuments.filter((doc) =>
-      ["rejected", "correction"].includes(String(doc.status || "").toLowerCase()),
+      ["rejected", "correction", "correction_requested"].includes(String(doc.status || "").toLowerCase()),
     ).length;
 
     return {
@@ -554,6 +597,7 @@ export function DashboardDocumentsView({
       toast.success("Documents uploaded successfully");
       setRows([createEmptyRow()]);
       setFileErrors({});
+      setActiveTab("archive");
       void dispatch(fetchMyServices());
     } catch (error: unknown) {
       const message =
@@ -688,315 +732,404 @@ export function DashboardDocumentsView({
 
   return (
     <div className="space-y-5">
-      {/* ── Hero / Stats Card ─────────────────────────────────── */}
-      <div className="relative overflow-hidden rounded-3xl border border-slate-200/60 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6 shadow-xl lg:p-8">
-        {/* Decorative orbs */}
-        <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-blue-500/10 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-16 -left-12 h-48 w-48 rounded-full bg-indigo-500/10 blur-3xl" />
-        <div className="pointer-events-none absolute right-1/3 top-0 h-32 w-32 rounded-full bg-violet-500/8 blur-2xl" />
-
-        <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-          <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 backdrop-blur-sm">
-              <span className="h-1.5 w-1.5 rounded-full bg-blue-400 animate-pulse" />
-              <p className="text-[10px] font-bold uppercase tracking-widest text-blue-300">
-                Client Document Workspace
-              </p>
-            </div>
-            <h1 className="mt-3 text-3xl font-black tracking-tight text-white lg:text-4xl">
-              My Documents
-            </h1>
-            <p className="mt-2 text-sm text-slate-400 leading-relaxed">
-              Manage uploads, verification progress, and accountant feedback in one place.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 lg:w-[520px] lg:grid-cols-4">
-
-            {/* Total */}
-            <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-4 pb-5 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:bg-white/8 hover:border-blue-400/30 hover:shadow-xl hover:shadow-blue-500/10">
-              {/* Glow orb */}
-              <div className="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-blue-400/20 blur-2xl transition-all duration-500 group-hover:scale-150 group-hover:bg-blue-400/30" />
-              {/* Bottom accent line */}
-              <div className="absolute bottom-0 left-0 h-0.5 w-0 rounded-full bg-gradient-to-r from-blue-400 to-indigo-400 transition-all duration-500 group-hover:w-full" />
-
-              <div className="relative z-10 flex flex-col">
-                <div className="flex items-start justify-between">
-                  <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">Total</span>
-                  <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-blue-500/20 text-blue-400 transition-all duration-300 group-hover:bg-blue-500/30 group-hover:scale-110 group-hover:rotate-6">
-                    <FileStack className="size-3.5" />
-                  </div>
-                </div>
-                <p className="mt-3 text-4xl font-black tracking-tighter text-white leading-none">
-                  {archiveStats.total}
-                </p>
-                <p className="mt-2 text-[10px] font-semibold text-slate-500 uppercase tracking-widest">All time</p>
-              </div>
-            </div>
-
-            {/* Approved */}
-            <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-4 pb-5 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:bg-white/8 hover:border-emerald-400/30 hover:shadow-xl hover:shadow-emerald-500/10">
-              <div className="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-emerald-400/20 blur-2xl transition-all duration-500 group-hover:scale-150 group-hover:bg-emerald-400/30" />
-              <div className="absolute bottom-0 left-0 h-0.5 w-0 rounded-full bg-gradient-to-r from-emerald-400 to-teal-400 transition-all duration-500 group-hover:w-full" />
-
-              <div className="relative z-10 flex flex-col">
-                <div className="flex items-start justify-between">
-                  <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">Approved</span>
-                  <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400 transition-all duration-300 group-hover:bg-emerald-500/30 group-hover:scale-110 group-hover:rotate-6">
-                    <CheckCircle2 className="size-3.5" />
-                  </div>
-                </div>
-                <p className="mt-3 text-4xl font-black tracking-tighter text-emerald-400 leading-none">
-                  {archiveStats.approved}
-                </p>
-                <p className="mt-2 text-[10px] font-semibold text-slate-500 uppercase tracking-widest">Verified</p>
-              </div>
-            </div>
-
-            {/* Pending */}
-            <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-4 pb-5 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:bg-white/8 hover:border-amber-400/30 hover:shadow-xl hover:shadow-amber-500/10">
-              <div className="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-amber-400/20 blur-2xl transition-all duration-500 group-hover:scale-150 group-hover:bg-amber-400/30" />
-              <div className="absolute bottom-0 left-0 h-0.5 w-0 rounded-full bg-gradient-to-r from-amber-400 to-orange-400 transition-all duration-500 group-hover:w-full" />
-
-              <div className="relative z-10 flex flex-col">
-                <div className="flex items-start justify-between">
-                  <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">Pending</span>
-                  <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-amber-500/20 text-amber-400 transition-all duration-300 group-hover:bg-amber-500/30 group-hover:scale-110 group-hover:rotate-6">
-                    <Hourglass className="size-3.5" />
-                  </div>
-                </div>
-                <p className="mt-3 text-4xl font-black tracking-tighter text-amber-400 leading-none">
-                  {archiveStats.pending}
-                </p>
-                <p className="mt-2 text-[10px] font-semibold text-slate-500 uppercase tracking-widest">In review</p>
-              </div>
-            </div>
-
-            {/* Issues */}
-            <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-4 pb-5 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:bg-white/8 hover:border-rose-400/30 hover:shadow-xl hover:shadow-rose-500/10">
-              <div className="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-rose-400/20 blur-2xl transition-all duration-500 group-hover:scale-150 group-hover:bg-rose-400/30" />
-              <div className="absolute bottom-0 left-0 h-0.5 w-0 rounded-full bg-gradient-to-r from-rose-400 to-pink-400 transition-all duration-500 group-hover:w-full" />
-
-              <div className="relative z-10 flex flex-col">
-                <div className="flex items-start justify-between">
-                  <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">Issues</span>
-                  <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-rose-500/20 text-rose-400 transition-all duration-300 group-hover:bg-rose-500/30 group-hover:scale-110 group-hover:rotate-6">
-                    <AlertCircle className="size-3.5" />
-                  </div>
-                </div>
-                <p className="mt-3 text-4xl font-black tracking-tighter text-rose-400 leading-none">
-                  {archiveStats.issue}
-                </p>
-                <p className="mt-2 text-[10px] font-semibold text-slate-500 uppercase tracking-widest">Need action</p>
-              </div>
-            </div>
-
-          </div>
-        </div>
-      </div>
-
-
-      {/* ── Upload Card ─────────────────────────────────────────── */}
-      <div className="rounded-3xl border border-slate-200/60 bg-white p-6 shadow-sm lg:p-8">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/20">
-              <i className="fa-solid fa-cloud-arrow-up text-lg text-white" />
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-slate-900">Add New Documents</h2>
-              <p className="text-xs text-slate-500">
-                Choose a service, then upload files with the correct document type.
-              </p>
-            </div>
-          </div>
-
-          <div className="w-full max-w-[300px]">
-            <SearchableSelect
-              value={uploadServiceId}
-              onChange={(event) => setUploadServiceId(event.target.value)}
-              options={uploadableServices.map((service) => ({
-                value: String(service.id),
-                label: String(service.service?.name || ""),
-              }))}
-              placeholder="Select Target Service"
-              size="sm"
-            />
-          </div>
+      {/* ── Header & Action Bar ───────────────────────────────── */}
+      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">My Documents</h1>
+          <p className="mt-0.5 text-xs text-gray-500">
+            Manage uploads, verification progress, and accountant feedback in one place.
+          </p>
         </div>
 
-        <div className="mt-6">
-          {uploadServiceId ? (
-            <DocumentUpload
-              rows={rows}
-              fileErrors={fileErrors}
-              onFileChange={handleFileChange}
-              onFilesChange={handleFilesChange}
-              onTypeChange={(index, type) => {
-                setRows((currentRows) => {
-                  const nextRows = [...currentRows];
-                  nextRows[index] = { ...nextRows[index], type };
-                  return nextRows;
-                });
-              }}
-              onNotesChange={(index, notes) => {
-                setRows((currentRows) => {
-                  const nextRows = [...currentRows];
-                  nextRows[index] = { ...nextRows[index], notes };
-                  return nextRows;
-                });
-              }}
-              onAddRow={() =>
-                setRows((currentRows) => [...currentRows, createEmptyRow()])
-              }
-              onRemoveRow={handleRemoveRow}
-              onSubmit={handleUpload}
-              isUploading={isUploading}
-            />
+        <div className="flex items-center gap-3">
+          {activeTab === "archive" ? (
+            <button
+              type="button"
+              onClick={() => setActiveTab("upload")}
+              className="inline-flex items-center gap-2 rounded-xl bg-blue-900 px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-blue-800"
+            >
+              <i className="fas fa-cloud-arrow-up" />
+              <span>Upload Documents</span>
+            </button>
           ) : (
-            <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200  from-slate-50/80 to-white p-12 text-center transition-all duration-300 hover:border-blue-200 hover:bg-blue-50/20">
-              <div className="relative mb-5">
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-xl shadow-blue-500/30">
-                  <i className="fa-solid fa-cloud-arrow-up text-2xl text-white" />
-                </div>
-                <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-white shadow-md ring-2 ring-blue-500 text-blue-600 text-[10px] font-black">
-                  +
-                </span>
-              </div>
-              <p className="text-sm font-bold text-slate-700">
-                Select a service to begin uploads
-              </p>
-              <p className="mt-2 max-w-xs text-xs leading-relaxed text-slate-400">
-                Choose the target service from the dropdown above, and we&apos;ll prepare the upload workspace.
-              </p>
-            </div>
+            <button
+              type="button"
+              onClick={() => setActiveTab("archive")}
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50"
+            >
+              <i className="fas fa-arrow-left" />
+              <span>Back to Documents</span>
+            </button>
           )}
         </div>
       </div>
 
-      {/* ── Archive ──────────────────────────────────────────────── */}
-      {/* Approval Queue */}
-      {approvalDocuments.length > 0 && (
-        <section className="overflow-hidden rounded-3xl border border-amber-200/70 bg-white shadow-sm">
-          <div className="border-b border-amber-100 bg-amber-50/60 px-6 py-5">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-4">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-amber-500 text-white shadow-lg shadow-amber-500/20">
-                  <Hourglass className="size-5" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold text-slate-900">
-                    Documents for Approval
-                  </h2>
-                  <p className="text-xs font-medium text-slate-500">
-                    Review accountant-sent documents and approve or request corrections.
-                  </p>
-                </div>
+      {/* ── Navigation Tabs ──────────────────────────────────── */}
+      <div className="flex border-b border-gray-200">
+        <button
+          type="button"
+          onClick={() => setActiveTab("archive")}
+          className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold transition-all ${
+            activeTab === "archive"
+              ? "border-blue-900 text-blue-900"
+              : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
+          }`}
+        >
+          <i className="fas fa-folder-open" />
+          <span>My Documents</span>
+          <span className="ml-1 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-bold text-blue-700">
+            {archiveStats.total}
+          </span>
+          {approvalDocuments.length > 0 && (
+            <span className="ml-1 rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-xs animate-pulse">
+              {approvalDocuments.length} pending approval
+            </span>
+          )}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("upload")}
+          className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold transition-all ${
+            activeTab === "upload"
+              ? "border-blue-900 text-blue-900"
+              : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
+          }`}
+        >
+          <i className="fa-solid fa-cloud-arrow-up" />
+          <span>Upload Module</span>
+        </button>
+      </div>
+
+      {/* ── Upload Tab View ──────────────────────────────────── */}
+      {activeTab === "upload" && (
+        <div className="space-y-6 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm sm:p-6">
+          <div className="flex flex-col gap-4 border-b border-slate-100 pb-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-100 text-blue-900">
+                <i className="fa-solid fa-cloud-arrow-up text-lg" />
               </div>
-              <span className="w-fit rounded-full border border-amber-200 bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-amber-700">
-                {approvalDocuments.length} pending
-              </span>
+              <div>
+                <h2 className="text-base font-bold text-slate-900">Upload Service Documents</h2>
+                <p className="text-xs text-slate-500">
+                  Select a target service, attach your documents, and submit for verification.
+                </p>
+              </div>
+            </div>
+
+            <div className="w-full sm:w-[300px]">
+              <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-slate-500">
+                Target Service
+              </label>
+              <SearchableSelect
+                value={uploadServiceId}
+                onChange={(event) => setUploadServiceId(event.target.value)}
+                options={uploadableServices.map((service) => ({
+                  value: String(service.id),
+                  label: String(service.service?.name || ""),
+                }))}
+                placeholder="Choose Target Service"
+                size="sm"
+              />
             </div>
           </div>
 
-          <div className="divide-y divide-slate-100">
-            {approvalDocuments.map((doc) => {
-              const iconConfig = getDocumentIcon(
-                doc.mime_type || undefined,
-                doc.file_name || undefined,
-              );
-              const approvalStatus = getClientApprovalStatus(doc);
-              const approveKey = `${doc.serviceId}-${doc.id}-approved`;
-              const correctionKey = `${doc.serviceId}-${doc.id}-correction`;
-              const isApproving = approvalActionId === approveKey;
-              const isCorrecting = approvalActionId === correctionKey;
-
-              return (
-                <div
-                  key={`${doc.serviceId}-${doc.id}`}
-                  className="flex flex-col gap-5 p-6 lg:flex-row lg:items-center lg:justify-between"
-                >
-                  <div className="flex min-w-0 flex-1 items-start gap-4">
-                    <div
-                      className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-slate-100 ${iconConfig.bg}`}
-                    >
-                      <i
-                        className={`fas ${iconConfig.icon} ${iconConfig.color} text-lg`}
-                      />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="truncate text-sm font-bold text-slate-900">
-                          {getArchiveDocumentLabel(doc)}
-                        </h3>
-                        <Badge className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-700">
-                          {approvalStatus === "pending"
-                            ? "Awaiting Approval"
-                            : "Client Approval"}
-                        </Badge>
-                      </div>
-                      <p className="mt-1 truncate text-xs text-slate-500">
-                        {doc.file_name || "Unnamed file"}
-                      </p>
-                      <p className="mt-1 text-[11px] font-medium text-slate-400">
-                        {doc.serviceName || "Service unavailable"} - sent by{" "}
-                        {doc.uploaded_by?.name || "Accountant"}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-                    <button
-                      type="button"
-                      onClick={() => void handleOpenDocument(doc)}
-                      className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
-                    >
-                      <Eye className="size-3.5" />
-                      View
-                    </button>
-                    {getDocumentNoteText(doc) ? (
-                      <button
-                        type="button"
-                        onClick={() => setViewingNoteDoc(doc)}
-                        className="inline-flex h-10 items-center gap-2 rounded-xl border border-blue-100 bg-blue-50 px-4 text-xs font-bold text-blue-700 transition hover:bg-blue-100"
-                      >
-                        <MessageSquareText className="size-3.5" />
-                        Notes
-                      </button>
-                    ) : null}
-                    <button
-                      type="button"
-                      disabled={approvalActionId !== null}
-                      onClick={() => void handleClientApproval(doc, "approved")}
-                      className="inline-flex h-10 items-center gap-2 rounded-xl bg-emerald-600 px-4 text-xs font-bold text-white shadow-lg shadow-emerald-600/15 transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {isApproving ? (
-                        <i className="fas fa-circle-notch animate-spin" />
-                      ) : (
-                        <CheckCircle2 className="size-3.5" />
-                      )}
-                      Approve
-                    </button>
-                    <button
-                      type="button"
-                      disabled={approvalActionId !== null}
-                      onClick={() => setCorrectionDoc(doc)}
-                      className="inline-flex h-10 items-center gap-2 rounded-xl bg-rose-600 px-4 text-xs font-bold text-white shadow-lg shadow-rose-600/15 transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {isCorrecting ? (
-                        <i className="fas fa-circle-notch animate-spin" />
-                      ) : (
-                        <AlertCircle className="size-3.5" />
-                      )}
-                      Correction
-                    </button>
-                  </div>
+          <div>
+            {uploadServiceId ? (
+              <DocumentUpload
+                rows={rows}
+                fileErrors={fileErrors}
+                availableTypes={availableTypes}
+                onFileChange={handleFileChange}
+                onFilesChange={handleFilesChange}
+                onTypeChange={(index, type) => {
+                  setRows((currentRows) => {
+                    const nextRows = [...currentRows];
+                    nextRows[index] = { ...nextRows[index], type };
+                    return nextRows;
+                  });
+                }}
+                onNotesChange={(index, notes) => {
+                  setRows((currentRows) => {
+                    const nextRows = [...currentRows];
+                    nextRows[index] = { ...nextRows[index], notes };
+                    return nextRows;
+                  });
+                }}
+                onAddRow={() =>
+                  setRows((currentRows) => [...currentRows, createEmptyRow()])
+                }
+                onRemoveRow={handleRemoveRow}
+                onSubmit={handleUpload}
+                isUploading={isUploading}
+              />
+            ) : (
+              <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/50 p-12 text-center">
+                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-100 text-blue-900">
+                  <i className="fa-solid fa-cloud-arrow-up text-2xl" />
                 </div>
-              );
-            })}
+                <p className="text-base font-bold text-slate-800">Please Select a Target Service</p>
+                <p className="mx-auto mt-1.5 max-w-sm text-xs text-slate-500">
+                  Select the active service from the dropdown above to view required document types and attach your files.
+                </p>
+              </div>
+            )}
           </div>
-        </section>
+        </div>
       )}
+
+      {/* ── Archive / Main Tab View ──────────────────────────── */}
+      {activeTab === "archive" && (
+        <>
+          {/* Compact Stat Cards */}
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+            {/* Total */}
+            <div className="flex items-center gap-3 rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                <FileStack className="size-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Total Documents</p>
+                <p className="text-xl font-bold text-gray-900 leading-tight">{archiveStats.total}</p>
+              </div>
+            </div>
+
+            {/* Approved */}
+            <div className="flex items-center gap-3 rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+                <CheckCircle2 className="size-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Approved</p>
+                <p className="text-xl font-bold text-emerald-600 leading-tight">{archiveStats.approved}</p>
+              </div>
+            </div>
+
+            {/* Pending */}
+            <div className="flex items-center gap-3 rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
+                <Hourglass className="size-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">In Review</p>
+                <p className="text-xl font-bold text-amber-600 leading-tight">{archiveStats.pending}</p>
+              </div>
+            </div>
+
+            {/* Issues */}
+            <div className="flex items-center gap-3 rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-rose-50 text-rose-600">
+                <AlertCircle className="size-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Action Needed</p>
+                <p className="text-xl font-bold text-rose-600 leading-tight">{archiveStats.issue}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Documents for Approval / Review Section */}
+          {approvalDocuments.length > 0 && (
+            <section className="overflow-hidden rounded-2xl border border-amber-200/80 bg-white shadow-sm">
+              <div className="border-b border-amber-100 bg-amber-50/70 px-6 py-4">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500 text-white shadow-md shadow-amber-500/20">
+                      <Hourglass className="size-4" />
+                    </div>
+                    <div>
+                      <h2 className="text-sm font-bold text-slate-900">
+                        Documents for Approval
+                      </h2>
+                      <p className="text-xs text-slate-500">
+                        Review accountant-sent documents and approve or request corrections.
+                      </p>
+                    </div>
+                  </div>
+                  <span className="w-fit rounded-full border border-amber-200 bg-white px-3 py-0.5 text-[11px] font-bold uppercase tracking-wider text-amber-700">
+                    {approvalDocuments.length} pending
+                  </span>
+                </div>
+              </div>
+
+              <div className="divide-y divide-slate-100">
+                {approvalDocuments.map((doc) => {
+                  const iconConfig = getDocumentIcon(
+                    doc.mime_type || undefined,
+                    doc.file_name || undefined,
+                  );
+                  const approvalStatus = getClientApprovalStatus(doc);
+                  const approveKey = `${doc.serviceId}-${doc.id}-approved`;
+                  const correctionKey = `${doc.serviceId}-${doc.id}-correction`;
+                  const isApproving = approvalActionId === approveKey;
+                  const isCorrecting = approvalActionId === correctionKey;
+
+                  return (
+                    <div
+                      key={`${doc.serviceId}-${doc.id}`}
+                      className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between transition-colors hover:bg-slate-50/50"
+                    >
+                      <div className="flex min-w-0 flex-1 items-start gap-4">
+                        <div
+                          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-100 ${iconConfig.bg} shadow-sm`}
+                        >
+                          <i
+                            className={`fas ${iconConfig.icon} ${iconConfig.color} text-base`}
+                          />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="truncate text-sm font-bold text-slate-900">
+                              {getArchiveDocumentLabel(doc)}
+                            </h3>
+                            <Badge className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-700">
+                              {approvalStatus === "pending"
+                                ? "Awaiting Approval"
+                                : "Client Approval"}
+                            </Badge>
+                          </div>
+                          <p className="mt-0.5 truncate text-xs text-slate-500">
+                            {doc.file_name || "Unnamed file"}
+                          </p>
+                          <p className="mt-0.5 text-[11px] font-medium text-slate-400">
+                            {doc.serviceName || "Service unavailable"} • Sent by{" "}
+                            {doc.uploaded_by?.name || "Accountant"}
+                          </p>
+                          {getDocumentNoteText(doc) && (
+                            <div className="mt-2 rounded-xl border border-blue-100 bg-blue-50/60 p-2.5 text-xs text-blue-900 max-w-xl">
+                              <span className="font-semibold text-blue-800">Accountant Note: </span>
+                              {getDocumentNoteText(doc)}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2 lg:justify-end shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => void handleOpenDocument(doc)}
+                          className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
+                        >
+                          <Eye className="size-3.5" />
+                          <span>View</span>
+                        </button>
+                        {getDocumentNoteText(doc) && (
+                          <button
+                            type="button"
+                            onClick={() => setViewingNoteDoc(doc)}
+                            className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-blue-100 bg-blue-50 px-3.5 text-xs font-bold text-blue-700 transition hover:bg-blue-100"
+                          >
+                            <MessageSquareText className="size-3.5" />
+                            <span>Notes</span>
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          disabled={approvalActionId !== null}
+                          onClick={() => void handleClientApproval(doc, "approved")}
+                          className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 text-xs font-bold text-white shadow-md shadow-emerald-600/15 transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {isApproving ? (
+                            <i className="fas fa-circle-notch animate-spin" />
+                          ) : (
+                            <CheckCircle2 className="size-3.5" />
+                          )}
+                          <span>Approve</span>
+                        </button>
+                        <button
+                          type="button"
+                          disabled={approvalActionId !== null}
+                          onClick={() => setCorrectionDoc(doc)}
+                          className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-rose-600 px-3.5 text-xs font-bold text-white shadow-md shadow-rose-600/15 transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {isCorrecting ? (
+                            <i className="fas fa-circle-notch animate-spin" />
+                          ) : (
+                            <AlertCircle className="size-3.5" />
+                          )}
+                          <span>Correction</span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {/* Action Needed / Correction History Section */}
+          {actionNeededDocuments.length > 0 && (
+            <section className="overflow-hidden rounded-2xl border border-rose-200/80 bg-white shadow-sm">
+              <div className="border-b border-rose-100 bg-rose-50/50 px-6 py-3.5">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-rose-700 flex items-center gap-2">
+                  <AlertCircle className="size-4" />
+                  Correction Requested &amp; Action Needed ({actionNeededDocuments.length})
+                </h3>
+              </div>
+              <div className="divide-y divide-slate-100">
+                {actionNeededDocuments.map((doc) => {
+                  const iconConfig = getDocumentIcon(
+                    doc.mime_type || undefined,
+                    doc.file_name || undefined,
+                  );
+                  return (
+                    <div
+                      key={`action-${doc.serviceId}-${doc.id}`}
+                      className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div className="flex items-start gap-3 min-w-0 flex-1">
+                        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-100 ${iconConfig.bg}`}>
+                          <i className={`fas ${iconConfig.icon} ${iconConfig.color} text-sm`} />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-sm font-bold text-slate-900 truncate">
+                              {getArchiveDocumentLabel(doc)}
+                            </h4>
+                            <Badge className="border-rose-200 bg-rose-50 text-rose-700 text-[10px] font-bold">
+                              {getDocStatusLabel(doc.status)}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-slate-500 mt-0.5">
+                            {doc.serviceName} • {formatDocumentTimestamp(doc)}
+                          </p>
+                          {getDocumentNoteText(doc) && (
+                            <p className="mt-1.5 text-xs text-slate-600 bg-slate-50 rounded-lg p-2 border border-slate-100 max-w-xl">
+                              <span className="font-semibold text-slate-700">Remarks: </span>
+                              {getDocumentNoteText(doc)}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {getDocumentNoteText(doc) && (
+                          <button
+                            type="button"
+                            onClick={() => setViewingNoteDoc(doc)}
+                            className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-50"
+                          >
+                            <MessageSquareText className="size-3.5" />
+                            <span>Notes</span>
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setUploadServiceId(String(doc.serviceId));
+                            setActiveTab("upload");
+                          }}
+                          className="inline-flex h-8 items-center gap-1.5 rounded-xl bg-blue-900 px-3 text-xs font-bold text-white shadow-sm hover:bg-blue-800"
+                        >
+                          <i className="fas fa-cloud-arrow-up text-xs" />
+                          <span>Re-upload</span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
 
       {/* Document Archive */}
       <div className="space-y-0">
@@ -1378,6 +1511,8 @@ export function DashboardDocumentsView({
           </div>
         )}
       </div>
+      </>
+      )}
 
       <ImageLightbox
         open={lightboxIndex >= 0}
@@ -1409,6 +1544,26 @@ export function DashboardDocumentsView({
             }
             : undefined
         }
+        onSubmitNote={async (note: string) => {
+          if (!viewingNoteDoc) return;
+          const normalizedNote = note.trim();
+          if (!normalizedNote) return;
+          const formattedNote = user?.name ? `Client (${user.name}): ${normalizedNote}` : `Client: ${normalizedNote}`;
+          const currentNotes = getDocumentNoteText(viewingNoteDoc);
+          const updatedNote = currentNotes ? `${currentNotes}\n\n${formattedNote}` : formattedNote;
+
+          await dispatch(
+            respondToDocumentApproval({
+              serviceId: viewingNoteDoc.serviceId,
+              docId: viewingNoteDoc.id,
+              action: "correction",
+              note: updatedNote,
+            }),
+          ).unwrap();
+          toast.success("Note added successfully");
+          setViewingNoteDoc((prev) => prev ? { ...prev, notes: updatedNote } : null);
+          void dispatch(fetchMyServices());
+        }}
       />
 
       <ChatNoteModal
