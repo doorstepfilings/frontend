@@ -164,7 +164,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
   });
 
   const [rows, setRows] = useState<any[]>([]);
-  const [fileErrors, setFileErrors] = useState<Record<number, string>>({});
+  const [fileErrors, setFileErrors] = useState<Record<string | number, string>>({});
 
   const COUNTRIES = [
     { iso: "in", name: "India", dialCode: "91", flag: "https://flagcdn.com/24x18/in.png" },
@@ -247,9 +247,10 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
         pincode: user.pincode ? String(user.pincode) : "",
       }));
 
-      if (serviceDetails.documents) {
+      if (serviceDetails.documents && serviceDetails.documents.length > 0) {
         setRows(
           serviceDetails.documents.map((doc: any) => ({
+            id: `doc-${doc.id}`,
             file: null,
             type: doc.document_name || doc.document_type || "",
             notes: "",
@@ -258,7 +259,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
           }))
         );
       } else {
-        setRows([{ file: null, type: "", notes: "" }]);
+        setRows([{ id: "doc-default-1", file: null, type: "", notes: "", is_required: false }]);
       }
 
       setFileErrors({});
@@ -455,6 +456,106 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
     {},
   );
 
+  const handleAddDocumentRow = () => {
+    setRows((prev) => [
+      ...prev,
+      {
+        id: `doc-extra-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        file: null,
+        type: "",
+        notes: "",
+        is_required: false,
+      },
+    ]);
+  };
+
+  const handleRemoveDocumentRow = (index: number) => {
+    const rowToRemove = rows[index];
+    const rowKey = rowToRemove?.id != null ? String(rowToRemove.id) : String(index);
+
+    setRows((prev) => prev.filter((_, i) => i !== index));
+    setFileErrors((prev) => {
+      const next = { ...prev };
+      delete next[rowKey];
+      delete next[index];
+      return next;
+    });
+  };
+
+  const handleDocumentFileChange = (index: number, file: File | null) => {
+    const row = rows[index];
+    const rowKey = row?.id != null ? String(row.id) : String(index);
+
+    if (file && file.size > 1024 * 1024) {
+      setFileErrors((prev) => ({ ...prev, [rowKey]: "Max 1MB" }));
+      setRows((prev) => prev.map((r, i) => (i === index ? { ...r, file: null } : r)));
+      return;
+    }
+
+    setFileErrors((prev) => {
+      const next = { ...prev };
+      delete next[rowKey];
+      delete next[index];
+      return next;
+    });
+
+    setRows((prev) => prev.map((r, i) => (i === index ? { ...r, file } : r)));
+  };
+
+  const handleDocumentFilesChange = (index: number, files: File[]) => {
+    if (!files.length) return;
+    const maxBytes = 1024 * 1024;
+    const firstFile = files[0];
+    const currentTarget = rows[index] || {
+      id: `doc-${Date.now()}`,
+      file: null,
+      type: "",
+      notes: "",
+      is_required: false,
+    };
+    const currentKey = currentTarget.id != null ? String(currentTarget.id) : String(index);
+
+    const additionalRows = files.slice(1).map((file) => ({
+      id: `doc-batch-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      file,
+      type: file.name.replace(/\.[^/.]+$/, ""),
+      notes: "",
+      is_required: false,
+    }));
+
+    setRows((prev) => {
+      const next = [...prev];
+      next[index] = {
+        ...currentTarget,
+        file: firstFile,
+        type: currentTarget.type || firstFile.name.replace(/\.[^/.]+$/, ""),
+      };
+      return [
+        ...next.slice(0, index + 1),
+        ...additionalRows,
+        ...next.slice(index + 1),
+      ];
+    });
+
+    setFileErrors((prev) => {
+      const next = { ...prev };
+      delete next[currentKey];
+      delete next[index];
+
+      if (firstFile.size > maxBytes) {
+        next[currentKey] = "Max 1MB";
+      }
+
+      additionalRows.forEach((r) => {
+        if (r.file && r.file.size > maxBytes) {
+          next[String(r.id)] = "Max 1MB";
+        }
+      });
+
+      return next;
+    });
+  };
+
   const handleApplySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -478,7 +579,7 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
 
     const missingDocs = rows.filter((r) => r.is_required && !r.file);
     if (missingDocs.length > 0) {
-      toast.error(`Please upload the mandatory document: ${missingDocs[0].type}`);
+      toast.error(`Please upload the mandatory document: ${missingDocs[0].type || "Document"}`);
       return;
     }
 
@@ -530,16 +631,18 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
     );
     submitFormData.append("notes", applyFormData.notes || "");
 
-    rows.forEach((row, index) => {
+    let docIndex = 0;
+    rows.forEach((row) => {
       if (row.file) {
-        submitFormData.append(`documents[${index}][file]`, row.file);
+        submitFormData.append(`documents[${docIndex}][file]`, row.file);
         if (row.service_document_id) {
-          submitFormData.append(`documents[${index}][service_document_id]`, row.service_document_id);
+          submitFormData.append(`documents[${docIndex}][service_document_id]`, String(row.service_document_id));
         }
-        submitFormData.append(`documents[${index}][type]`, row.type);
+        submitFormData.append(`documents[${docIndex}][type]`, row.type || "");
         if (row.notes) {
-          submitFormData.append(`documents[${index}][notes]`, row.notes);
+          submitFormData.append(`documents[${docIndex}][notes]`, row.notes);
         }
+        docIndex++;
       }
     });
 
@@ -1057,6 +1160,28 @@ export default function ServiceDetailPage({ params }: ServiceDetailPageProps) {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Documents Upload Section */}
+          <div className="space-y-3">
+            <DocumentUpload
+              rows={rows}
+              fileErrors={fileErrors}
+              onFileChange={handleDocumentFileChange}
+              onFilesChange={handleDocumentFilesChange}
+              onAddRow={handleAddDocumentRow}
+              onRemoveRow={handleRemoveDocumentRow}
+              onTypeChange={(index, type) =>
+                setRows((prev) => prev.map((r, i) => (i === index ? { ...r, type } : r)))
+              }
+              onNotesChange={(index, notes) =>
+                setRows((prev) => prev.map((r, i) => (i === index ? { ...r, notes } : r)))
+              }
+              onSubmit={() => {}}
+              showSubmitButton={false}
+              title="Required & Supporting Documents"
+              description="Upload required documents for your application. You can add extra rows if needed."
+            />
           </div>
 
           {/* Appointment */}

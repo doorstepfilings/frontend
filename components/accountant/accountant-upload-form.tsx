@@ -12,6 +12,21 @@ interface AccountantUploadFormProps {
   showFinalToggle?: boolean;
 }
 
+let accountantRowCounter = 0;
+
+function buildEmptyRow() {
+  accountantRowCounter += 1;
+  return {
+    id: `row-${accountantRowCounter}`,
+    file: null as File | null,
+    type: "",
+    notes: "",
+    document_type: "internal",
+    document_category: "",
+    requires_client_approval: false,
+  };
+}
+
 export const AccountantUploadForm = ({
   requestId,
   onSuccess,
@@ -19,41 +34,108 @@ export const AccountantUploadForm = ({
 }: AccountantUploadFormProps) => {
   const [isUploading, setIsUploading] = useState(false);
   const [isFinal, setIsFinal] = useState(false);
-  const [fileErrors, setFileErrors] = useState<Record<number, string>>({});
-
-  const buildEmptyRow = () => ({
-    file: null as File | null,
-    type: "",
-    notes: "",
-    document_type: "internal",
-    document_category: "",
-    requires_client_approval: false,
-  });
+  const [fileErrors, setFileErrors] = useState<Record<string | number, string>>({});
 
   const [rows, setRows] = useState<any[]>([buildEmptyRow()]);
 
   const handleFileChange = (index: number, file: File | null) => {
+    const row = rows[index];
+    const rowKey = row?.id != null ? String(row.id) : String(index);
+
     if (!file) {
-      const newErrors = { ...fileErrors };
-      delete newErrors[index];
-      setFileErrors(newErrors);
+      setFileErrors((current) => {
+        const next = { ...current };
+        delete next[rowKey];
+        delete next[index];
+        return next;
+      });
       updateRow(index, "file", null);
       return;
     }
 
     const MAX_BYTES = 1024 * 1024; // 1MB
     if (file.size > MAX_BYTES) {
-      setFileErrors({
-        ...fileErrors,
-        [index]: `File size exceeds 1 MB limit.`,
-      });
+      setFileErrors((current) => ({
+        ...current,
+        [rowKey]: `File size exceeds 1 MB limit.`,
+      }));
     } else {
-      const newErrors = { ...fileErrors };
-      delete newErrors[index];
-      setFileErrors(newErrors);
+      setFileErrors((current) => {
+        const next = { ...current };
+        delete next[rowKey];
+        delete next[index];
+        return next;
+      });
     }
 
     updateRow(index, "file", file);
+  };
+
+  const handleFilesChange = (index: number, files: File[]) => {
+    if (!files.length) return;
+    const MAX_BYTES = 1024 * 1024;
+
+    const firstFile = files[0];
+    const currentTarget = rows[index] || buildEmptyRow();
+    const currentKey = currentTarget.id != null ? String(currentTarget.id) : String(index);
+
+    const additionalRows = files.slice(1).map((file) => ({
+      ...buildEmptyRow(),
+      file,
+      type: currentTarget.type || file.name.replace(/\.[^/.]+$/, ""),
+      document_type: currentTarget.document_type || "internal",
+      document_category: currentTarget.document_category || "",
+      requires_client_approval: Boolean(currentTarget.requires_client_approval),
+    }));
+
+    setRows((currentRows) => {
+      const nextRows = [...currentRows];
+      nextRows[index] = {
+        ...currentTarget,
+        file: firstFile,
+        type: currentTarget.type || firstFile.name.replace(/\.[^/.]+$/, ""),
+      };
+      return [
+        ...nextRows.slice(0, index + 1),
+        ...additionalRows,
+        ...nextRows.slice(index + 1),
+      ];
+    });
+
+    setFileErrors((current) => {
+      const next = { ...current };
+      delete next[currentKey];
+      delete next[index];
+
+      if (firstFile.size > MAX_BYTES) {
+        next[currentKey] = `File size exceeds 1 MB limit.`;
+      }
+
+      additionalRows.forEach((extraRow) => {
+        if (extraRow.file && extraRow.file.size > MAX_BYTES) {
+          const extraKey = String(extraRow.id);
+          next[extraKey] = `File size exceeds 1 MB limit.`;
+        }
+      });
+
+      return next;
+    });
+  };
+
+  const handleRemoveRow = (index: number) => {
+    const rowToRemove = rows[index];
+    const rowKey = rowToRemove?.id != null ? String(rowToRemove.id) : String(index);
+
+    setRows((currentRows) =>
+      currentRows.filter((_, rowIndex) => rowIndex !== index),
+    );
+
+    setFileErrors((current) => {
+      const next = { ...current };
+      delete next[rowKey];
+      delete next[index];
+      return next;
+    });
   };
 
   const updateRow = (index: number, field: string, value: any) => {
@@ -166,8 +248,9 @@ export const AccountantUploadForm = ({
         rows={rows}
         fileErrors={fileErrors}
         onFileChange={handleFileChange}
+        onFilesChange={handleFilesChange}
         onAddRow={() => setRows([...rows, buildEmptyRow()])}
-        onRemoveRow={(index) => setRows(rows.filter((_, i) => i !== index))}
+        onRemoveRow={handleRemoveRow}
         onTypeChange={(index, value) => updateRow(index, "type", value)}
         onNotesChange={(index, value) => updateRow(index, "notes", value)}
         onSubmit={handleUpload}

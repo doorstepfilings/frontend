@@ -86,11 +86,11 @@ export function UserDashboardShell({
   }
 
   return (
-    <div className="flex min-h-screen overflow-x-hidden bg-gray-50">
+    <div className="flex min-h-screen overflow-x-clip bg-gray-50">
       <DashboardSidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
 
       <div className="min-w-0 w-full flex-1 transition-all duration-300 lg:ml-64">
-        <header className="sticky top-0 z-30 border-b border-gray-100 bg-white">
+        <header className="sticky top-0 z-30 border-b border-gray-100 bg-white/95 backdrop-blur-md shadow-sm">
           <div className="flex items-center justify-between gap-3 px-3 py-4 sm:px-4 lg:px-8">
             <div className="flex min-w-0 items-center gap-3 sm:gap-4">
               <button
@@ -110,17 +110,23 @@ export function UserDashboardShell({
 
             <div className="flex shrink-0 items-center gap-2 sm:gap-3">
               <button
-                className="flex h-10 w-10 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-blue-900"
+                className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-blue-900"
                 type="button"
+                title="Notifications"
+                aria-label="Notifications"
               >
-                <i className="fas fa-bell text-lg" />
+                <i className="fas fa-bell text-base sm:text-lg" />
               </button>
               <Link
                 href="/services"
-                className="flex h-10 items-center gap-2 rounded-lg bg-blue-900 px-3 text-sm font-medium text-white transition-colors hover:bg-blue-800 sm:px-4"
+                className="flex h-9 sm:h-10 items-center gap-1.5 sm:gap-2 rounded-lg bg-blue-900 px-3 sm:px-4 text-xs sm:text-sm font-semibold text-white shadow-sm transition-all hover:bg-blue-800"
+                title="Explore and Apply for New Services"
               >
-                <i className="fas fa-compass" />
-                <span className="hidden sm:inline">New Services</span>
+                <i className="fas fa-plus text-xs sm:text-sm" />
+                <span>
+                  <span className="inline sm:hidden">Services</span>
+                  <span className="hidden sm:inline">Explore Services</span>
+                </span>
               </Link>
             </div>
           </div>

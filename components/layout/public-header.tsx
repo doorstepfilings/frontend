@@ -90,8 +90,10 @@ export function PublicHeader() {
 
   return (
     <header
-      className={`header sticky top-0 z-50 bg-white transition-all duration-300 ${
-        isScrolled ? "scrolled shadow-lg" : ""
+      className={`header sticky top-0 z-50 bg-white/95 backdrop-blur-md transition-all duration-300 ${
+        isScrolled
+          ? "scrolled shadow-lg border-b border-gray-100"
+          : "border-b border-gray-100/80 shadow-sm"
       }`}
     >
       <div className="container mx-auto px-4">
@@ -241,28 +243,58 @@ export function PublicHeader() {
             </div>
           </div>
 
-          {/* Hamburger */}
-          <button
-            className="flex h-10 w-10 flex-col items-center justify-center gap-1.5 lg:hidden"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            aria-label="Menu"
-          >
-            <span
-              className={`h-0.5 w-6 bg-gray-800 transition-all ${
-                isMenuOpen ? "translate-y-2 rotate-45" : ""
-              }`}
-            />
-            <span
-              className={`h-0.5 w-6 bg-gray-800 transition-all ${
-                isMenuOpen ? "opacity-0" : ""
-              }`}
-            />
-            <span
-              className={`h-0.5 w-6 bg-gray-800 transition-all ${
-                isMenuOpen ? "-translate-y-2 -rotate-45" : ""
-              }`}
-            />
-          </button>
+          {/* Mobile action bar (Direct Login & Hamburger) */}
+          <div className="flex items-center gap-2 lg:hidden">
+            {user ? (
+              <Link
+                href={dashboardHref}
+                className="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-xs font-semibold text-blue-900 transition-colors hover:bg-blue-100"
+              >
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-900 text-xs font-bold text-white">
+                  {user.name?.charAt(0).toUpperCase()}
+                </div>
+                <span className="max-w-[70px] truncate sm:max-w-[100px]">{user.name}</span>
+              </Link>
+            ) : (
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <Link
+                  href="/login"
+                  className="rounded-lg border border-blue-900 px-3 py-1.5 text-xs font-semibold text-blue-900 transition-all hover:bg-blue-900 hover:text-white sm:px-4 sm:py-2 sm:text-sm"
+                >
+                  Login
+                </Link>
+                <Link
+                  href="/register"
+                  className="rounded-lg bg-blue-900 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-amber-500 sm:px-4 sm:py-2 sm:text-sm"
+                >
+                  Register
+                </Link>
+              </div>
+            )}
+
+            {/* Hamburger */}
+            <button
+              className="flex h-10 w-10 flex-col items-center justify-center gap-1.5 rounded-lg transition-colors hover:bg-gray-100"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              aria-label="Menu"
+            >
+              <span
+                className={`h-0.5 w-6 bg-gray-800 transition-all ${
+                  isMenuOpen ? "translate-y-2 rotate-45" : ""
+                }`}
+              />
+              <span
+                className={`h-0.5 w-6 bg-gray-800 transition-all ${
+                  isMenuOpen ? "opacity-0" : ""
+                }`}
+              />
+              <span
+                className={`h-0.5 w-6 bg-gray-800 transition-all ${
+                  isMenuOpen ? "-translate-y-2 -rotate-45" : ""
+                }`}
+              />
+            </button>
+          </div>
         </div>
       </div>
 

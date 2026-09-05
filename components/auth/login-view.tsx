@@ -192,11 +192,22 @@ export function LoginView() {
       </AuthShowcasePanel>
 
       {/* Right Side - Form */}
-      <div className="p-8 md:w-1/2 md:p-12">
+      <div className="w-full p-6 sm:p-8 md:w-1/2 md:p-12">
         <div className="mx-auto max-w-sm">
+          {/* Mobile-only logo */}
+          <div className="mb-6 flex justify-center md:hidden">
+            <Link href="/" className="inline-flex items-center gap-2">
+              <img
+                src="/assets/images/logo.png"
+                alt="DoorstepFilings"
+                className="h-12 w-auto object-contain"
+              />
+            </Link>
+          </div>
+
           <div className="mb-8 text-center">
-            <h2 className="mb-2 text-3xl font-bold text-slate-900">Login</h2>
-            <p className="text-slate-500">Enter your credentials to access your account</p>
+            <h2 className="mb-2 text-2xl font-bold text-slate-900 sm:text-3xl">Login</h2>
+            <p className="text-sm text-slate-500 sm:text-base">Enter your credentials to access your account</p>
           </div>
 
           {error && (

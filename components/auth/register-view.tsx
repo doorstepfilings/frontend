@@ -266,12 +266,23 @@ export function RegisterView() {
   return (
     <AuthSplitLayout accentLayout="mirrored">
       {/* Left Side - Form */}
-        <div className="order-2 p-8 md:order-1 md:w-1/2 md:p-12">
-          <div className="mx-auto max-w-sm">
-            <div className="mb-8 text-center">
-              <h2 className="mb-2 text-3xl font-bold text-slate-900">Create Account</h2>
-              <p className="text-slate-500">Join us for expert financial services</p>
-            </div>
+      <div className="order-2 w-full p-6 sm:p-8 md:order-1 md:w-1/2 md:p-12">
+        <div className="mx-auto max-w-sm">
+          {/* Mobile-only logo */}
+          <div className="mb-6 flex justify-center md:hidden">
+            <Link href="/" className="inline-flex items-center gap-2">
+              <img
+                src="/assets/images/logo.png"
+                alt="DoorstepFilings"
+                className="h-12 w-auto object-contain"
+              />
+            </Link>
+          </div>
+
+          <div className="mb-8 text-center">
+            <h2 className="mb-2 text-2xl font-bold text-slate-900 sm:text-3xl">Create Account</h2>
+            <p className="text-sm text-slate-500 sm:text-base">Join us for expert financial services</p>
+          </div>
 
             {errors.message && (
               <div className="mb-6 flex items-center gap-2 rounded-lg border-l-4 border-red-500 bg-red-50 p-4 text-sm text-red-700">

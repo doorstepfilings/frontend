@@ -30,11 +30,11 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const portalMeta = getRolePortalMeta(normalizedRole);
 
   return (
-    <div className="admin-theme flex min-h-screen overflow-x-hidden bg-slate-50">
+    <div className="admin-theme flex min-h-screen overflow-x-clip bg-slate-50">
       <AdminSidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
 
       <div className="min-w-0 w-full flex-1 transition-all duration-300 lg:ml-[17rem]">
-        <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/88 backdrop-blur-md">
+        <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/95 backdrop-blur-md shadow-sm">
           <div className="space-y-3 px-3 py-3 sm:px-5 lg:px-8">
             <div className="flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3 sm:gap-4">

@@ -66,6 +66,7 @@ type Slot = {
 };
 
 type DocumentRow = {
+  id?: string | number;
   file: File | null;
   is_required: boolean;
   notes: string;
@@ -78,9 +79,10 @@ type ProfileResponse = {
   user?: AuthUser | null;
 };
 
-function createRowsFromService(service: Service | null) {
+function createRowsFromService(service: Service | null): DocumentRow[] {
   if (service?.documents && service.documents.length > 0) {
     return service.documents.map((document) => ({
+      id: `doc-srv-${document.id}`,
       file: null,
       is_required: Boolean(document.is_required),
       notes: "",
@@ -88,7 +90,7 @@ function createRowsFromService(service: Service | null) {
       type: document.document_name || document.document_type || "",
     }));
   }
-  return [{ file: null, is_required: false, notes: "", type: "" }];
+  return [{ id: `doc-default-${Date.now()}`, file: null, is_required: false, notes: "", type: "" }];
 }
 
 const dialCodeToIso = (dialCode: string) => {
@@ -242,7 +244,7 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
   const [selectedPricingPlan, setSelectedPricingPlan] = useState("");
   const [submitLoading, setSubmitLoading] = useState(false);
   const [documentRows, setDocumentRows] = useState<DocumentRow[]>([]);
-  const [fileErrors, setFileErrors] = useState<Record<number, string>>({});
+  const [fileErrors, setFileErrors] = useState<Record<string | number, string>>({});
   const selectedPlanDetails =
     selectedService?.pricing_plans?.find((plan) => plan.name === selectedPricingPlan) ?? null;
   const purchasablePlans =
@@ -442,17 +444,106 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
   };
 
   const updateDocumentRow = (index: number, patch: Partial<DocumentRow>) => {
-    setDocumentRows(curr => curr.map((r, i) => i === index ? { ...r, ...patch } : r));
+    setDocumentRows((curr) =>
+      curr.map((r, i) => (i === index ? { ...r, ...patch } : r)),
+    );
+  };
+
+  const handleAddDocumentRow = () => {
+    setDocumentRows((prev) => [
+      ...prev,
+      {
+        id: `doc-extra-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        file: null,
+        is_required: false,
+        notes: "",
+        type: "",
+      },
+    ]);
+  };
+
+  const handleRemoveDocumentRow = (index: number) => {
+    const rowToRemove = documentRows[index];
+    const rowKey = rowToRemove?.id != null ? String(rowToRemove.id) : String(index);
+
+    setDocumentRows((prev) => prev.filter((_, i) => i !== index));
+    setFileErrors((prev) => {
+      const next = { ...prev };
+      delete next[rowKey];
+      delete next[index];
+      return next;
+    });
   };
 
   const handleFileChange = (index: number, file: File | null) => {
+    const row = documentRows[index];
+    const rowKey = row?.id != null ? String(row.id) : String(index);
+
     if (file && file.size > MAX_FILE_SIZE_BYTES) {
-      setFileErrors(c => ({ ...c, [index]: "Max 1MB" }));
+      setFileErrors((c) => ({ ...c, [rowKey]: "Max 1MB" }));
       updateDocumentRow(index, { file: null });
       return;
     }
-    setFileErrors(c => { const n = { ...c }; delete n[index]; return n; });
+    setFileErrors((c) => {
+      const n = { ...c };
+      delete n[rowKey];
+      delete n[index];
+      return n;
+    });
     updateDocumentRow(index, { file });
+  };
+
+  const handleFilesChange = (index: number, files: File[]) => {
+    if (!files.length) return;
+    const firstFile = files[0];
+    const currentTarget = documentRows[index] || {
+      id: `doc-${Date.now()}`,
+      file: null,
+      is_required: false,
+      notes: "",
+      type: "",
+    };
+    const currentKey = currentTarget.id != null ? String(currentTarget.id) : String(index);
+
+    const additionalRows: DocumentRow[] = files.slice(1).map((file) => ({
+      id: `doc-batch-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      file,
+      is_required: false,
+      notes: "",
+      type: file.name.replace(/\.[^/.]+$/, ""),
+    }));
+
+    setDocumentRows((prev) => {
+      const next = [...prev];
+      next[index] = {
+        ...currentTarget,
+        file: firstFile,
+        type: currentTarget.type || firstFile.name.replace(/\.[^/.]+$/, ""),
+      };
+      return [
+        ...next.slice(0, index + 1),
+        ...additionalRows,
+        ...next.slice(index + 1),
+      ];
+    });
+
+    setFileErrors((prev) => {
+      const next = { ...prev };
+      delete next[currentKey];
+      delete next[index];
+
+      if (firstFile.size > MAX_FILE_SIZE_BYTES) {
+        next[currentKey] = "Max 1MB";
+      }
+
+      additionalRows.forEach((r) => {
+        if (r.file && r.file.size > MAX_FILE_SIZE_BYTES) {
+          next[String(r.id)] = "Max 1MB";
+        }
+      });
+
+      return next;
+    });
   };
 
   const fetchSlotAvailability = useCallback(
@@ -605,6 +696,11 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
       }
     }
 
+    const missingRequired = documentRows.filter((r) => r.is_required && !r.file);
+    if (missingRequired.length > 0) {
+      return setError(`Please upload required document: ${missingRequired[0].type || "Document"}`);
+    }
+
     setSubmitLoading(true);
     setError("");
 
@@ -629,10 +725,24 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
       payload.append("notes", formData.notes || "");
 
       const metadata: any[] = [];
+      let docIndex = 0;
       documentRows.forEach(r => {
         if (r.file) {
-          payload.append("documents", r.file);
-          metadata.push({ document_type: "client", notes: r.notes, service_document_id: r.service_document_id, type: r.type });
+          payload.append(`documents[${docIndex}][file]`, r.file);
+          payload.append(`documents[${docIndex}][type]`, r.type || "");
+          if (r.service_document_id) {
+            payload.append(`documents[${docIndex}][service_document_id]`, String(r.service_document_id));
+          }
+          if (r.notes) {
+            payload.append(`documents[${docIndex}][notes]`, r.notes);
+          }
+          metadata.push({
+            document_type: "client",
+            notes: r.notes || "",
+            service_document_id: r.service_document_id,
+            type: r.type || ""
+          });
+          docIndex++;
         }
       });
       if (metadata.length) payload.append("document_metadata", JSON.stringify(metadata));
@@ -1061,6 +1171,30 @@ export function ServiceApplication({ modalMode = false, onModalClose, preselecte
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Documents Upload Section */}
+            <div className="mb-8">
+              <div className="flex items-center gap-2 mb-4">
+                <i className="fas fa-file-upload text-blue-900"></i>
+                <h3 className="text-lg font-bold text-gray-800">Required & Supporting Documents</h3>
+              </div>
+              <div className="h-px bg-gray-200 w-full mb-6"></div>
+
+              <DocumentUpload
+                rows={documentRows}
+                fileErrors={fileErrors}
+                onFileChange={handleFileChange}
+                onFilesChange={handleFilesChange}
+                onAddRow={handleAddDocumentRow}
+                onRemoveRow={handleRemoveDocumentRow}
+                onTypeChange={(index, type) => updateDocumentRow(index, { type })}
+                onNotesChange={(index, notes) => updateDocumentRow(index, { notes })}
+                onSubmit={() => {}}
+                showSubmitButton={false}
+                title="Service Documents"
+                description="Upload the required documents for your application. You can add extra rows if needed."
+              />
             </div>
 
             {/* Additional Information Section */}

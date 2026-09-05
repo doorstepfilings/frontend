@@ -93,6 +93,18 @@ export default function DashboardSidebar({
               </div>
             </div>
 
+            {/* Quick Action: Explore All Services */}
+            <div className="mb-4">
+              <Link
+                href="/services"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-900 to-blue-800 px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition-all hover:from-blue-800 hover:to-blue-700 hover:shadow-md"
+              >
+                <i className="fas fa-plus-circle text-sm" />
+                <span>Explore All Services</span>
+              </Link>
+            </div>
+
             <nav className="space-y-1">
               {navItems.map((item) => (
                 <Link

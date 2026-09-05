@@ -6,17 +6,20 @@ import { Button } from "./button";
 import { SearchableSelect } from "./searchable-select";
 
 export interface DocumentUploadRow {
+  id?: string | number;
   file: File | null;
   type: string;
   notes?: string;
   source?: "upload" | "existing";
   existing_document_id?: string | number;
+  is_required?: boolean;
 }
 
 interface DocumentUploadProps {
   rows: DocumentUploadRow[];
-  fileErrors: Record<number, string>;
+  fileErrors: Record<string | number, string>;
   onFileChange: (index: number, file: File | null) => void;
+  onFilesChange?: (index: number, files: File[]) => void;
   onAddRow: () => void;
   onRemoveRow: (index: number) => void;
   onTypeChange: (index: number, type: string) => void;
@@ -42,6 +45,7 @@ export const DocumentUpload = ({
   rows,
   fileErrors,
   onFileChange,
+  onFilesChange,
   onAddRow,
   onRemoveRow,
   onTypeChange,
@@ -62,14 +66,32 @@ export const DocumentUpload = ({
   onExistingDocumentChange,
   isRowComplete,
 }: DocumentUploadProps) => {
-  const hasErrors = Object.keys(fileErrors).length > 0;
+  const hasErrors = Object.values(fileErrors).some(Boolean);
 
-  const rowIsComplete = (row: any) => {
+  const rowIsComplete = (row: DocumentUploadRow) => {
     if (typeof isRowComplete === "function") {
       return isRowComplete(row);
     }
-    return Boolean((row?.file || row?.existing_document_id) && row?.type);
+    const hasDoc = Boolean(row?.file || row?.existing_document_id);
+    const hasType = Boolean(row?.type?.trim());
+    if (row?.is_required) {
+      return hasDoc && hasType;
+    }
+    if (hasDoc || hasType) {
+      return hasDoc && hasType;
+    }
+    return true;
   };
+
+  const hasAtLeastOneCompleteRow = rows.some((row) => {
+    const hasDoc = Boolean(row?.file || row?.existing_document_id);
+    const hasType = Boolean(row?.type?.trim());
+    return hasDoc && hasType;
+  });
+
+  const allRowsAreValid = rows.every((row) => rowIsComplete(row));
+  const isSubmitDisabled =
+    isUploading || hasErrors || !allRowsAreValid || !hasAtLeastOneCompleteRow;
 
   return (
     <div className="animate-fadeIn overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -97,6 +119,8 @@ export const DocumentUpload = ({
 
       <div className="space-y-4 p-6">
         {rows.map((row, index) => {
+          const rowKey = row.id != null ? String(row.id) : `row-${index}`;
+          const rowError = fileErrors[rowKey] || fileErrors[index];
           const rowSource = allowExistingDocuments ? row.source || "upload" : "upload";
           const selectedExistingDocument = existingDocuments.find(
             (doc) => String(doc.id) === String(row.existing_document_id)
@@ -111,14 +135,14 @@ export const DocumentUpload = ({
 
           return (
             <div
-              key={index}
+              key={rowKey}
               className="relative space-y-4 rounded-2xl border border-slate-100 bg-slate-50/30 hover:bg-slate-50/60 p-5 transition-all duration-300 hover:border-slate-200"
             >
               <div className="flex flex-col gap-4 xl:flex-row xl:items-end">
                 {showTypeInput && (
                   <div className="w-full space-y-2 xl:max-w-xs">
                     <label className="ml-1 text-[10px] font-bold uppercase tracking-widest text-gray-400">
-                      Document Type
+                      Document Type {row.is_required && <span className="text-rose-500">*</span>}
                     </label>
                     {availableTypes.length > 0 ? (
                       <div className="relative">
@@ -249,7 +273,7 @@ export const DocumentUpload = ({
                 ) : (
                   <div
                     className={`relative rounded-xl border border-dashed p-4 transition-all duration-200 ${
-                      fileErrors[index]
+                      rowError
                         ? "border-rose-200 bg-rose-50/20"
                         : row.file
                           ? "border-slate-200 bg-white shadow-sm"
@@ -257,17 +281,25 @@ export const DocumentUpload = ({
                     }`}
                   >
                     <input
+                      key={`file-input-${rowKey}-${row.file ? `${row.file.name}-${row.file.size}` : "empty"}`}
                       type="file"
-                      onChange={(event) =>
-                        onFileChange(index, event.target.files?.[0] || null)
-                      }
+                      onChange={(event) => {
+                        const fileList = event.target.files ? Array.from(event.target.files) : [];
+                        if (fileList.length > 1 && onFilesChange) {
+                          onFilesChange(index, fileList);
+                        } else {
+                          onFileChange(index, fileList[0] || null);
+                        }
+                        event.target.value = "";
+                      }}
                       className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
-                      accept=".pdf,.jpg,.jpeg,.png"
+                      accept=".pdf,.jpg,.jpeg,.png,.docx,.doc,.xlsx,.xls,.csv"
+                      multiple={Boolean(onFilesChange)}
                     />
                     <div className="flex items-center gap-3">
                       <div
                         className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all duration-200 ${
-                          fileErrors[index]
+                          rowError
                             ? "bg-rose-100 text-rose-600"
                             : row.file
                               ? `${iconData.bg} ${iconData.color} scale-105 shadow-sm`
@@ -286,7 +318,7 @@ export const DocumentUpload = ({
                             row.file ? "text-slate-800" : "text-slate-400"
                           }`}
                         >
-                          {row.file ? row.file.name : "Choose file"}
+                          {row.file ? row.file.name : "Choose file (or drag & drop)"}
                         </p>
                         <p className="mt-1 text-[11px] font-medium text-slate-400">
                           {row.file
@@ -298,10 +330,10 @@ export const DocumentUpload = ({
                   </div>
                 )}
 
-                {fileErrors[index] && rowSource !== "existing" && (
+                {rowError && rowSource !== "existing" && (
                   <div className="rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs text-rose-700">
-                    <p className="font-semibold">{fileErrors[index]}</p>
-                    <p className="mt-1 text-[11px] text-rose-650">
+                    <p className="font-semibold">{rowError}</p>
+                    <p className="mt-1 text-[11px] text-rose-600">
                       Reduce the file size below {maxFileSizeMB}MB and try again.
                     </p>
                   </div>
@@ -318,7 +350,7 @@ export const DocumentUpload = ({
                 </label>
                 <input
                   type="text"
-                  value={row.notes}
+                  value={row.notes || ""}
                   onChange={(event) => onNotesChange(index, event.target.value)}
                   placeholder="Add any specific details about this document..."
                   className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-600 outline-none transition-all focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 placeholder:text-slate-400 shadow-sm"
@@ -332,15 +364,9 @@ export const DocumentUpload = ({
           <div className="pt-4">
             <Button
               onClick={onSubmit}
-              disabled={
-                isUploading ||
-                hasErrors ||
-                rows.some((row) => !rowIsComplete(row))
-              }
+              disabled={isSubmitDisabled}
               className={`h-14 w-full rounded-xl text-xs font-black uppercase tracking-widest shadow-lg transition-all duration-200 ${
-                isUploading ||
-                hasErrors ||
-                rows.some((row) => !rowIsComplete(row))
+                isSubmitDisabled
                   ? "bg-slate-100 text-slate-400 cursor-not-allowed"
                   : "bg-gradient-to-r from-blue-900 to-indigo-950 text-white shadow-blue-900/25 hover:from-blue-800 hover:to-indigo-900 hover:shadow-xl hover:shadow-blue-900/35 active:scale-[0.98]"
               }`}
@@ -358,14 +384,15 @@ export const DocumentUpload = ({
               )}
             </Button>
 
-            {(hasErrors || rows.some((row) => !rowIsComplete(row))) &&
-              !isUploading && (
-                <p className="mt-4 text-center text-[11px] font-medium text-slate-450">
-                  {hasErrors
-                    ? "Please resolve file size errors to continue"
-                    : "Complete each row with a document type and file to enable upload"}
-                </p>
-              )}
+            {isSubmitDisabled && !isUploading && (
+              <p className="mt-4 text-center text-[11px] font-medium text-slate-400">
+                {hasErrors
+                  ? "Please resolve file size errors to continue"
+                  : !hasAtLeastOneCompleteRow
+                  ? "Complete at least one document row with a document type and file"
+                  : "Complete each filled row with both a document type and file to enable upload"}
+              </p>
+            )}
           </div>
         )}
       </div>

@@ -19,7 +19,7 @@ export function AuthShowcasePanel({
   className = "",
 }: AuthShowcasePanelProps) {
   return (
-    <div className={`relative overflow-hidden md:w-1/2 ${className}`.trim()}>
+    <div className={`relative hidden overflow-hidden md:flex md:w-1/2 ${className}`.trim()}>
       <div className="absolute inset-0">
         <img src={imageSrc} alt={imageAlt} className="h-full w-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-br from-blue-900/90 via-blue-800/85 to-indigo-900/90" />

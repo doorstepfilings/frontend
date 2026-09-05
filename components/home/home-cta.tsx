@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React from "react";
 
 const BENEFITS = [
   "Data-Driven Financial Advice",
@@ -9,39 +9,6 @@ const BENEFITS = [
 ] as const;
 
 function ConsultationFields() {
-  const [isHydrated, setIsHydrated] = useState(false);
-
-  useEffect(() => {
-    setIsHydrated(true);
-  }, []);
-
-  if (!isHydrated) {
-    return (
-      <>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2" aria-hidden="true">
-          <div>
-            <span className="mb-1 block text-xs font-bold uppercase text-gray-500">
-              First Name
-            </span>
-            <div className="h-[50px] w-full rounded border border-gray-200 bg-gray-50" />
-          </div>
-          <div>
-            <span className="mb-1 block text-xs font-bold uppercase text-gray-500">
-              Last Name
-            </span>
-            <div className="h-[50px] w-full rounded border border-gray-200 bg-gray-50" />
-          </div>
-        </div>
-        <div aria-hidden="true">
-          <span className="mb-1 block text-xs font-bold uppercase text-gray-500">
-            Email
-          </span>
-          <div className="h-[50px] w-full rounded border border-gray-200 bg-gray-50" />
-        </div>
-      </>
-    );
-  }
-
   return (
     <>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

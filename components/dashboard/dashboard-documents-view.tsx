@@ -107,6 +107,7 @@ type DashboardDocumentsViewProps = {
 };
 
 const createEmptyRow = (): DashboardUploadRow => ({
+  id: typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `row-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
   source: "upload",
   file: null,
   existing_document_id: "",
@@ -206,7 +207,7 @@ export function DashboardDocumentsView({
   const [sortDirection, setSortDirection] = useState<"desc" | "asc">("desc");
   const [page, setPage] = useState(1);
   const [rows, setRows] = useState<DashboardUploadRow[]>([createEmptyRow()]);
-  const [fileErrors, setFileErrors] = useState<Record<number, string>>({});
+  const [fileErrors, setFileErrors] = useState<Record<string | number, string>>({});
   const [isUploading, setIsUploading] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(-1);
   const [documentToDelete, setDocumentToDelete] =
@@ -416,18 +417,24 @@ export function DashboardDocumentsView({
   ].filter(Boolean).length;
 
   const handleFileChange = (index: number, file: File | null) => {
+    const row = rows[index];
+    const rowKey = row?.id != null ? String(row.id) : String(index);
+
     setRows((currentRows) => {
       const nextRows = [...currentRows];
-      nextRows[index] = {
-        ...nextRows[index],
-        file,
-      };
+      if (nextRows[index]) {
+        nextRows[index] = {
+          ...nextRows[index],
+          file,
+        };
+      }
       return nextRows;
     });
 
     if (!file) {
       setFileErrors((current) => {
         const next = { ...current };
+        delete next[rowKey];
         delete next[index];
         return next;
       });
@@ -438,13 +445,78 @@ export function DashboardDocumentsView({
     if (file.size > maxBytes) {
       setFileErrors((current) => ({
         ...current,
-        [index]: `File size (${(file.size / (1024 * 1024)).toFixed(2)} MB) exceeds 1 MB limit.`,
+        [rowKey]: `File size (${(file.size / (1024 * 1024)).toFixed(2)} MB) exceeds 1 MB limit.`,
       }));
       return;
     }
 
     setFileErrors((current) => {
       const next = { ...current };
+      delete next[rowKey];
+      delete next[index];
+      return next;
+    });
+  };
+
+  const handleFilesChange = (index: number, files: File[]) => {
+    if (!files.length) return;
+    const maxBytes = 1024 * 1024;
+
+    const firstFile = files[0];
+    const currentTarget = rows[index] || createEmptyRow();
+    const currentKey = currentTarget.id != null ? String(currentTarget.id) : String(index);
+
+    const additionalRows: DashboardUploadRow[] = files.slice(1).map((file) => ({
+      ...createEmptyRow(),
+      file,
+      type: currentTarget.type || file.name.replace(/\.[^/.]+$/, ""),
+    }));
+
+    setRows((currentRows) => {
+      const nextRows = [...currentRows];
+      nextRows[index] = {
+        ...currentTarget,
+        file: firstFile,
+        type: currentTarget.type || firstFile.name.replace(/\.[^/.]+$/, ""),
+      };
+      return [
+        ...nextRows.slice(0, index + 1),
+        ...additionalRows,
+        ...nextRows.slice(index + 1),
+      ];
+    });
+
+    setFileErrors((current) => {
+      const next = { ...current };
+      delete next[currentKey];
+      delete next[index];
+
+      if (firstFile.size > maxBytes) {
+        next[currentKey] = `File size (${(firstFile.size / (1024 * 1024)).toFixed(2)} MB) exceeds 1 MB limit.`;
+      }
+
+      additionalRows.forEach((extraRow) => {
+        if (extraRow.file && extraRow.file.size > maxBytes) {
+          const extraKey = String(extraRow.id);
+          next[extraKey] = `File size (${(extraRow.file.size / (1024 * 1024)).toFixed(2)} MB) exceeds 1 MB limit.`;
+        }
+      });
+
+      return next;
+    });
+  };
+
+  const handleRemoveRow = (index: number) => {
+    const rowToRemove = rows[index];
+    const rowKey = rowToRemove?.id != null ? String(rowToRemove.id) : String(index);
+
+    setRows((currentRows) =>
+      currentRows.filter((_, rowIndex) => rowIndex !== index),
+    );
+
+    setFileErrors((current) => {
+      const next = { ...current };
+      delete next[rowKey];
       delete next[index];
       return next;
     });
@@ -759,6 +831,7 @@ export function DashboardDocumentsView({
               rows={rows}
               fileErrors={fileErrors}
               onFileChange={handleFileChange}
+              onFilesChange={handleFilesChange}
               onTypeChange={(index, type) => {
                 setRows((currentRows) => {
                   const nextRows = [...currentRows];
@@ -776,11 +849,7 @@ export function DashboardDocumentsView({
               onAddRow={() =>
                 setRows((currentRows) => [...currentRows, createEmptyRow()])
               }
-              onRemoveRow={(index) =>
-                setRows((currentRows) =>
-                  currentRows.filter((_, rowIndex) => rowIndex !== index),
-                )
-              }
+              onRemoveRow={handleRemoveRow}
               onSubmit={handleUpload}
               isUploading={isUploading}
             />
