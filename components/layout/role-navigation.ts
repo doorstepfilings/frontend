@@ -35,6 +35,7 @@ export function getDashboardNavItems(roleInput?: string | null) {
     { path: "/admin/services", label: "Services", icon: "fa-briefcase", section: "Catalog" },
     { path: "/admin/enquiries", label: "Enquiries", icon: "fa-envelope-open", section: "Operations" },
     { path: "/admin/service-applications", label: "Applications", icon: "fa-clipboard-check", section: "Operations" },
+    { path: "/admin/connected-products", label: "Connected Products", icon: "fa-cubes", section: "Settings" },
   ] satisfies DashboardNavItem[];
 }
 

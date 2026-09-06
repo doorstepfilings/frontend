@@ -8,4 +8,13 @@ export const appConfig = {
     /\/$/,
     "",
   ),
+  booksAppUrl: (
+    process.env.NEXT_PUBLIC_BOOKS_APP_URL ??
+    process.env.NEXT_PUBLIC_BOOKS_URL ??
+    "https://books.doorstepfilings.com"
+  ).replace(/\/$/, ""),
+  booksApiUrl: (
+    process.env.NEXT_PUBLIC_BOOKS_API_URL ??
+    "http://127.0.0.1:5000"
+  ).replace(/\/$/, ""),
 };

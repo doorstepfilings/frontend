@@ -191,6 +191,37 @@ export function UserDashboardView() {
         </div>
 
         <div className="space-y-6">
+          {/* Doorstep Suite Quick Card */}
+          <div className="rounded-xl border border-emerald-100 bg-gradient-to-br from-emerald-500/10 via-white to-teal-500/10 p-5 shadow-sm">
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">
+                Connected Product
+              </span>
+              <Link
+                href="/dashboard/connected-apps"
+                className="text-xs font-semibold text-emerald-700 hover:text-emerald-900"
+              >
+                Manage &rarr;
+              </Link>
+            </div>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white shadow-sm">
+                <i className="fas fa-calculator" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-gray-900">Doorstep Books</h3>
+                <p className="text-xs text-gray-500">Accounting, Invoicing &amp; GST</p>
+              </div>
+            </div>
+            <Link
+              href="/dashboard/connected-apps"
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-700 py-2 text-xs font-bold text-white shadow-sm hover:from-emerald-700 hover:to-teal-800 transition-all"
+            >
+              <i className="fas fa-cubes text-xs" />
+              <span>Open Suite &amp; Sync</span>
+            </Link>
+          </div>
+
           <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
             <h3 className="mb-4 text-xs font-bold uppercase tracking-widest text-gray-400">
               Quick Actions

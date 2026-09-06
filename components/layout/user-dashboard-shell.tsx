@@ -13,6 +13,7 @@ import {
   useStoredUser,
 } from "@/lib/auth/hooks";
 import { GlobalLogoLoader } from "@/components/ui/logo-loader";
+import { AppSwitcher } from "@/components/layout/app-switcher";
 
 const pageItems = [
   { path: "/dashboard", label: "Dashboard" },
@@ -22,6 +23,7 @@ const pageItems = [
   { path: "/dashboard/documents", label: "Documents" },
   { path: "/dashboard/certificates", label: "Certificates" },
   { path: "/dashboard/reports", label: "Reports" },
+  { path: "/dashboard/connected-apps", label: "Connected Apps" },
   { path: "/account", label: "My Profile" },
 ];
 
@@ -109,6 +111,7 @@ export function UserDashboardShell({
             </div>
 
             <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+              <AppSwitcher />
               <button
                 className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-blue-900"
                 type="button"
