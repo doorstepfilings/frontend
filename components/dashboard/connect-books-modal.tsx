@@ -5,6 +5,7 @@ import {
   maskApiKey,
   saveAppConnection,
   verifyBooksApiKey,
+  resolveAppLaunchUrl,
   AppConnectionData,
   ConnectedAppConfig,
 } from "@/lib/auth/connected-apps";
@@ -35,7 +36,9 @@ export function ConnectBooksModal({
 
   const targetAppId = appConfigData?.id || "doorstep-books";
   const targetAppName = appConfigData?.name || "Doorstep Books";
-  const targetAppUrl = appConfigData?.url || appConfig.booksAppUrl;
+  const targetAppUrl = appConfigData
+    ? resolveAppLaunchUrl(appConfigData)
+    : appConfig.booksAppUrl || "https://books.doorstepfilings.com";
 
   if (!isOpen) return null;
 

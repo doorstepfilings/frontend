@@ -119,6 +119,25 @@ export async function syncEcosystemAppsFromServer(): Promise<ConnectedAppConfig[
   return getEcosystemApps();
 }
 
+export function resolveAppLaunchUrl(app: ConnectedAppConfig): string {
+  if (app.id === "doorstep-books") {
+    const isClientOnLocalhost =
+      typeof window !== "undefined" &&
+      (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+
+    if (
+      !isClientOnLocalhost &&
+      (app.url?.includes("localhost") || app.url?.includes("127.0.0.1") || app.url?.includes("3002") || app.url?.includes("staging-books"))
+    ) {
+      return (appConfig.booksAppUrl || "https://books.doorstepfilings.com").replace(/\/$/, "");
+    }
+
+    return (app.url || appConfig.booksAppUrl || "https://books.doorstepfilings.com").replace(/\/$/, "");
+  }
+
+  return (app.url || "").replace(/\/$/, "");
+}
+
 export function getEcosystemApps(): ConnectedAppConfig[] {
   if (typeof window === "undefined") return DOORSTEP_DEFAULT_APPS;
   
@@ -136,16 +155,22 @@ export function getEcosystemApps(): ConnectedAppConfig[] {
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed) && parsed.length > 0) {
       let hasChanges = false;
+      const isClientOnLocalhost =
+        typeof window !== "undefined" &&
+        (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+
       const updated = parsed.map((item: ConnectedAppConfig) => {
-        // Automatically migrate any legacy staging-books URL
-        if (item.id === "doorstep-books" && item.url?.includes("staging-books")) {
+        // Automatically sanitize any legacy staging-books or stale localhost URLs on production
+        if (
+          item.id === "doorstep-books" &&
+          (item.url?.includes("staging-books") ||
+            (!isClientOnLocalhost && (item.url?.includes("localhost") || item.url?.includes("3002") || item.url?.includes("127.0.0.1"))))
+        ) {
           hasChanges = true;
           return {
             ...item,
-            url: "https://books.doorstepfilings.com",
-            apiUrl: item.apiUrl?.includes("staging-books")
-              ? "https://api-books.doorstepfilings.com/api"
-              : item.apiUrl || "https://api-books.doorstepfilings.com/api",
+            url: appConfig.booksAppUrl || "https://books.doorstepfilings.com",
+            apiUrl: appConfig.booksApiUrl || "https://api-books.doorstepfilings.com/api",
           };
         }
         return item;
@@ -355,10 +380,7 @@ export function launchAppSecurely(
 ): void {
   if (typeof window === "undefined") return;
 
-  const rawUrl = app.url?.includes("staging-books")
-    ? "https://books.doorstepfilings.com"
-    : app.url || appConfig.booksAppUrl || "https://books.doorstepfilings.com";
-  const baseUrl = (rawUrl || "").replace(/\/$/, "");
+  const baseUrl = resolveAppLaunchUrl(app);
   if (!baseUrl || baseUrl === "#") return;
 
   if (!connection?.apiKey) {
