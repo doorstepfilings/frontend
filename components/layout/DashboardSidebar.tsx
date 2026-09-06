@@ -13,7 +13,9 @@ import {
   getEcosystemApps,
   getStoredConnectedApps,
   verifyAndLaunchApp,
+  launchAppViaServerProxy,
 } from "@/lib/auth/connected-apps";
+
 import { ConnectBooksModal } from "@/components/dashboard/connect-books-modal";
 
 type DashboardSidebarProps = {
@@ -81,7 +83,12 @@ export default function DashboardSidebar({
 
   const handleLaunchApp = async (app: ConnectedAppConfig) => {
     const connection = connections[app.id];
-    if (!connection) return;
+
+    // No connection at all — open app directly via server-resolved URL (no SSO)
+    if (!connection) {
+      await launchAppViaServerProxy(app, null);
+      return;
+    }
 
     if (connection.status === "error") {
       setSelectedApp(app);
@@ -92,6 +99,7 @@ export default function DashboardSidebar({
 
     setLaunchingAppId(app.id);
     try {
+      // First verify the key is still valid, then launch via server proxy
       const launched = await verifyAndLaunchApp(app, connection, (errMsg) => {
         setRevokedMessage(errMsg);
         setSelectedApp(app);

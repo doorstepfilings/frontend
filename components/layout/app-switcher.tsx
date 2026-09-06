@@ -6,9 +6,11 @@ import {
   ConnectedAppConfig,
   getEcosystemApps,
   getStoredConnectedApps,
-  launchAppSecurely,
+  launchAppViaServerProxy,
   AppConnectionData,
 } from "@/lib/auth/connected-apps";
+
+
 
 export function AppSwitcher() {
   const [isOpen, setIsOpen] = useState(false);
@@ -150,7 +152,7 @@ export function AppSwitcher() {
                     type="button"
                     onClick={() => {
                       setIsOpen(false);
-                      launchAppSecurely(app, connection);
+                      void launchAppViaServerProxy(app, connection);
                     }}
                     className="group flex flex-col p-3 rounded-xl border border-gray-100 bg-white hover:border-emerald-200 hover:bg-emerald-50/30 transition-all shadow-xs hover:shadow-sm text-left w-full"
                   >

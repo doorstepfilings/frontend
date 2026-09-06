@@ -121,13 +121,16 @@ export async function syncEcosystemAppsFromServer(): Promise<ConnectedAppConfig[
 
 export function resolveAppLaunchUrl(app: ConnectedAppConfig): string {
   if (app.id === "doorstep-books") {
-    const isClientOnLocalhost =
-      typeof window !== "undefined" &&
-      (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
-
+    // Always prioritize appConfig.booksAppUrl (defaults to https://books.doorstepfilings.com)
+    // and ignore any stale localhost or 3002 URLs saved in the user's browser storage
     if (
-      !isClientOnLocalhost &&
-      (app.url?.includes("localhost") || app.url?.includes("127.0.0.1") || app.url?.includes("3002") || app.url?.includes("staging-books"))
+      !app.url ||
+      app.url === "#" ||
+      app.url.includes("localhost") ||
+      app.url.includes("127.0.0.1") ||
+      app.url.includes("3002") ||
+      app.url.includes("staging-books") ||
+      appConfig.booksAppUrl
     ) {
       return (appConfig.booksAppUrl || "https://books.doorstepfilings.com").replace(/\/$/, "");
     }
@@ -155,16 +158,16 @@ export function getEcosystemApps(): ConnectedAppConfig[] {
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed) && parsed.length > 0) {
       let hasChanges = false;
-      const isClientOnLocalhost =
-        typeof window !== "undefined" &&
-        (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
 
       const updated = parsed.map((item: ConnectedAppConfig) => {
-        // Automatically sanitize any legacy staging-books or stale localhost URLs on production
+        // Automatically sanitize any legacy staging-books or stale localhost/3002 URLs
         if (
           item.id === "doorstep-books" &&
           (item.url?.includes("staging-books") ||
-            (!isClientOnLocalhost && (item.url?.includes("localhost") || item.url?.includes("3002") || item.url?.includes("127.0.0.1"))))
+            item.url?.includes("localhost") ||
+            item.url?.includes("3002") ||
+            item.url?.includes("127.0.0.1") ||
+            (appConfig.booksAppUrl && item.url !== appConfig.booksAppUrl))
         ) {
           hasChanges = true;
           return {
@@ -410,6 +413,97 @@ export function launchAppSecurely(
   }, 1000);
 }
 
+/**
+ * Production-Grade Server-Proxy Launch (Zoho One / Google Workspace Pattern)
+ *
+ * Calls our own /api/sso/launch proxy first to get the server-authoritative URL,
+ * then submits the hidden POST form to that canonical SSO endpoint.
+ * The client NEVER decides which URL to use — the server always resolves it from env vars.
+ *
+ * Falls back to launchAppSecurely() if the proxy call fails (e.g. offline dev).
+ */
+export async function launchAppViaServerProxy(
+  app: ConnectedAppConfig,
+  connection?: AppConnectionData | null
+): Promise<void> {
+  if (typeof window === "undefined") return;
+
+  try {
+    const res = await fetch("/api/sso/launch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ appId: app.id }),
+      cache: "no-store",
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && data.ssoEndpoint) {
+        const ssoEndpoint: string = data.ssoEndpoint;
+
+        if (!connection?.apiKey) {
+          // No API key — just open the app in a new tab (will require manual login)
+          window.open(data.targetUrl, "_blank", "noopener,noreferrer");
+          return;
+        }
+
+        // Hidden POST form with the server-resolved canonical SSO endpoint
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = ssoEndpoint;
+        form.target = "_blank";
+        form.style.display = "none";
+
+        const apiKeyInput = document.createElement("input");
+        apiKeyInput.type = "hidden";
+        apiKeyInput.name = "apiKey";
+        apiKeyInput.value = connection.apiKey;
+        form.appendChild(apiKeyInput);
+
+        document.body.appendChild(form);
+        form.submit();
+        setTimeout(() => {
+          if (document.body.contains(form)) {
+            document.body.removeChild(form);
+          }
+        }, 1000);
+        return;
+      }
+    }
+  } catch (err) {
+    console.warn("SSO proxy failed, falling back to local URL resolution:", err);
+  }
+
+  // Fallback: client-side URL resolution (still sanitizes stale URLs via resolveAppLaunchUrl)
+  launchAppSecurely(app, connection);
+}
+
+/**
+ * Get the server-authoritative connect URL for 1-click browser sync popup.
+ * Calls /api/sso/launch (GET) to resolve the canonical connect URL, falling back to appConfig.
+ */
+export async function getServerAuthoritativeConnectUrl(appId: string): Promise<string> {
+  try {
+    const res = await fetch(`/api/sso/launch?appId=${encodeURIComponent(appId)}`, {
+      cache: "no-store",
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && data.connectEndpoint) {
+        return data.connectEndpoint as string;
+      }
+    }
+  } catch (err) {
+    console.warn("Failed to get authoritative connect URL:", err);
+  }
+
+  // Fallback to appConfig
+  if (appId === "doorstep-books") {
+    return `${appConfig.booksAppUrl}/connect`;
+  }
+  return "#";
+}
+
 export async function validateConnectionHealth(
   appId: string,
   apiKey: string,
@@ -444,7 +538,8 @@ export async function verifyAndLaunchApp(
   onRevoked?: (message: string) => void
 ): Promise<boolean> {
   if (!connection?.apiKey) {
-    launchAppSecurely(app, connection);
+    // No API key — launch via server proxy (opens app without SSO)
+    await launchAppViaServerProxy(app, connection);
     return true;
   }
 
@@ -457,7 +552,8 @@ export async function verifyAndLaunchApp(
     return false;
   }
 
-  launchAppSecurely(app, connection);
+  // Launch via server proxy — server resolves the authoritative URL
+  await launchAppViaServerProxy(app, connection);
   return true;
 }
 
