@@ -13,6 +13,7 @@ export interface ConnectedAppConfig {
   apiUrl?: string;
   isReady: boolean;
   features: string[];
+  updatedAt?: string;
 }
 
 export interface AppConnectionData {
@@ -94,8 +95,38 @@ export const DOORSTEP_ECOSYSTEM_APPS = DOORSTEP_DEFAULT_APPS;
 const REGISTRY_STORAGE_KEY = "doorstep_ecosystem_registry";
 const CONNECTION_STORAGE_KEY = "doorstep_connected_apps";
 
+let isSyncing = false;
+let hasSyncedOnce = false;
+
+export async function syncEcosystemAppsFromServer(): Promise<ConnectedAppConfig[]> {
+  if (typeof window === "undefined" || isSyncing) return getEcosystemApps();
+  isSyncing = true;
+  try {
+    const res = await fetch("/api/connected-products", { cache: "no-store" });
+    if (!res.ok) return getEcosystemApps();
+    const json = await res.json();
+    if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+      localStorage.setItem(REGISTRY_STORAGE_KEY, JSON.stringify(json.data));
+      window.dispatchEvent(new Event("doorstep-ecosystem-registry-change"));
+      hasSyncedOnce = true;
+      return json.data;
+    }
+  } catch (err) {
+    console.error("Failed to sync ecosystem apps from server:", err);
+  } finally {
+    isSyncing = false;
+  }
+  return getEcosystemApps();
+}
+
 export function getEcosystemApps(): ConnectedAppConfig[] {
   if (typeof window === "undefined") return DOORSTEP_DEFAULT_APPS;
+  
+  // Trigger background server sync once per page session
+  if (!hasSyncedOnce && !isSyncing) {
+    void syncEcosystemAppsFromServer();
+  }
+
   try {
     const raw = localStorage.getItem(REGISTRY_STORAGE_KEY);
     if (!raw) {
@@ -104,7 +135,26 @@ export function getEcosystemApps(): ConnectedAppConfig[] {
     }
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed) && parsed.length > 0) {
-      return parsed;
+      let hasChanges = false;
+      const updated = parsed.map((item: ConnectedAppConfig) => {
+        // Automatically migrate any legacy staging-books URL
+        if (item.id === "doorstep-books" && item.url?.includes("staging-books")) {
+          hasChanges = true;
+          return {
+            ...item,
+            url: "https://books.doorstepfilings.com",
+            apiUrl: item.apiUrl?.includes("staging-books")
+              ? "https://api-books.doorstepfilings.com/api"
+              : item.apiUrl || "https://api-books.doorstepfilings.com/api",
+          };
+        }
+        return item;
+      });
+
+      if (hasChanges) {
+        localStorage.setItem(REGISTRY_STORAGE_KEY, JSON.stringify(updated));
+      }
+      return updated;
     }
     return DOORSTEP_DEFAULT_APPS;
   } catch (err) {
@@ -113,7 +163,7 @@ export function getEcosystemApps(): ConnectedAppConfig[] {
   }
 }
 
-export function saveEcosystemApp(app: ConnectedAppConfig): void {
+export async function saveEcosystemApp(app: ConnectedAppConfig): Promise<void> {
   if (typeof window === "undefined") return;
   try {
     const current = getEcosystemApps();
@@ -127,12 +177,19 @@ export function saveEcosystemApp(app: ConnectedAppConfig): void {
     }
     localStorage.setItem(REGISTRY_STORAGE_KEY, JSON.stringify(updated));
     window.dispatchEvent(new Event("doorstep-ecosystem-registry-change"));
+
+    // Persist to server API so all users receive the updated URL
+    await fetch("/api/connected-products", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ products: updated }),
+    }).catch((err) => console.error("Server persistence error:", err));
   } catch (err) {
     console.error("Failed to save ecosystem app to registry:", err);
   }
 }
 
-export function deleteEcosystemApp(appId: string): void {
+export async function deleteEcosystemApp(appId: string): Promise<void> {
   if (typeof window === "undefined") return;
   try {
     const current = getEcosystemApps();
@@ -140,16 +197,30 @@ export function deleteEcosystemApp(appId: string): void {
     localStorage.setItem(REGISTRY_STORAGE_KEY, JSON.stringify(updated));
     removeAppConnection(appId);
     window.dispatchEvent(new Event("doorstep-ecosystem-registry-change"));
+
+    // Persist deletion to server API
+    await fetch("/api/connected-products", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ products: updated }),
+    }).catch((err) => console.error("Server persistence error:", err));
   } catch (err) {
     console.error("Failed to delete ecosystem app from registry:", err);
   }
 }
 
-export function resetEcosystemAppsToDefault(): void {
+export async function resetEcosystemAppsToDefault(): Promise<void> {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(REGISTRY_STORAGE_KEY, JSON.stringify(DOORSTEP_DEFAULT_APPS));
     window.dispatchEvent(new Event("doorstep-ecosystem-registry-change"));
+
+    // Persist reset to server API
+    await fetch("/api/connected-products", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ products: DOORSTEP_DEFAULT_APPS }),
+    }).catch((err) => console.error("Server persistence error:", err));
   } catch (err) {
     console.error("Failed to reset ecosystem apps registry:", err);
   }
@@ -204,7 +275,8 @@ export function removeAppConnection(appId: string): void {
 }
 
 export async function verifyBooksApiKey(
-  apiKey: string
+  apiKey: string,
+  customApiUrl?: string
 ): Promise<{ success: boolean; message?: string; accessToken?: string }> {
   const trimmedKey = apiKey.trim();
 
@@ -219,8 +291,10 @@ export async function verifyBooksApiKey(
     };
   }
 
+  const baseApi = (customApiUrl || appConfig.booksApiUrl).replace(/\/$/, "");
+
   try {
-    const endpoint = `${appConfig.booksApiUrl}/auth/api-key/token`;
+    const endpoint = `${baseApi}/auth/api-key/token`;
     const res = await fetch(endpoint, {
       method: "POST",
       headers: {
@@ -246,6 +320,12 @@ export async function verifyBooksApiKey(
     };
   } catch (err) {
     console.warn("API Key verification direct endpoint call error:", err);
+    if (baseApi.includes("localhost") || baseApi.includes("127.0.0.1")) {
+      return {
+        success: false,
+        message: `Doorstep Books backend at ${baseApi} is currently unreachable. Please ensure the backend server is running.`,
+      };
+    }
     return {
       success: true,
       message: "API Key format verified.",
@@ -275,7 +355,10 @@ export function launchAppSecurely(
 ): void {
   if (typeof window === "undefined") return;
 
-  const baseUrl = (app.url || appConfig.booksAppUrl).replace(/\/$/, "");
+  const rawUrl = app.url?.includes("staging-books")
+    ? "https://books.doorstepfilings.com"
+    : app.url || appConfig.booksAppUrl || "https://books.doorstepfilings.com";
+  const baseUrl = (rawUrl || "").replace(/\/$/, "");
   if (!baseUrl || baseUrl === "#") return;
 
   if (!connection?.apiKey) {
@@ -307,13 +390,14 @@ export function launchAppSecurely(
 
 export async function validateConnectionHealth(
   appId: string,
-  apiKey: string
+  apiKey: string,
+  customApiUrl?: string
 ): Promise<{ isValid: boolean; message?: string }> {
   if (!apiKey) {
     return { isValid: false, message: "No API key found." };
   }
 
-  const result = await verifyBooksApiKey(apiKey);
+  const result = await verifyBooksApiKey(apiKey, customApiUrl);
   if (!result.success) {
     // Update stored connection status to 'error'
     const current = getStoredAppConnection(appId);
@@ -343,7 +427,7 @@ export async function verifyAndLaunchApp(
   }
 
   // Check health before launching to prevent broken states
-  const health = await validateConnectionHealth(app.id, connection.apiKey);
+  const health = await validateConnectionHealth(app.id, connection.apiKey, app.apiUrl);
   if (!health.isValid) {
     if (onRevoked) {
       onRevoked(health.message || "Your API key has been revoked. Please reconnect to continue.");

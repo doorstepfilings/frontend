@@ -160,14 +160,14 @@ export function ConnectedAppsView() {
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="max-w-xl space-y-3">
             <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3.5 py-1 text-xs font-semibold text-blue-200 backdrop-blur-md border border-white/10">
-              <i className="fas fa-bolt text-amber-300" />
-              <span>1-Click Browser Sync Enabled</span>
+              <i className="fas fa-shield-alt text-emerald-300" />
+              <span>SSO Integration Active</span>
             </div>
             <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight">
               One Doorstep Account. Total Business Operations.
             </h2>
             <p className="text-xs sm:text-sm text-blue-100/90 leading-relaxed">
-              Connect **Doorstep Books** directly in your browser with 1-click authorization. Jump seamlessly between legal filings, GST invoicing, client ledgers, and cash flow without typing passwords.
+              Connect **Doorstep Books** securely with your API key. Jump seamlessly between legal filings, GST invoicing, client ledgers, and cash flow with single sign-on.
             </p>
           </div>
 

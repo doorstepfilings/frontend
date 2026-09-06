@@ -1,59 +1,77 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  ExternalLink,
+  Copy,
+  Check,
+  Plus,
+  RefreshCw,
+  Search,
+  SlidersHorizontal,
+  Trash2,
+  Edit2,
+  Globe,
+  Layers3,
+  Clock,
+  ChevronDown,
+  ChevronUp,
+  ShieldCheck,
+} from "lucide-react";
+import { format } from "date-fns";
+import { toast } from "react-hot-toast";
+import { AdminLayout } from "@/components/layout/AdminLayout";
+import { AuthGuard } from "@/components/auth/auth-guard";
+import { useConfirm } from "@/hooks/use-confirm";
 import {
   ConnectedAppConfig,
   getEcosystemApps,
   saveEcosystemApp,
   deleteEcosystemApp,
   resetEcosystemAppsToDefault,
+  syncEcosystemAppsFromServer,
 } from "@/lib/auth/connected-apps";
 
-const AVAILABLE_ICONS = [
-  { label: "Calculator (Accounting)", value: "fa-calculator" },
-  { label: "Users / Staff (HRMS)", value: "fa-users-cog" },
-  { label: "Boxes / Inventory (ERP)", value: "fa-boxes-stacked" },
-  { label: "Chart / Analytics (CRM)", value: "fa-chart-line" },
-  { label: "Briefcase (Business)", value: "fa-briefcase" },
-  { label: "Shield / Legal (Compliance)", value: "fa-shield-alt" },
-  { label: "File Invoice (Billing)", value: "fa-file-invoice-dollar" },
-  { label: "Network / Integration", value: "fa-network-wired" },
-];
-
-const AVAILABLE_GRADIENTS = [
-  { label: "Emerald Teal (Books)", value: "from-emerald-500 to-teal-700" },
-  { label: "Blue Indigo (HRMS)", value: "from-blue-600 to-indigo-800" },
-  { label: "Purple Violet (ERP)", value: "from-purple-600 to-violet-900" },
-  { label: "Amber Orange (CRM)", value: "from-amber-500 to-orange-700" },
-  { label: "Rose Pink (Marketing)", value: "from-rose-500 to-pink-700" },
-  { label: "Slate Gray (Custom)", value: "from-slate-600 to-slate-900" },
-];
-
 export function ConnectedProductsView() {
+  const { confirm, ConfirmDialog } = useConfirm();
+
   const [apps, setApps] = useState<ConnectedAppConfig[]>(() => getEcosystemApps());
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingApp, setEditingApp] = useState<ConnectedAppConfig | null>(null);
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState<Date>(new Date());
+  const [expandedReviewId, setExpandedReviewId] = useState<string | null>(null);
 
-  // Form states
+  // Search & Filter
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "planned">("all");
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  // Direct Form States (ONLY Product Name & Website URL per user requirement)
   const [name, setName] = useState("");
-  const [id, setId] = useState("");
-  const [tagline, setTagline] = useState("");
   const [url, setUrl] = useState("");
-  const [apiUrl, setApiUrl] = useState("");
-  const [category, setCategory] = useState<ConnectedAppConfig["category"]>("accounting");
-  const [icon, setIcon] = useState("fa-calculator");
-  const [color, setColor] = useState("from-emerald-500 to-teal-700");
-  const [description, setDescription] = useState("");
-  const [features, setFeatures] = useState("");
-  const [isReady, setIsReady] = useState(true);
-  const [badge, setBadge] = useState("");
 
   const refreshList = () => {
     setApps(getEcosystemApps());
   };
 
+  const handleManualSync = async () => {
+    setIsSyncing(true);
+    try {
+      const fresh = await syncEcosystemAppsFromServer();
+      setApps(fresh);
+      setLastSyncTime(new Date());
+      toast.success("Ecosystem registry synced with server");
+    } catch {
+      toast.error("Failed to sync with server");
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   useEffect(() => {
+    void syncEcosystemAppsFromServer().then(() => setLastSyncTime(new Date()));
     const handleUpdate = () => refreshList();
     window.addEventListener("doorstep-ecosystem-registry-change", handleUpdate);
     window.addEventListener("storage", handleUpdate);
@@ -63,540 +81,610 @@ export function ConnectedProductsView() {
     };
   }, []);
 
+  const copyToClipboard = (text: string, key: string) => {
+    if (!text || text === "#") return;
+    navigator.clipboard.writeText(text);
+    setCopiedKey(key);
+    toast.success("URL copied to clipboard");
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
+
   const openAddModal = () => {
     setEditingApp(null);
     setName("");
-    setId("");
-    setTagline("");
-    setUrl("");
-    setApiUrl("");
-    setCategory("accounting");
-    setIcon("fa-calculator");
-    setColor("from-emerald-500 to-teal-700");
-    setDescription("");
-    setFeatures("GST Invoicing, Real-time P&L, Ledger Management");
-    setIsReady(true);
-    setBadge("Active Integration");
+    setUrl("https://");
     setIsModalOpen(true);
   };
 
   const openEditModal = (app: ConnectedAppConfig) => {
     setEditingApp(app);
     setName(app.name);
-    setId(app.id);
-    setTagline(app.tagline);
     setUrl(app.url);
-    setApiUrl(app.apiUrl || "");
-    setCategory(app.category);
-    setIcon(app.icon);
-    setColor(app.color);
-    setDescription(app.description);
-    setFeatures(app.features.join("\n"));
-    setIsReady(app.isReady);
-    setBadge(app.badge || "");
     setIsModalOpen(true);
   };
 
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const generatedId =
-      id.trim() ||
-      name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)/g, "");
-
-    const featureList = features
-      .split(/[\n,]+/)
-      .map((f) => f.trim())
-      .filter(Boolean);
-
-    const appToSave: ConnectedAppConfig = {
-      id: generatedId,
-      name: name.trim(),
-      tagline: tagline.trim() || "Business Solution",
-      category,
-      description: description.trim() || "Integrated Doorstep Suite application.",
-      icon,
-      color,
-      badge: badge.trim() || (isReady ? "Active Integration" : "Coming Soon"),
-      url: url.trim() || "#",
-      apiUrl: apiUrl.trim() || undefined,
-      isReady,
-      features: featureList.length > 0 ? featureList : ["General Integration"],
+  const handleToggleStatus = async (app: ConnectedAppConfig) => {
+    const updated: ConnectedAppConfig = {
+      ...app,
+      isReady: !app.isReady,
+      updatedAt: new Date().toISOString(),
     };
-
-    saveEcosystemApp(appToSave);
-    setIsModalOpen(false);
+    await saveEcosystemApp(updated);
     refreshList();
+    toast.success(`${app.name} status updated to ${updated.isReady ? "Active" : "Coming Soon"}`);
   };
 
-  const handleDelete = (appId: string) => {
-    deleteEcosystemApp(appId);
-    setDeleteConfirmId(null);
-    refreshList();
-  };
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanName = name.trim();
+    let cleanUrl = url.trim();
 
-  const handleResetDefaults = () => {
-    if (
-      confirm(
-        "Are you sure you want to restore the default Doorstep Suite products (Books, HRMS, ERP)? Custom products will be replaced."
-      )
-    ) {
-      resetEcosystemAppsToDefault();
+    if (!cleanName) {
+      toast.error("Please enter a product name");
+      return;
+    }
+
+    if (!cleanUrl || cleanUrl === "https://" || cleanUrl === "http://") {
+      toast.error("Please enter a valid website URL");
+      return;
+    }
+
+    // Auto prepend https if missing
+    if (!cleanUrl.startsWith("http://") && !cleanUrl.startsWith("https://")) {
+      cleanUrl = `https://${cleanUrl}`;
+    }
+
+    setIsSaving(true);
+
+    try {
+      const generatedId =
+        editingApp?.id ||
+        cleanName
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/(^-|-$)/g, "");
+
+      const now = new Date().toISOString();
+
+      const appToSave: ConnectedAppConfig = {
+        id: generatedId,
+        name: cleanName,
+        tagline: editingApp?.tagline || `${cleanName} - Connected Business Suite`,
+        category: editingApp?.category || "accounting",
+        description:
+          editingApp?.description || `Integrated Doorstep ecosystem solution for ${cleanName}.`,
+        icon: editingApp?.icon || "fa-calculator",
+        color: editingApp?.color || "from-emerald-500 to-teal-700",
+        badge: editingApp?.badge || "Active Integration",
+        url: cleanUrl.replace(/\/$/, ""),
+        apiUrl: editingApp?.apiUrl,
+        isReady: editingApp ? editingApp.isReady : true,
+        features: editingApp?.features?.length
+          ? editingApp.features
+          : ["Single Sign-On (SSO)", "Unified Workspace", "Central Ecosystem Access"],
+        updatedAt: now,
+      };
+
+      await saveEcosystemApp(appToSave);
+      setIsModalOpen(false);
       refreshList();
+      toast.success(
+        editingApp
+          ? `Updated "${appToSave.name}" URL successfully`
+          : `Added "${appToSave.name}" to ecosystem`
+      );
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to save product");
+    } finally {
+      setIsSaving(false);
     }
   };
 
+  const handleDelete = async (app: ConnectedAppConfig) => {
+    const ok = await confirm({
+      title: "Remove Connected Product",
+      message: `Are you sure you want to remove "${app.name}" (${app.url}) from the Doorstep ecosystem? It will be removed from all user dashboards and the app switcher.`,
+      confirmLabel: "Remove Product",
+      variant: "danger",
+    });
+
+    if (!ok) return;
+
+    try {
+      await deleteEcosystemApp(app.id);
+      refreshList();
+      toast.success(`Removed ${app.name} from ecosystem`);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to remove product");
+    }
+  };
+
+  const handleResetDefaults = async () => {
+    const ok = await confirm({
+      title: "Restore Default Products",
+      message:
+        "Are you sure you want to restore the official Doorstep Suite products (Books, HRMS, ERP)? Custom product URLs will be reset to official defaults.",
+      confirmLabel: "Restore Defaults",
+      variant: "warning",
+    });
+
+    if (!ok) return;
+
+    try {
+      await resetEcosystemAppsToDefault();
+      refreshList();
+      toast.success("Restored official default products");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to reset defaults");
+    }
+  };
+
+  // Filtered List
+  const filteredApps = useMemo(() => {
+    return apps.filter((app) => {
+      const q = search.trim().toLowerCase();
+      const matchesSearch =
+        !q ||
+        app.name.toLowerCase().includes(q) ||
+        app.id.toLowerCase().includes(q) ||
+        app.url.toLowerCase().includes(q);
+
+      const matchesStatus =
+        statusFilter === "all" ||
+        (statusFilter === "active" && app.isReady) ||
+        (statusFilter === "planned" && !app.isReady);
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [apps, search, statusFilter]);
+
+  const activeCount = apps.filter((a) => a.isReady).length;
+
   return (
-    <div className="space-y-6">
-      {/* Top Header */}
-      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-slate-900">Connected Products &amp; Suite</h1>
-            <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-bold text-blue-900">
-              Admin Console
-            </span>
-          </div>
-          <p className="text-sm text-slate-500">
-            Add new products, configure direct web URLs, and manage live integrations shown to users.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={handleResetDefaults}
-            className="rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors shadow-sm"
-          >
-            <i className="fas fa-undo text-slate-400 mr-1.5" />
-            Reset Defaults
-          </button>
-          <button
-            type="button"
-            onClick={openAddModal}
-            className="flex items-center gap-2 rounded-xl bg-blue-900 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-blue-800 transition-all"
-          >
-            <i className="fas fa-plus-circle" />
-            <span>Add New Product</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Overview Stats Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between">
+    <AuthGuard allowedRoles={["super_admin"]}>
+      <AdminLayout>
+        <div className="max-w-7xl mx-auto space-y-5 py-6 px-4 sm:px-6 lg:px-8">
+          {/* Header Row matching Doorstep Admin Standard */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Total Products</p>
-              <p className="text-2xl font-bold text-slate-900">{apps.length}</p>
-            </div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-900">
-              <i className="fas fa-cubes text-lg" />
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Active &amp; Ready</p>
-              <p className="text-2xl font-bold text-emerald-600">
-                {apps.filter((a) => a.isReady).length}
+              <h1 className="text-2xl font-black tracking-tight text-slate-950">
+                Connected Products
+              </h1>
+              <p className="text-xs font-medium text-slate-500 mt-0.5">
+                Manage ecosystem website URLs, SSO redirection targets, and live product status.
               </p>
             </div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-              <i className="fas fa-check-circle text-lg" />
+            <div className="flex items-center gap-2.5 shrink-0">
+              <button
+                type="button"
+                onClick={handleManualSync}
+                disabled={isSyncing}
+                className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-xs hover:bg-slate-50 hover:text-slate-900 transition-all cursor-pointer disabled:opacity-50"
+                title="Sync from central server"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${isSyncing ? "animate-spin text-blue-600" : ""}`} />
+                <span>{isSyncing ? "Syncing..." : "Sync Now"}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleResetDefaults}
+                className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-600 shadow-xs hover:bg-slate-50 hover:text-slate-900 transition-all cursor-pointer"
+                title="Restore default product URLs"
+              >
+                <span>Reset Defaults</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={openAddModal}
+                className="admin-btn h-9 rounded-xl px-4 text-xs flex items-center justify-center gap-1.5 shrink-0 cursor-pointer"
+              >
+                <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                <span>Add Product</span>
+              </button>
             </div>
           </div>
-        </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-400">In Development</p>
-              <p className="text-2xl font-bold text-amber-600">
-                {apps.filter((a) => !a.isReady).length}
-              </p>
+          {/* Compact Stats Bar matching Doorstep Admin Theme */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700">
+                <Layers3 className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Products</p>
+                <p className="text-xl font-black text-slate-950 leading-tight">{apps.length}</p>
+              </div>
             </div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
-              <i className="fas fa-clock text-lg" />
+
+            <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700">
+                <Globe className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Active URLs (Live SSO)</p>
+                <p className="text-xl font-black text-emerald-600 leading-tight">{activeCount}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-700">
+                <Clock className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Last Auto-Sync</p>
+                <p className="text-xs font-bold text-slate-900 leading-tight truncate">
+                  {format(lastSyncTime, "hh:mm:ss a, dd MMM yyyy")}
+                </p>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Products Table / Cards */}
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-100 p-5 flex items-center justify-between">
-          <h2 className="text-base font-bold text-slate-900">Registered Ecosystem Products</h2>
-          <span className="text-xs text-slate-500">Live synchronization with user panels</span>
-        </div>
+          {/* Search & Filter Toolbar */}
+          <section className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2">
+                <SlidersHorizontal className="h-3.5 w-3.5 text-blue-700" />
+                <h2 className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-500">
+                  Filters
+                </h2>
+              </div>
 
-        <div className="divide-y divide-slate-100">
-          {apps.map((app) => (
-            <div
-              key={app.id}
-              className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-5 transition-colors hover:bg-slate-50/70"
-            >
-              {/* Product Info */}
-              <div className="flex items-start gap-4">
-                <div
-                  className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${app.color} text-white shadow-md`}
-                >
-                  <i className={`fas ${app.icon} text-lg`} />
+              <div className="flex flex-1 flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-end sm:max-w-md">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Search product name or URL..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 pl-8.5 pr-8 py-1.5 text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-700 focus:outline-none focus:ring-1 focus:ring-blue-700/20"
+                  />
+                  {search && (
+                    <button
+                      type="button"
+                      onClick={() => setSearch("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
+                    >
+                      &times;
+                    </button>
+                  )}
                 </div>
-                <div className="space-y-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="text-sm font-bold text-slate-900">{app.name}</h3>
-                    <span className="font-mono text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded border border-slate-200">
-                      {app.id}
-                    </span>
-                    {app.isReady ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200">
-                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        Active
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-[10px] font-bold text-amber-700 border border-amber-200">
-                        Coming Soon
-                      </span>
-                    )}
+
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as any)}
+                  className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 focus:border-blue-700 focus:outline-none shrink-0"
+                >
+                  <option value="all">All Status ({apps.length})</option>
+                  <option value="active">Active Only ({activeCount})</option>
+                  <option value="planned">Coming Soon ({apps.length - activeCount})</option>
+                </select>
+              </div>
+            </div>
+          </section>
+
+          {/* Clean Data Table + Admin Review matching Doorstep Standard */}
+          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="border-b border-slate-200 bg-slate-50/80 font-bold uppercase tracking-wider text-slate-500 text-[10px]">
+                  <tr>
+                    <th className="py-3 px-4 pl-5">Product Name</th>
+                    <th className="py-3 px-4">Configured Website URL</th>
+                    <th className="py-3 px-4">Auto Sync Date</th>
+                    <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4 pr-5 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredApps.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-12 text-center text-slate-400">
+                        <Layers3 className="mx-auto h-8 w-8 text-slate-300 mb-2" />
+                        <p className="font-bold text-slate-600">No products found</p>
+                        <p className="text-[11px] text-slate-400">
+                          {search ? "No matches for your search filter." : "Click Add Product above to register a new website."}
+                        </p>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredApps.map((app) => {
+                      const hasValidUrl = app.url && app.url !== "#";
+                      const dateStr = app.updatedAt
+                        ? format(new Date(app.updatedAt), "dd MMM yyyy, hh:mm a")
+                        : format(lastSyncTime, "dd MMM yyyy, hh:mm a");
+                      const isExpanded = expandedReviewId === app.id;
+
+                      return (
+                        <tr key={app.id} className="group hover:bg-slate-50/70 transition-colors">
+                          <td colSpan={5} className="p-0">
+                            <div className="flex items-center justify-between py-3.5 px-4 pl-5 text-xs">
+                              {/* Name + ID */}
+                              <div className="w-1/4 pr-4 min-w-[200px]">
+                                <div className="flex items-center gap-3">
+                                  <div
+                                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${app.color || "from-emerald-500 to-teal-700"} text-white shadow-xs`}
+                                  >
+                                    <Globe className="h-4 w-4" />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="font-bold text-slate-900 leading-snug truncate">{app.name}</p>
+                                    <div className="flex items-center gap-1.5 mt-0.5">
+                                      <span className="font-mono text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.2 rounded border border-slate-200">
+                                        {app.id}
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={() => setExpandedReviewId(isExpanded ? null : app.id)}
+                                        className="text-[10px] font-bold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer inline-flex items-center gap-0.5"
+                                        title="View full admin review details"
+                                      >
+                                        <span>{isExpanded ? "Hide Details" : "Review Specs"}</span>
+                                        {isExpanded ? <ChevronUp className="h-2.5 w-2.5" /> : <ChevronDown className="h-2.5 w-2.5" />}
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Website URL */}
+                              <div className="w-1/3 pr-4">
+                                <div className="flex items-center gap-2 max-w-md">
+                                  <span
+                                    className="font-mono text-xs font-bold text-blue-900 truncate bg-blue-50/70 border border-blue-100 px-2 py-0.5 rounded-lg"
+                                    title={app.url}
+                                  >
+                                    {app.url}
+                                  </span>
+
+                                  {hasValidUrl && (
+                                    <>
+                                      <a
+                                        href={app.url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-blue-700 transition-colors"
+                                        title="Test link (open website in new tab)"
+                                      >
+                                        <ExternalLink className="h-3 w-3" />
+                                      </a>
+                                      <button
+                                        type="button"
+                                        onClick={() => copyToClipboard(app.url, app.id)}
+                                        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-emerald-700 transition-colors cursor-pointer"
+                                        title="Copy website URL"
+                                      >
+                                        {copiedKey === app.id ? (
+                                          <Check className="h-3 w-3 text-emerald-600" />
+                                        ) : (
+                                          <Copy className="h-3 w-3" />
+                                        )}
+                                      </button>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Auto Sync Date */}
+                              <div className="w-1/6 font-medium text-slate-500 text-[11px] whitespace-nowrap">
+                                <div className="flex items-center gap-1.5">
+                                  <Clock className="h-3 w-3 text-slate-400" />
+                                  <span>{dateStr}</span>
+                                </div>
+                              </div>
+
+                              {/* Status */}
+                              <div className="w-1/6">
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleStatus(app)}
+                                  title="Click to toggle Active status"
+                                  className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-bold border transition-all cursor-pointer ${
+                                    app.isReady
+                                      ? "bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100"
+                                      : "bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100"
+                                  }`}
+                                >
+                                  <span
+                                    className={`h-1.5 w-1.5 rounded-full ${
+                                      app.isReady ? "bg-emerald-500 animate-pulse" : "bg-amber-500"
+                                    }`}
+                                  />
+                                  <span>{app.isReady ? "Active" : "Coming Soon"}</span>
+                                </button>
+                              </div>
+
+                              {/* Actions */}
+                              <div className="w-1/12 pr-1 text-right">
+                                <div className="flex items-center justify-end gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => openEditModal(app)}
+                                    className="flex h-7 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-900 transition-colors shadow-2xs cursor-pointer"
+                                  >
+                                    <Edit2 className="h-3 w-3 text-blue-600" />
+                                    <span>Edit</span>
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDelete(app)}
+                                    className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 transition-colors cursor-pointer"
+                                    title="Remove product"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Extra Data for Admin Review (Collapsible Panel) */}
+                            {isExpanded && (
+                              <div className="bg-slate-50/90 border-t border-slate-100 px-6 py-4 space-y-3">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <ShieldCheck className="h-4 w-4 text-blue-600" />
+                                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-900">
+                                      Admin Review & System Registry Specs
+                                    </h4>
+                                  </div>
+                                  <span className="text-[10px] font-bold text-slate-400">
+                                    Auto-managed by Central Registry
+                                  </span>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
+                                  <div className="rounded-lg bg-white p-2.5 border border-slate-200">
+                                    <p className="text-[10px] font-bold uppercase text-slate-400">Unique Slug (ID)</p>
+                                    <p className="font-mono font-bold text-slate-800 mt-0.5">{app.id}</p>
+                                  </div>
+
+                                  <div className="rounded-lg bg-white p-2.5 border border-slate-200">
+                                    <p className="text-[10px] font-bold uppercase text-slate-400">SSO Launch Action</p>
+                                    <p className="font-semibold text-slate-700 mt-0.5">POST form submission to /api/sso</p>
+                                  </div>
+
+                                  <div className="rounded-lg bg-white p-2.5 border border-slate-200">
+                                    <p className="text-[10px] font-bold uppercase text-slate-400">Category</p>
+                                    <p className="font-semibold text-slate-700 capitalize mt-0.5">{app.category || "General"}</p>
+                                  </div>
+
+                                  <div className="rounded-lg bg-white p-2.5 border border-slate-200">
+                                    <p className="text-[10px] font-bold uppercase text-slate-400">Last Synced Timestamp</p>
+                                    <p className="font-semibold text-slate-700 mt-0.5">{dateStr}</p>
+                                  </div>
+                                </div>
+
+                                {app.features?.length > 0 && (
+                                  <div className="flex items-center gap-2 pt-1">
+                                    <span className="text-[10px] font-bold uppercase text-slate-400">Capabilities:</span>
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {app.features.map((feat, idx) => (
+                                        <span
+                                          key={idx}
+                                          className="inline-flex items-center rounded-md bg-white border border-slate-200 px-2 py-0.5 text-[10px] font-medium text-slate-600"
+                                        >
+                                          {feat}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* STREAMLINED PRODUCT FORM MODAL (Direct: Name + Website URL ONLY) */}
+          {isModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs animate-in fade-in duration-150">
+              <div
+                className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-slate-100 space-y-5"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Modal Header */}
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3.5">
+                  <div>
+                    <h2 className="text-base font-black tracking-tight text-slate-950">
+                      {editingApp ? `Edit ${editingApp.name}` : "Add Connected Product"}
+                    </h2>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Direct product configuration. Changes synchronize across the ecosystem.
+                    </p>
                   </div>
-                  <p className="text-xs font-semibold text-blue-900">{app.tagline}</p>
-                  <p className="text-xs text-slate-500 line-clamp-1">{app.description}</p>
-                  
-                  {/* Direct URLs preview */}
-                  <div className="flex items-center gap-3 pt-1 text-[11px] text-slate-600 flex-wrap">
-                    <span className="flex items-center gap-1 font-mono">
-                      <i className="fas fa-link text-blue-600 text-[10px]" />
-                      <strong>App URL:</strong>{" "}
-                      <a
-                        href={app.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-blue-600 hover:underline"
-                      >
-                        {app.url}
-                      </a>
-                    </span>
-                    {app.apiUrl && (
-                      <span className="flex items-center gap-1 font-mono text-slate-500">
-                        <i className="fas fa-server text-slate-400 text-[10px]" />
-                        <strong>API:</strong> {app.apiUrl}
-                      </span>
-                    )}
+                  <button
+                    onClick={() => setIsModalOpen(false)}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors cursor-pointer"
+                    type="button"
+                  >
+                    &times;
+                  </button>
+                </div>
+
+                {/* Direct Form: ONLY Product Name and Website URL */}
+                <form onSubmit={handleSave} className="space-y-4">
+                  {/* Field 1: Product Name */}
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                      Product Name <span className="text-rose-600">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Doorstep Books"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-xs sm:text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:border-blue-700 focus:outline-none focus:ring-1 focus:ring-blue-700/20"
+                    />
                   </div>
-                </div>
-              </div>
 
-              {/* Actions */}
-              <div className="flex items-center gap-2 self-end lg:self-center shrink-0">
-                {app.url && app.url !== "#" && (
-                  <a
-                    href={app.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-sm"
-                    title="Open Direct URL"
-                  >
-                    <i className="fas fa-external-link-alt text-[10px]" />
-                    <span>Open</span>
-                  </a>
-                )}
-                <button
-                  type="button"
-                  onClick={() => openEditModal(app)}
-                  className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-blue-700 hover:bg-blue-50 transition-colors shadow-sm"
-                >
-                  <i className="fas fa-edit text-[10px]" />
-                  <span>Edit</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDeleteConfirmId(app.id)}
-                  className="flex h-8 items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50/50 px-3 text-xs font-semibold text-rose-600 hover:bg-rose-100 transition-colors"
-                >
-                  <i className="fas fa-trash-alt text-[10px]" />
-                  <span>Remove</span>
-                </button>
+                  {/* Field 2: Website URL */}
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                      Website URL <span className="text-rose-600">*</span>
+                    </label>
+                    <div className="relative">
+                      <Globe className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-blue-700" />
+                      <input
+                        type="text"
+                        required
+                        placeholder="https://books.doorstepfilings.com"
+                        value={url}
+                        onChange={(e) => setUrl(e.target.value)}
+                        className="w-full rounded-xl border border-slate-200 pl-9 pr-3.5 py-2.5 font-mono text-xs sm:text-sm font-bold text-slate-900 placeholder:text-slate-400 focus:border-blue-700 focus:outline-none focus:ring-1 focus:ring-blue-700/20"
+                      />
+                    </div>
+                    <p className="mt-1 text-[11px] text-slate-400">
+                      Users clicking the product link or SSO will be redirected directly to this URL.
+                    </p>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => setIsModalOpen(false)}
+                      disabled={isSaving}
+                      className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+
+                    <button
+                      type="submit"
+                      disabled={isSaving}
+                      className="admin-btn h-9 rounded-xl px-5 text-xs flex items-center justify-center gap-1.5 shrink-0 cursor-pointer disabled:opacity-50"
+                    >
+                      {isSaving ? (
+                        <>
+                          <RefreshCw className="h-3 w-3 animate-spin" />
+                          <span>Saving...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>{editingApp ? "Save Changes" : "Add Product"}</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
               </div>
             </div>
-          ))}
+          )}
+
+          {/* Confirm Dialog */}
+          <ConfirmDialog />
         </div>
-      </div>
-
-      {/* Add / Edit Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-150">
-          <div
-            className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-900 text-white">
-                  <i className="fas fa-cubes text-base" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold text-slate-900">
-                    {editingApp ? "Edit Connected Product" : "Add New Ecosystem Product"}
-                  </h2>
-                  <p className="text-xs text-slate-500">
-                    Set up direct URLs, icons, and capabilities for the suite.
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100"
-                type="button"
-              >
-                <i className="fas fa-times" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSave} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Product Name */}
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-                    Product Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Doorstep Books"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs sm:text-sm text-slate-900 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
-                  />
-                </div>
-
-                {/* Product ID / Slug */}
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-                    Product ID / Slug
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. doorstep-books"
-                    value={id}
-                    onChange={(e) => setId(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2 font-mono text-xs text-slate-900 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
-                  />
-                </div>
-              </div>
-
-              {/* Tagline */}
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-                  Tagline / Subtitle
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Smart Accounting, Invoicing & GST"
-                  value={tagline}
-                  onChange={(e) => setTagline(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs sm:text-sm text-slate-900 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Direct Web URL */}
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-                    Direct Web URL *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="https://books.doorstepfilings.com"
-                    value={url}
-                    onChange={(e) => setUrl(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2 font-mono text-xs text-slate-900 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
-                  />
-                </div>
-
-                {/* API URL */}
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-                    API / Verification URL (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="http://127.0.0.1:5000/auth/api-key/token"
-                    value={apiUrl}
-                    onChange={(e) => setApiUrl(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2 font-mono text-xs text-slate-900 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {/* Category */}
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-                    Category
-                  </label>
-                  <select
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value as any)}
-                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs text-slate-900 focus:border-blue-600 focus:outline-none"
-                  >
-                    <option value="accounting">Accounting &amp; GST</option>
-                    <option value="hrms">HRMS &amp; Payroll</option>
-                    <option value="erp">ERP &amp; Inventory</option>
-                    <option value="crm">CRM &amp; Sales</option>
-                    <option value="legal">Legal &amp; Compliance</option>
-                    <option value="custom">Custom / Partner Tool</option>
-                  </select>
-                </div>
-
-                {/* Icon */}
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-                    Icon
-                  </label>
-                  <select
-                    value={icon}
-                    onChange={(e) => setIcon(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs text-slate-900 focus:border-blue-600 focus:outline-none"
-                  >
-                    {AVAILABLE_ICONS.map((i) => (
-                      <option key={i.value} value={i.value}>
-                        {i.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Color Theme */}
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-                    Color Theme
-                  </label>
-                  <select
-                    value={color}
-                    onChange={(e) => setColor(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs text-slate-900 focus:border-blue-600 focus:outline-none"
-                  >
-                    {AVAILABLE_GRADIENTS.map((g) => (
-                      <option key={g.value} value={g.value}>
-                        {g.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-                  Description
-                </label>
-                <textarea
-                  rows={2}
-                  placeholder="Short overview of what this application does..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 p-3 text-xs text-slate-900 focus:border-blue-600 focus:outline-none"
-                />
-              </div>
-
-              {/* Capabilities */}
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-                  Capabilities (Comma or Newline separated)
-                </label>
-                <textarea
-                  rows={2}
-                  placeholder="GST Invoicing, Bank Reconciliation, P&L Reports"
-                  value={features}
-                  onChange={(e) => setFeatures(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 p-3 text-xs text-slate-900 focus:border-blue-600 focus:outline-none"
-                />
-              </div>
-
-              {/* Status Toggle */}
-              <div className="flex items-center justify-between p-3 rounded-xl border border-slate-200 bg-slate-50">
-                <div>
-                  <p className="text-xs font-bold text-slate-900">Launch Status</p>
-                  <p className="text-[11px] text-slate-500">
-                    {isReady
-                      ? "Active: Users can connect via API key and launch directly."
-                      : "Coming Soon: Displayed with a 'Coming Soon' badge."}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsReady(!isReady)}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                    isReady ? "bg-emerald-600" : "bg-slate-300"
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                      isReady ? "translate-x-5" : "translate-x-0"
-                    }`}
-                  />
-                </button>
-              </div>
-
-              {/* Submit Buttons */}
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex items-center gap-2 rounded-xl bg-blue-900 px-5 py-2 text-xs font-bold text-white shadow-sm hover:bg-blue-800 transition-all"
-                >
-                  <i className="fas fa-save" />
-                  <span>{editingApp ? "Save Changes" : "Register Product"}</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Confirmation Modal */}
-      {deleteConfirmId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
-            <div className="flex items-center gap-3 text-rose-600 mb-3">
-              <i className="fas fa-exclamation-triangle text-xl" />
-              <h3 className="text-base font-bold text-slate-900">Remove Product from Suite</h3>
-            </div>
-            <p className="text-xs text-slate-600 mb-5 leading-relaxed">
-              Are you sure you want to remove this product from the Doorstep Suite? It will immediately disappear from all user dashboards and the app switcher.
-            </p>
-            <div className="flex items-center justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setDeleteConfirmId(null)}
-                className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDelete(deleteConfirmId)}
-                className="rounded-xl bg-rose-600 px-4 py-2 text-xs font-bold text-white hover:bg-rose-700 transition-colors shadow-sm"
-              >
-                Yes, Remove Product
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+      </AdminLayout>
+    </AuthGuard>
   );
 }
