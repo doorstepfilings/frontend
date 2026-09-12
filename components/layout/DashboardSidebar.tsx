@@ -31,7 +31,7 @@ const navItems = [
   { path: "/dashboard/documents", label: "Documents", icon: "fa-folder-open" },
   { path: "/dashboard/certificates", label: "Certificates", icon: "fa-award" },
   { path: "/dashboard/reports", label: "Reports", icon: "fa-file-alt" },
-  { path: "/dashboard/connected-apps", label: "Connected Apps", icon: "fa-cubes" },
+  { path: "/dashboard/connected-apps", label: "Doorstep Apps", icon: "fa-cubes" },
 ];
 
 export default function DashboardSidebar({

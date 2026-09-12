@@ -23,7 +23,7 @@ const pageItems = [
   { path: "/dashboard/documents", label: "Documents" },
   { path: "/dashboard/certificates", label: "Certificates" },
   { path: "/dashboard/reports", label: "Reports" },
-  { path: "/dashboard/connected-apps", label: "Connected Apps" },
+  { path: "/dashboard/connected-apps", label: "Doorstep Apps" },
   { path: "/account", label: "My Profile" },
 ];
 

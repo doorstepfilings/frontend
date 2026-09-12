@@ -218,7 +218,7 @@ export const DocumentUpload = ({
                   {rowSource === "existing" ? (
                     <div>
                       <SearchableSelect
-                        value={row.existing_document_id || ""}
+                        value={row.existing_document_id ? String(row.existing_document_id) : ""}
                         onChange={(event) =>
                           onExistingDocumentChange?.(index, event.target.value)
                         }
@@ -368,3 +368,4 @@ export const DocumentUpload = ({
     </div>
   );
 };
+

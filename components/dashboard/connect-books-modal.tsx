@@ -31,7 +31,7 @@ export function ConnectBooksModal({
   initialError,
   onSuccess,
 }: ConnectBooksModalProps) {
-  const [activeTab, setActiveTab] = useState<Tab>("browser");
+  const [activeTab, setActiveTab] = useState<Tab>(() => (initialError ? "manual" : "manual"));
   const [apiKey, setApiKey] = useState(existingConnection?.apiKey || "");
   const [showKey, setShowKey] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -46,14 +46,6 @@ export function ConnectBooksModal({
   const targetAppUrl = appConfigData
     ? resolveAppLaunchUrl(appConfigData)
     : appConfig.booksAppUrl || "https://books.doorstepfilings.com";
-
-  // If there's an error (e.g. revoked key) start on the manual tab for clarity
-  useEffect(() => {
-    if (initialError) {
-      setError(initialError);
-      setActiveTab("manual");
-    }
-  }, [initialError]);
 
   // Clean up popup listener on unmount or close
   useEffect(() => {
@@ -160,12 +152,12 @@ export function ConnectBooksModal({
 
     const trimmed = apiKey.trim();
     if (!trimmed) {
-      setError("Please provide an API Key.");
+      setError("Please provide a License Key.");
       return;
     }
 
-    if (!trimmed.startsWith("ds_") && trimmed.length < 8) {
-      setError("Invalid API Key format. Valid keys start with 'ds_'.");
+    if (!trimmed.toUpperCase().startsWith("DSLIC-") && !trimmed.toUpperCase().startsWith("DSBOK-") && !trimmed.startsWith("ds_") && trimmed.length < 8) {
+      setError("Invalid License Key format. Valid keys start with 'DSBOK-', 'DSLIC-', or 'ds_'.");
       return;
     }
 
@@ -174,7 +166,7 @@ export function ConnectBooksModal({
     try {
       const verification = await verifyBooksApiKey(trimmed, appConfigData?.apiUrl);
       if (!verification.success) {
-        setError(verification.message || `Failed to verify API Key with ${targetAppName}.`);
+        setError(verification.message || `Failed to verify License Key with ${targetAppName}.`);
         setLoading(false);
         return;
       }
@@ -247,93 +239,27 @@ export function ConnectBooksModal({
           </div>
         )}
 
-        {/* Method Tabs */}
-        <div className="flex gap-1 rounded-2xl bg-gray-100 p-1">
-          <button
-            type="button"
-            onClick={() => { setActiveTab("browser"); setError(null); }}
-            className={`flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold transition-all ${
-              activeTab === "browser"
-                ? "bg-white text-emerald-800 shadow-sm border border-emerald-100"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            <i className="fas fa-bolt text-amber-500 text-[10px]" />
-            1-Click Browser Sync
-          </button>
-          <button
-            type="button"
-            onClick={() => { setActiveTab("manual"); setError(null); }}
-            className={`flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold transition-all ${
-              activeTab === "manual"
-                ? "bg-white text-blue-900 shadow-sm border border-blue-100"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            <i className="fas fa-key text-[10px]" />
-            Manual API Key
-          </button>
-        </div>
+        {/* Method Tabs removed since we only support manual license key now */}
 
-        {/* Tab: 1-Click Browser Sync */}
-        {activeTab === "browser" && (
-          <div className="space-y-4">
-            <div className="rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50/80 to-teal-50/40 p-4 space-y-2.5">
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
-                  <i className="fas fa-shield-alt text-sm" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-emerald-900">Zero-Password Handshake</p>
-                  <p className="text-[11px] text-emerald-700">Authorize directly in your Books session — no copy-paste required</p>
-                </div>
-              </div>
-              <div className="space-y-1.5 pl-10 text-[11px] text-emerald-800">
-                <p className="flex items-center gap-1.5"><i className="fas fa-check text-emerald-600" /> Opens Books in a secure popup</p>
-                <p className="flex items-center gap-1.5"><i className="fas fa-check text-emerald-600" /> You click &quot;Authorize &amp; Connect&quot; inside Books</p>
-                <p className="flex items-center gap-1.5"><i className="fas fa-check text-emerald-600" /> Popup auto-closes, connection saved instantly</p>
-              </div>
+        {/* Tab: Manual License Key */}
+        {loading ? (
+          <div className="space-y-4 animate-pulse">
+            <div className="h-16 bg-gray-200 rounded-2xl w-full mb-4"></div>
+            <div className="space-y-2">
+              <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+              <div className="h-12 bg-gray-200 rounded-2xl w-full"></div>
             </div>
-
-            <button
-              type="button"
-              onClick={handleBrowserSync}
-              disabled={popupLoading}
-              className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-700 to-blue-900 px-4 py-3.5 text-sm font-bold text-white shadow-md shadow-teal-900/15 transition-all hover:opacity-95 hover:shadow-lg disabled:opacity-60 cursor-pointer"
-            >
-              {popupLoading ? (
-                <>
-                  <i className="fas fa-circle-notch fa-spin text-sm" />
-                  <span>Waiting for authorization in Books...</span>
-                </>
-              ) : (
-                <>
-                  <i className="fas fa-bolt text-amber-300 text-sm" />
-                  <span>Open {targetAppName} &amp; Authorize</span>
-                </>
-              )}
-            </button>
-
-            <p className="text-center text-[11px] text-gray-400">
-              Not logged into {targetAppName}?{" "}
-              <button
-                type="button"
-                className="text-blue-600 font-semibold hover:underline"
-                onClick={() => setActiveTab("manual")}
-              >
-                Use manual API key instead
-              </button>
-            </p>
+            <div className="flex justify-end gap-3 pt-3 mt-4 border-t border-gray-100">
+              <div className="h-10 bg-gray-200 rounded-2xl w-24"></div>
+              <div className="h-10 bg-emerald-200 rounded-2xl w-32"></div>
+            </div>
           </div>
-        )}
-
-        {/* Tab: Manual API Key */}
-        {activeTab === "manual" && (
+        ) : (
           <form onSubmit={handleManualSubmit} className="space-y-4">
             <div className="rounded-2xl border border-blue-100 bg-blue-50/50 p-3.5 text-xs text-blue-900 space-y-1.5">
               <p className="font-bold flex items-center gap-1.5 text-blue-950">
                 <i className="fas fa-info-circle text-blue-600" />
-                Where to find your API Key:
+                Where to find your License Key:
               </p>
               <p className="text-blue-900/90 text-[11px] leading-relaxed">
                 Log in to{" "}
@@ -345,18 +271,18 @@ export function ConnectBooksModal({
                 >
                   {targetAppName}
                 </a>{" "}
-                &rarr; Go to <strong>Settings &gt; API Keys</strong> &rarr; Copy your key.
+                &rarr; Go to <strong>Settings &gt; License Keys</strong> &rarr; Copy your key.
               </p>
             </div>
 
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
-                {targetAppName} API Key
+                {targetAppName} License Key
               </label>
               <div className="relative">
                 <input
                   type={showKey ? "text" : "password"}
-                  placeholder="ds_xxxxxxxxxxxxxxxx"
+                  placeholder={targetAppId.includes("book") ? "DSBOK-XXXX-XXXX-XXXX-XXXX" : "DSLIC-XXXX-XXXX-XXXX-XXXX"}
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
                   disabled={loading}
@@ -386,17 +312,10 @@ export function ConnectBooksModal({
                 disabled={loading}
                 className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-700 px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-emerald-700/20 hover:from-emerald-700 hover:to-teal-800 transition-all disabled:opacity-50 cursor-pointer"
               >
-                {loading ? (
-                  <>
-                    <i className="fas fa-spinner fa-spin text-xs" />
-                    <span>Verifying Key...</span>
-                  </>
-                ) : (
-                  <>
-                    <i className="fas fa-link text-xs" />
-                    <span>{existingConnection ? "Update Connection" : "Verify & Connect"}</span>
-                  </>
-                )}
+                <>
+                  <i className="fas fa-link text-xs" />
+                  <span>{existingConnection ? "Update Connection" : "Verify & Connect"}</span>
+                </>
               </button>
             </div>
           </form>
