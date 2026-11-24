@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import {
   ConnectedAppConfig,
@@ -11,13 +11,16 @@ import {
   AppConnectionData,
 } from "@/lib/auth/connected-apps";
 import { ConnectBooksModal } from "@/components/dashboard/connect-books-modal";
+import { useStoredUser } from "@/lib/auth/hooks";
 
 type FilterTab = "all" | "connected" | "ready" | "upcoming";
 
 export function ConnectedAppsView() {
+  const user = useStoredUser();
+  const userId = user?.id ?? user?.user_id;
   const [apps, setApps] = useState<ConnectedAppConfig[]>(() => getEcosystemApps());
   const [connections, setConnections] = useState<Record<string, AppConnectionData>>(() =>
-    getStoredConnectedApps()
+    getStoredConnectedApps(userId)
   );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedApp, setSelectedApp] = useState<ConnectedAppConfig | null>(null);
@@ -25,13 +28,14 @@ export function ConnectedAppsView() {
   const [searchQuery, setSearchQuery] = useState("");
   const [copiedKeyId, setCopiedKeyId] = useState<string | null>(null);
 
-  const refreshData = () => {
+  const refreshData = useCallback(() => {
     setApps(getEcosystemApps());
-    setConnections(getStoredConnectedApps());
-  };
+    setConnections(getStoredConnectedApps(userId));
+  }, [userId]);
 
   useEffect(() => {
     const handleUpdate = () => refreshData();
+    handleUpdate();
     window.addEventListener("doorstep-connected-apps-change", handleUpdate);
     window.addEventListener("doorstep-ecosystem-registry-change", handleUpdate);
     window.addEventListener("storage", handleUpdate);
@@ -40,11 +44,11 @@ export function ConnectedAppsView() {
       window.removeEventListener("doorstep-ecosystem-registry-change", handleUpdate);
       window.removeEventListener("storage", handleUpdate);
     };
-  }, []);
+  }, [refreshData]);
 
   const handleDisconnect = (appId: string) => {
     if (confirm("Are you sure you want to disconnect this application?")) {
-      removeAppConnection(appId);
+      removeAppConnection(appId, userId);
       refreshData();
     }
   };
@@ -249,7 +253,7 @@ export function ConnectedAppsView() {
                           const launched = await verifyAndLaunchApp(app, connection, () => {
                             openConnectModal(app);
                             refreshData();
-                          });
+                          }, userId);
                           if (!launched) refreshData();
                         }}
                         className="w-full rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-700 px-4 py-3 text-xs font-bold text-white shadow-md shadow-emerald-700/20 hover:from-emerald-700 hover:to-teal-800 transition-all"

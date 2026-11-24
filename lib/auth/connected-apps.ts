@@ -95,6 +95,12 @@ export const DOORSTEP_ECOSYSTEM_APPS = DOORSTEP_DEFAULT_APPS;
 const REGISTRY_STORAGE_KEY = "doorstep_ecosystem_registry";
 const CONNECTION_STORAGE_KEY = "doorstep_connected_apps";
 
+function connectionStorageKey(userId?: string | number | null): string | null {
+  return userId == null || String(userId).trim() === ""
+    ? null
+    : `${CONNECTION_STORAGE_KEY}:${userId}`;
+}
+
 let isSyncing = false;
 let hasSyncedOnce = false;
 
@@ -105,7 +111,7 @@ export async function syncEcosystemAppsFromServer(): Promise<ConnectedAppConfig[
     const res = await fetch("/api/connected-products", { cache: "no-store" });
     if (!res.ok) return getEcosystemApps();
     const json = await res.json();
-    if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+    if (json.success && Array.isArray(json.data)) {
       localStorage.setItem(REGISTRY_STORAGE_KEY, JSON.stringify(json.data));
       window.dispatchEvent(new Event("doorstep-ecosystem-registry-change"));
       hasSyncedOnce = true;
@@ -156,7 +162,7 @@ export function getEcosystemApps(): ConnectedAppConfig[] {
       return DOORSTEP_DEFAULT_APPS;
     }
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.length > 0) {
+    if (Array.isArray(parsed)) {
       let hasChanges = false;
 
       const updated = parsed.map((item: ConnectedAppConfig) => {
@@ -193,65 +199,46 @@ export function getEcosystemApps(): ConnectedAppConfig[] {
 
 export async function saveEcosystemApp(app: ConnectedAppConfig): Promise<void> {
   if (typeof window === "undefined") return;
-  try {
-    const current = getEcosystemApps();
-    const existingIndex = current.findIndex((item) => item.id === app.id);
-    let updated: ConnectedAppConfig[];
-    if (existingIndex >= 0) {
-      updated = [...current];
-      updated[existingIndex] = app;
-    } else {
-      updated = [...current, app];
-    }
-    localStorage.setItem(REGISTRY_STORAGE_KEY, JSON.stringify(updated));
-    window.dispatchEvent(new Event("doorstep-ecosystem-registry-change"));
+  const current = getEcosystemApps();
+  const existingIndex = current.findIndex((item) => item.id === app.id);
+  let updated: ConnectedAppConfig[];
+  if (existingIndex >= 0) {
+    updated = [...current];
+    updated[existingIndex] = app;
+  } else {
+    updated = [...current, app];
+  }
+  await persistEcosystemApps(updated);
+  localStorage.setItem(REGISTRY_STORAGE_KEY, JSON.stringify(updated));
+  window.dispatchEvent(new Event("doorstep-ecosystem-registry-change"));
+}
 
-    // Persist to server API so all users receive the updated URL
-    await fetch("/api/connected-products", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ products: updated }),
-    }).catch((err) => console.error("Server persistence error:", err));
-  } catch (err) {
-    console.error("Failed to save ecosystem app to registry:", err);
+async function persistEcosystemApps(products: ConnectedAppConfig[]): Promise<void> {
+  const response = await fetch("/api/connected-products", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ products }),
+  });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null);
+    throw new Error(payload?.message || "Failed to save connected products.");
   }
 }
 
 export async function deleteEcosystemApp(appId: string): Promise<void> {
   if (typeof window === "undefined") return;
-  try {
-    const current = getEcosystemApps();
-    const updated = current.filter((item) => item.id !== appId);
-    localStorage.setItem(REGISTRY_STORAGE_KEY, JSON.stringify(updated));
-    removeAppConnection(appId);
-    window.dispatchEvent(new Event("doorstep-ecosystem-registry-change"));
-
-    // Persist deletion to server API
-    await fetch("/api/connected-products", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ products: updated }),
-    }).catch((err) => console.error("Server persistence error:", err));
-  } catch (err) {
-    console.error("Failed to delete ecosystem app from registry:", err);
-  }
+  const current = getEcosystemApps();
+  const updated = current.filter((item) => item.id !== appId);
+  await persistEcosystemApps(updated);
+  localStorage.setItem(REGISTRY_STORAGE_KEY, JSON.stringify(updated));
+  window.dispatchEvent(new Event("doorstep-ecosystem-registry-change"));
 }
 
 export async function resetEcosystemAppsToDefault(): Promise<void> {
   if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(REGISTRY_STORAGE_KEY, JSON.stringify(DOORSTEP_DEFAULT_APPS));
-    window.dispatchEvent(new Event("doorstep-ecosystem-registry-change"));
-
-    // Persist reset to server API
-    await fetch("/api/connected-products", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ products: DOORSTEP_DEFAULT_APPS }),
-    }).catch((err) => console.error("Server persistence error:", err));
-  } catch (err) {
-    console.error("Failed to reset ecosystem apps registry:", err);
-  }
+  await persistEcosystemApps(DOORSTEP_DEFAULT_APPS);
+  localStorage.setItem(REGISTRY_STORAGE_KEY, JSON.stringify(DOORSTEP_DEFAULT_APPS));
+  window.dispatchEvent(new Event("doorstep-ecosystem-registry-change"));
 }
 
 export function maskApiKey(key: string): string {
@@ -261,10 +248,14 @@ export function maskApiKey(key: string): string {
   return `${prefix}${"•".repeat(Math.max(4, key.length - 7))}${suffix}`;
 }
 
-export function getStoredConnectedApps(): Record<string, AppConnectionData> {
+export function getStoredConnectedApps(userId?: string | number | null): Record<string, AppConnectionData> {
   if (typeof window === "undefined") return {};
+  const storageKey = connectionStorageKey(userId);
+  if (!storageKey) return {};
   try {
-    const raw = localStorage.getItem(CONNECTION_STORAGE_KEY);
+    // The old shared key could expose one account's connection to the next signer-in.
+    localStorage.removeItem(CONNECTION_STORAGE_KEY);
+    const raw = localStorage.getItem(storageKey);
     if (!raw) return {};
     return JSON.parse(raw);
   } catch (err) {
@@ -273,29 +264,33 @@ export function getStoredConnectedApps(): Record<string, AppConnectionData> {
   }
 }
 
-export function getStoredAppConnection(appId: string): AppConnectionData | null {
-  const all = getStoredConnectedApps();
+export function getStoredAppConnection(appId: string, userId?: string | number | null): AppConnectionData | null {
+  const all = getStoredConnectedApps(userId);
   return all[appId] || null;
 }
 
-export function saveAppConnection(data: AppConnectionData): void {
+export function saveAppConnection(data: AppConnectionData, userId?: string | number | null): void {
   if (typeof window === "undefined") return;
+  const storageKey = connectionStorageKey(userId);
+  if (!storageKey) return;
   try {
-    const all = getStoredConnectedApps();
+    const all = getStoredConnectedApps(userId);
     all[data.appId] = data;
-    localStorage.setItem(CONNECTION_STORAGE_KEY, JSON.stringify(all));
+    localStorage.setItem(storageKey, JSON.stringify(all));
     window.dispatchEvent(new Event("doorstep-connected-apps-change"));
   } catch (err) {
     console.error("Failed to save app connection to storage:", err);
   }
 }
 
-export function removeAppConnection(appId: string): void {
+export function removeAppConnection(appId: string, userId?: string | number | null): void {
   if (typeof window === "undefined") return;
+  const storageKey = connectionStorageKey(userId);
+  if (!storageKey) return;
   try {
-    const all = getStoredConnectedApps();
+    const all = getStoredConnectedApps(userId);
     delete all[appId];
-    localStorage.setItem(CONNECTION_STORAGE_KEY, JSON.stringify(all));
+    localStorage.setItem(storageKey, JSON.stringify(all));
     window.dispatchEvent(new Event("doorstep-connected-apps-change"));
   } catch (err) {
     console.error("Failed to remove app connection from storage:", err);
@@ -305,7 +300,7 @@ export function removeAppConnection(appId: string): void {
 export async function verifyBooksApiKey(
   apiKey: string,
   customApiUrl?: string
-): Promise<{ success: boolean; message?: string; accessToken?: string }> {
+): Promise<{ success: boolean; message?: string; accessToken?: string; unavailable?: boolean }> {
   const trimmedKey = apiKey.trim();
 
   if (!trimmedKey) {
@@ -355,8 +350,9 @@ export async function verifyBooksApiKey(
       };
     }
     return {
-      success: true,
-      message: "API Key format verified.",
+      success: false,
+      message: "Could not reach Doorstep Books to verify this key. Please try again later.",
+      unavailable: true,
     };
   }
 }
@@ -507,7 +503,8 @@ export async function getServerAuthoritativeConnectUrl(appId: string): Promise<s
 export async function validateConnectionHealth(
   appId: string,
   apiKey: string,
-  customApiUrl?: string
+  customApiUrl?: string,
+  userId?: string | number | null
 ): Promise<{ isValid: boolean; message?: string }> {
   if (!apiKey) {
     return { isValid: false, message: "No API key found." };
@@ -516,12 +513,12 @@ export async function validateConnectionHealth(
   const result = await verifyBooksApiKey(apiKey, customApiUrl);
   if (!result.success) {
     // Update stored connection status to 'error'
-    const current = getStoredAppConnection(appId);
-    if (current) {
+    const current = getStoredAppConnection(appId, userId);
+    if (current && !result.unavailable) {
       saveAppConnection({
         ...current,
         status: "error",
-      });
+      }, userId);
     }
     return {
       isValid: false,
@@ -535,7 +532,8 @@ export async function validateConnectionHealth(
 export async function verifyAndLaunchApp(
   app: ConnectedAppConfig,
   connection?: AppConnectionData | null,
-  onRevoked?: (message: string) => void
+  onRevoked?: (message: string) => void,
+  userId?: string | number | null
 ): Promise<boolean> {
   if (!connection?.apiKey) {
     // No API key — launch via server proxy (opens app without SSO)
@@ -544,7 +542,7 @@ export async function verifyAndLaunchApp(
   }
 
   // Check health before launching to prevent broken states
-  const health = await validateConnectionHealth(app.id, connection.apiKey, app.apiUrl);
+  const health = await validateConnectionHealth(app.id, connection.apiKey, app.apiUrl, userId);
   if (!health.isValid) {
     if (onRevoked) {
       onRevoked(health.message || "Your API key has been revoked. Please reconnect to continue.");

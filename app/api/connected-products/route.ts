@@ -90,7 +90,7 @@ async function readProductsFromFile(): Promise<ConnectedAppItem[]> {
   try {
     const raw = await fs.readFile(DATA_FILE_PATH, "utf-8");
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.length > 0) {
+    if (Array.isArray(parsed)) {
       let modified = false;
       const cleaned = parsed.map((item: ConnectedAppItem) => {
         if (item.id === "doorstep-books" && item.url?.includes("staging-books")) {

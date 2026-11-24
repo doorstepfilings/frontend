@@ -31,7 +31,8 @@ export function ConnectBooksModal({
   initialError,
   onSuccess,
 }: ConnectBooksModalProps) {
-  const [activeTab, setActiveTab] = useState<Tab>(() => (initialError ? "manual" : "manual"));
+ 
+  const [activeTab, setActiveTab] = useState<Tab>("manual");
   const [apiKey, setApiKey] = useState(existingConnection?.apiKey || "");
   const [showKey, setShowKey] = useState(false);
   const [loading, setLoading] = useState(false);

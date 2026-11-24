@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import { useStoredUser } from "@/lib/auth/hooks";
 import {
   ConnectedAppConfig,
   getEcosystemApps,
@@ -13,18 +14,21 @@ import {
 
 
 export function AppSwitcher() {
+  const user = useStoredUser();
+  const userId = user?.id ?? user?.user_id;
   const [isOpen, setIsOpen] = useState(false);
   const [apps, setApps] = useState<ConnectedAppConfig[]>(() => getEcosystemApps());
   const [connections, setConnections] = useState<Record<string, AppConnectionData>>(() =>
-    getStoredConnectedApps()
+    getStoredConnectedApps(userId)
   );
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleUpdate = () => {
       setApps(getEcosystemApps());
-      setConnections(getStoredConnectedApps());
+      setConnections(getStoredConnectedApps(userId));
     };
+    handleUpdate();
     window.addEventListener("doorstep-connected-apps-change", handleUpdate);
     window.addEventListener("doorstep-ecosystem-registry-change", handleUpdate);
     window.addEventListener("storage", handleUpdate);
@@ -33,7 +37,7 @@ export function AppSwitcher() {
       window.removeEventListener("doorstep-ecosystem-registry-change", handleUpdate);
       window.removeEventListener("storage", handleUpdate);
     };
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -42,23 +42,25 @@ export default function DashboardSidebar({
   const router = useRouter();
   const dispatch = useAppDispatch();
   const user = useStoredUser();
+  const userId = user?.id ?? user?.user_id;
 
   const [apps, setApps] = useState<ConnectedAppConfig[]>(() => getEcosystemApps());
   const [connections, setConnections] = useState<Record<string, AppConnectionData>>(() =>
-    getStoredConnectedApps()
+    getStoredConnectedApps(userId)
   );
   const [launchingAppId, setLaunchingAppId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedApp, setSelectedApp] = useState<ConnectedAppConfig | null>(null);
   const [revokedMessage, setRevokedMessage] = useState<string | null>(null);
 
-  const refreshData = () => {
+  const refreshData = useCallback(() => {
     setApps(getEcosystemApps());
-    setConnections(getStoredConnectedApps());
-  };
+    setConnections(getStoredConnectedApps(userId));
+  }, [userId]);
 
   useEffect(() => {
     const handleUpdate = () => refreshData();
+    handleUpdate();
     window.addEventListener("doorstep-connected-apps-change", handleUpdate);
     window.addEventListener("doorstep-ecosystem-registry-change", handleUpdate);
     window.addEventListener("storage", handleUpdate);
@@ -67,7 +69,7 @@ export default function DashboardSidebar({
       window.removeEventListener("doorstep-ecosystem-registry-change", handleUpdate);
       window.removeEventListener("storage", handleUpdate);
     };
-  }, []);
+  }, [refreshData]);
 
   const handleLogout = async () => {
     await dispatch(logout()).unwrap();
@@ -105,7 +107,7 @@ export default function DashboardSidebar({
         setSelectedApp(app);
         setIsModalOpen(true);
         refreshData();
-      });
+      }, userId);
 
       if (launched) {
         setIsOpen(false);
